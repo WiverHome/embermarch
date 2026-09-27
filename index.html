@@ -24,6 +24,8 @@
   --map-line:#3a3548;
   --map-line-cleared:#514a2c;
   --map-locked:#242030;
+  --map-band-a:rgba(255,255,255,.015);
+  --map-band-b:rgba(255,255,255,.045);
   color-scheme:dark;
 }
 :root[data-theme="light"]{
@@ -48,6 +50,8 @@
   --map-line:#cdbb98;
   --map-line-cleared:#b79a58;
   --map-locked:#e9dcc0;
+  --map-band-a:rgba(43,33,23,.02);
+  --map-band-b:rgba(43,33,23,.055);
   color-scheme:light;
 }
 *{box-sizing:border-box;}
@@ -165,13 +169,17 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .gold-badge{color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600;}
 
 /* ---- map ---- */
-.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;}
-.map-svg{display:block;height:220px;width:auto;max-width:none;}
+.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;position:relative;}
+.map-svg{display:block;height:320px;width:auto;max-width:none;}
 .map-node{cursor:pointer;}
-.map-node.locked{cursor:default;}
-.map-node text{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.05em;fill:var(--bg);font-weight:700;}
+.map-node text{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.05em;fill:var(--bg);font-weight:700;pointer-events:none;}
+.map-node text.map-node-icon{font-size:15px;letter-spacing:0;pointer-events:none;}
+.map-tier-label{font-family:'Marcellus',serif;font-size:12px;letter-spacing:.08em;fill:var(--muted);text-transform:uppercase;}
+.map-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
 .map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
+.node-preview-type{font-family:'Marcellus',serif;font-size:18px;margin-bottom:4px;}
+.node-preview-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;margin-bottom:10px;color:var(--bg);}
 
 /* ---- hero select / formation ---- */
 .hero-pick{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;}
@@ -410,6 +418,7 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
   <section id="screen-map" hidden>
     <div class="map-wrap">
       <svg id="map-svg" class="map-svg" viewBox="0 0 400 100"></svg>
+      <div class="map-hint" id="map-hint"></div>
       <div class="map-legend">
         <span><span class="legend-dot" style="background:var(--accent)"></span><span id="legend-battle"></span></span>
         <span><span class="legend-dot" style="background:var(--danger)"></span><span id="legend-elite"></span></span>
@@ -559,6 +568,7 @@ const STATIC_I18N = {
   'legend-event':{en:'Event',ru:'Событие'},
   'legend-shop':{en:'Shop',ru:'Лавка'},
   'legend-rest':{en:'Rest',ru:'Привал'},
+  'map-hint':{en:'Tap any node to preview it. Glowing nodes are open to enter.',ru:'Нажмите на любую точку карты, чтобы её осмотреть. Светящиеся точки открыты для входа.'},
   'btn-formation':{en:'Formation & Gear',ru:'Строй и снаряжение'},
   'btn-abandon':{en:'Abandon March',ru:'Прервать поход'},
   'zone-foes':{en:'Foes',ru:'Враги'},
@@ -1324,15 +1334,33 @@ function openModal(node){const back=el('div','modal-backdrop');const box=el('div
 
 function clampIdx(i,n){return clamp(i,0,n-1);}
 
-const LAYER_PLAN = [
-  {count:3, pool:['battle','battle','event']},
-  {count:4, pool:['battle','battle','event','shop']},
-  {count:4, pool:['battle','event','elite','battle']},
-  {count:4, pool:['battle','battle','event','elite','shop']},
-  {count:3, pool:['battle','event','elite']},
-  {count:3, pool:['battle','elite','event','shop']},
-  {count:2, pool:['rest']},
-];
+/* The march is TOTAL_MAP_LAYERS node-layers long, plus a boss layer at the end
+   (so the topbar/gameover screens show "N / TOTAL_STEPS"). The plan is built
+   programmatically instead of hand-listed so the march length can be tuned by
+   changing one number rather than rewriting a long array by hand. Elites start
+   appearing once tier 2 begins (see tierForLayer below); shops show up on a
+   steady cadence; the last few layers before the boss have a chance at a rest
+   node mixed in (not a whole rest-only layer) so players can breathe without
+   ever making the toughest content unreachable, the way an all-rest final
+   layer once did (see the tierForLayer comment). */
+const TOTAL_MAP_LAYERS = 19;
+const TOTAL_STEPS = TOTAL_MAP_LAYERS+1; // +1 for the boss layer; used in "N / TOTAL_STEPS" displays
+function buildLayerPlan(){
+  const plan=[];
+  for(let li=0;li<TOTAL_MAP_LAYERS;li++){
+    const hasElite=li>=3;
+    const hasShop=(li+1)%5===0;
+    const nearEnd=li>=TOTAL_MAP_LAYERS-4;
+    const pool=['battle','battle','event'];
+    if(hasElite)pool.push('elite');
+    if(hasShop)pool.push('shop');
+    if(nearEnd)pool.push('rest');
+    const count=(li%3===2)?4:3;
+    plan.push({count:count,pool:pool});
+  }
+  return plan;
+}
+const LAYER_PLAN = buildLayerPlan();
 
 function generateMap(){
   const layers=[];
@@ -1553,12 +1581,15 @@ function startNewRun(heroKeys,dailySeed){
 
 /* ============================= COMBAT ENGINE ============================= */
 
-/* Tier thresholds line up with LAYER_PLAN's node types: layers 0-1 are tier 1, 2-3 are
-   tier 2, 4 is tier 3, and 5-6 are tier 4. This matters because layer 6 (the last one
-   before the boss) is rest-only in LAYER_PLAN — with the old li<6 cutoff, tier 4 was
-   never actually reachable, so its enemy pool (knight/banshee/wraith/caster/zealot and
-   the Ashlord elite) was dead content and the run's final stretch was undertuned. */
-function tierForLayer(li){return li<2?1:(li<4?2:(li<5?3:4));}
+/* Tier thresholds are proportional to TOTAL_MAP_LAYERS (currently 19): roughly the
+   first sixth is tier 1, the next quarter tier 2, the next third tier 3, and the
+   rest — including the final layer — tier 4. Every tier's layer range always has
+   real battle/elite nodes in LAYER_PLAN (buildLayerPlan never makes a whole layer
+   rest-only), so no tier is ever unreachable the way tier 4 once was. */
+function tierForLayer(li){
+  const t1=Math.round(TOTAL_MAP_LAYERS*0.16),t2=Math.round(TOTAL_MAP_LAYERS*0.42),t3=Math.round(TOTAL_MAP_LAYERS*0.74);
+  return li<t1?1:(li<t2?2:(li<t3?3:4));
+}
 
 function enemyScale(li){
   const asc=1+RUN.ascension*0.14;
@@ -2274,7 +2305,7 @@ function renderTopbar(){
   if(!RUN)return;
   const cur = RUN.currentNodeId?findNode(RUN.map,RUN.currentNodeId):null;
   const layerNum = cur? (cur.layer+2) : 1;
-  $('tb-layer').textContent=M('Layer ','Уровень ')+Math.min(layerNum,8)+' / 8'+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
+  $('tb-layer').textContent=M('Layer ','Уровень ')+Math.min(layerNum,TOTAL_STEPS)+' / '+TOTAL_STEPS+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
   $('tb-gold').textContent=RUN.gold+M('g',M(' зол.',' зол.'));
   const wrap=$('tb-party');wrap.innerHTML='';
   RUN.party.forEach(function(h){
@@ -2296,13 +2327,32 @@ function nodeColor(type){
 function nodeLabel(type){
   return {battle:M('BTL','БОЙ'),elite:M('ELT','ЭЛТ'),event:M('EVT','СОБ'),shop:M('SHP','МАГ'),rest:M('RST','ПРВ'),boss:'☠'}[type];
 }
+function nodeIcon(type){
+  return {battle:'⚔',elite:'☠',event:'❓',shop:'⚖',rest:'♨',boss:'♛'}[type];
+}
+function nodeTypeName(type){
+  return {
+    battle:M('Battle','Бой'),elite:M('Elite Battle','Элитный бой'),event:M('Event','Событие'),
+    shop:M('Wandering Cart','Бродячая тележка'),rest:M('Rest Site','Привал'),boss:M('The Ashlord','Владыка пепла')
+  }[type];
+}
+function nodeDescription(type){
+  return {
+    battle:M('A skirmish against a band of ash-touched foes. Win to earn gold and a choice of rewards.','Стычка с отрядом врагов, тронутых пеплом. Победа приносит золото и выбор награды.'),
+    elite:M('A tougher fight against a dangerous foe with a second wind at low health. Higher risk, better rewards.','Более тяжёлый бой с опасным противником, у которого при низком HP открывается «второе дыхание». Выше риск — лучше награда.'),
+    event:M('An encounter with a choice to make — search, barter, help, or walk away. Some choices echo later in the march.','Встреча с выбором — обыскать, поторговаться, помочь или пройти мимо. Некоторые решения аукнутся позже в походе.'),
+    shop:M('A cart of goods for sale. Spend gold on gear, an elixir, or a vial of vigor before moving on.','Тележка с товарами на продажу. Потратьте золото на снаряжение, эликсир или флакон бодрости перед тем, как идти дальше.'),
+    rest:M('A safe place to catch your breath. Heal the company or reforge gear before the road continues.','Безопасное место перевести дух. Подлечите отряд или перекуйте снаряжение перед тем, как идти дальше.'),
+    boss:M('The march’s end: a powerful foe blocking the way out of the ash. Defeat it to win the march.','Конец похода: могучий враг преграждает путь из пепла. Победите его, чтобы завершить поход.')
+  }[type];
+}
 function renderMap(){
   const map=RUN.map;
   const layers=map.layers;
   const totalLayers=layers.length+1;
   const maxPerLayer=layers.reduce(function(m,l){return Math.max(m,l.length);},1);
-  const w=60+totalLayers*92;
-  const h=Math.max(220,80+(maxPerLayer-1)*90);
+  const w=70+totalLayers*112;
+  const h=Math.max(300,110+(maxPerLayer-1)*116);
   const svg=$('map-svg');
   svg.setAttribute('viewBox','0 0 '+w+' '+h);
   svg.setAttribute('width',w);
@@ -2312,13 +2362,36 @@ function renderMap(){
   function coordsFor(node){
     const arr = node.type==='boss'?[node]:layers[node.layer];
     const n=arr.length;
-    const y = n<=1?h/2:40+node.idx*((h-80)/(n-1));
-    const x = 50+node.layer*92;
+    const y = n<=1?h/2:55+node.idx*((h-110)/(n-1));
+    const x = 55+node.layer*112;
     return {x:x,y:y};
   }
   const allNodes=mapAllNodes(map);
   const posMap={};
   allNodes.forEach(function(n){posMap[n.id]=coordsFor(n);});
+
+  /* Decorative tier bands behind the path, so the march's four difficulty
+     stretches read visually instead of only through node color. Purely
+     cosmetic — never affects which nodes are reachable. */
+  let bandStart=0,bandTier=tierForLayer(0);
+  for(let li=1;li<=layers.length;li++){
+    const t=li<layers.length?tierForLayer(li):-1;
+    if(t!==bandTier){
+      const x1=55+bandStart*112-56, x2=55+(li-1)*112+56;
+      const band=document.createElementNS(NS,'rect');
+      band.setAttribute('x',x1);band.setAttribute('y',0);
+      band.setAttribute('width',Math.max(0,x2-x1));band.setAttribute('height',h);
+      band.setAttribute('fill',bandTier%2===0?'var(--map-band-a)':'var(--map-band-b)');
+      svg.insertBefore(band,svg.firstChild);
+      const label=document.createElementNS(NS,'text');
+      label.setAttribute('class','map-tier-label');
+      label.setAttribute('x',(x1+x2)/2);label.setAttribute('y',18);
+      label.setAttribute('text-anchor','middle');
+      label.textContent=M('Tier ','Ярус ')+bandTier;
+      svg.appendChild(label);
+      bandStart=li;bandTier=t;
+    }
+  }
 
   allNodes.forEach(function(n){
     n.next.forEach(function(nid){
@@ -2327,41 +2400,73 @@ function renderMap(){
       line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
       line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
       line.setAttribute('stroke', n.cleared?'var(--map-line-cleared)':'var(--map-line)');
-      line.setAttribute('stroke-width','2');
+      line.setAttribute('stroke-width','2.5');
       svg.appendChild(line);
     });
   });
   allNodes.forEach(function(n){
     const p=posMap[n.id];
     const g=document.createElementNS(NS,'g');
-    g.setAttribute('class','map-node'+(RUN.availableNodeIds&&RUN.availableNodeIds.indexOf(n.id)>=0?'':' locked'));
-    const r = n.type==='boss'?18:(n.type==='elite'?15:13);
+    const available=RUN.availableNodeIds&&RUN.availableNodeIds.indexOf(n.id)>=0;
+    g.setAttribute('class','map-node'+(available?'':' locked'));
+    const r = n.type==='boss'?24:(n.type==='elite'?19:16);
     const circle=document.createElementNS(NS,'circle');
     circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r',r);
-    const available=RUN.availableNodeIds&&RUN.availableNodeIds.indexOf(n.id)>=0;
     let fill=nodeColor(n.type);
     if(n.cleared)fill='var(--map-line-cleared)';
     else if(!available)fill='var(--map-locked)';
     circle.setAttribute('fill',fill);
     circle.setAttribute('stroke', n.id===RUN.currentNodeId?'var(--text)':'var(--border)');
-    circle.setAttribute('stroke-width', n.id===RUN.currentNodeId?'2':'1');
+    circle.setAttribute('stroke-width', n.id===RUN.currentNodeId?'2.5':'1');
     g.appendChild(circle);
     if(available&&!n.cleared){
       const glow=document.createElementNS(NS,'circle');
-      glow.setAttribute('cx',p.x);glow.setAttribute('cy',p.y);glow.setAttribute('r',r+5);
+      glow.setAttribute('cx',p.x);glow.setAttribute('cy',p.y);glow.setAttribute('r',r+6);
       glow.setAttribute('fill','none');glow.setAttribute('stroke',fill);
       glow.setAttribute('stroke-width','1.5');glow.setAttribute('opacity','.45');
       svg.appendChild(glow);
     }
     const text=document.createElementNS(NS,'text');
-    text.setAttribute('x',p.x);text.setAttribute('y',p.y+3);text.setAttribute('text-anchor','middle');
-    text.textContent = n.cleared? '✓' : nodeLabel(n.type);
+    text.setAttribute('class', n.cleared?'':'map-node-icon');
+    text.setAttribute('x',p.x);text.setAttribute('y',p.y+(n.cleared?4:5));text.setAttribute('text-anchor','middle');
+    /* Locked nodes keep a dark, low-contrast fill circle, so their icon needs
+       a light fill to stay legible; available/cleared nodes have a bright
+       fill circle, so the icon stays dark. Inline style so it beats the
+       ".map-node text{fill:...}" stylesheet rule. */
+    text.style.fill = (available||n.cleared) ? 'var(--bg)' : 'var(--muted)';
+    text.textContent = n.cleared? '✓' : nodeIcon(n.type);
     g.appendChild(text);
-    if(available){
-      g.addEventListener('click',function(){enterNode(n);});
-    }
+    g.addEventListener('click',function(){showNodePreviewModal(n,available);});
     svg.appendChild(g);
   });
+}
+
+function showNodePreviewModal(node,available){
+  const wrap=el('div','stack');
+  const badge=el('div','node-preview-badge',nodeLabel(node.type));
+  badge.style.background=nodeColor(node.type);
+  wrap.appendChild(badge);
+  wrap.appendChild(el('div','node-preview-type',nodeTypeName(node.type)));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;line-height:1.5;'>"+nodeDescription(node.type)+"</span>"));
+  const status=el('div','','');
+  status.style.marginTop='12px';
+  status.style.fontSize='12px';
+  status.style.color='var(--muted)';
+  if(node.cleared)status.textContent=M('Already cleared.','Уже пройдено.');
+  else if(!available)status.textContent=M('Not yet reachable — clear a connected node first.','Пока недостижимо — сначала пройдите соединённый узел.');
+  wrap.appendChild(status);
+  const row=el('div','row');
+  row.style.marginTop='14px';
+  if(available&&!node.cleared){
+    const go=el('button','primary',M('Enter','Войти'));
+    go.addEventListener('click',function(){closeModal();enterNode(node);});
+    row.appendChild(go);
+  }
+  const close=el('button','',M('Close','Закрыть'));
+  close.addEventListener('click',closeModal);
+  row.appendChild(close);
+  wrap.appendChild(row);
+  openModal(wrap);
 }
 
 function renderCombatLog(){
@@ -2698,9 +2803,9 @@ function onVictory(){
   const embers=computeEmbers(true);
   META.embers+=embers;
   META.wins++;
-  META.bestLayer=Math.max(META.bestLayer,8);
+  META.bestLayer=Math.max(META.bestLayer,TOTAL_STEPS);
   META.ascensionUnlocked=Math.max(META.ascensionUnlocked,Math.min(5,RUN.ascension+1));
-  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;META.dailyWinsCount=(META.dailyWinsCount||0)+1;restoreRandom();}
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:TOTAL_STEPS};META.embers+=10;META.dailyWinsCount=(META.dailyWinsCount||0)+1;restoreRandom();}
   const unlocked=evaluateAchievements(true);
   checkHeroUnlocks();
   recordRunHistory(true,embers);
@@ -2712,7 +2817,7 @@ function onVictory(){
     'The company breaks through the last of the ash and finds open sky. The road behind them is finally quiet.',
     'Отряд пробивается сквозь последний пепел и находит открытое небо. Дорога позади них наконец затихает.'
   );
-  $('go-layers').textContent='8 / 8';
+  $('go-layers').textContent=TOTAL_STEPS+' / '+TOTAL_STEPS;
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
   show('screen-gameover');
@@ -2734,7 +2839,7 @@ function onDefeat(){
     'The ash takes what remains. Somewhere behind, the next company is already being mustered.',
     'Пепел забирает всё, что осталось. Где-то позади уже собирают следующий отряд.'
   );
-  $('go-layers').textContent=(RUN.layersCleared)+' / 8';
+  $('go-layers').textContent=(RUN.layersCleared)+' / '+TOTAL_STEPS;
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
   show('screen-gameover');
@@ -2747,8 +2852,8 @@ function renderTitle(){
   $('btn-continue').hidden = !loadRun();
   const el2=$('title-stats');
   el2.innerHTML = M(
-    'Marches won: '+META.wins+' &middot; Embers banked: '+META.embers+' &middot; Best reach: layer '+META.bestLayer+' / 8',
-    'Походов пройдено: '+META.wins+' &middot; Угольков накоплено: '+META.embers+' &middot; Лучший результат: уровень '+META.bestLayer+' / 8'
+    'Marches won: '+META.wins+' &middot; Embers banked: '+META.embers+' &middot; Best reach: layer '+META.bestLayer+' / '+TOTAL_STEPS,
+    'Походов пройдено: '+META.wins+' &middot; Угольков накоплено: '+META.embers+' &middot; Лучший результат: уровень '+META.bestLayer+' / '+TOTAL_STEPS
   );
   const today=todayDateStr();
   const dailyDone=META.dailyLastDate===today;
@@ -2848,7 +2953,7 @@ function renderLegacy(){
       const favName=favDef?L(favDef.name):st.favKey;
       const lines=[
         M('Marches completed: <strong>'+st.total+'</strong> ('+st.wins+' won, '+st.winRate+'%)','Завершено походов: <strong>'+st.total+'</strong> (побед: '+st.wins+', '+st.winRate+'%)'),
-        st.avgLossLayer?M('Average layer on defeat: <strong>'+st.avgLossLayer+' / 8</strong>','Средний слой при поражении: <strong>'+st.avgLossLayer+' / 8</strong>'):null,
+        st.avgLossLayer?M('Average layer on defeat: <strong>'+st.avgLossLayer+' / '+TOTAL_STEPS+'</strong>','Средний слой при поражении: <strong>'+st.avgLossLayer+' / '+TOTAL_STEPS+'</strong>'):null,
         favDef?M('Most-used hero: <strong>'+favName+'</strong> ('+st.favCount+' marches)','Чаще всего в отряде: <strong>'+favName+'</strong> ('+st.favCount+' походов)'):null,
         st.customRuns?M('Marches with a custom hero: <strong>'+st.customRuns+'</strong>','Походов с кастомным героем: <strong>'+st.customRuns+'</strong>'):null,
       ].filter(Boolean);
