@@ -88,7 +88,9 @@ button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep
 button.primary:hover:not(:disabled){background:linear-gradient(135deg,var(--accent),var(--accent-deep));filter:brightness(1.08);transform:translateY(-1px);}
 :root[data-theme="light"] button.primary{color:#fff6e9;}
 button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
-#app{max-width:720px;margin:0 auto;padding-block:20px 40px;}
+#app{max-width:860px;margin:0 auto;padding-block:20px 40px;zoom:1.18;}
+#modal-root{zoom:1.18;}
+@media (max-width:720px){#app,#modal-root{zoom:1.05;}}
 [hidden]{display:none!important;}
 
 .eyebrow{
