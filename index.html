@@ -367,6 +367,10 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
         <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
       </div>
       <div class="settings-row">
+        <span id="settings-sound-label"></span>
+        <button class="toggle-switch" id="btn-toggle-sound" type="button"><span class="knob"></span></button>
+      </div>
+      <div class="settings-row">
         <span id="settings-textsize-label"></span>
         <div class="seg-btns" id="text-size-btns"></div>
       </div>
@@ -525,6 +529,7 @@ const STATIC_I18N = {
   'btn-save-reminder-export':{en:'Export code now',ru:'Экспортировать код'},
   'btn-save-reminder-dismiss':{en:'Remind me later',ru:'Напомнить позже'},
   'settings-animations-label':{en:'Animations',ru:'Анимации'},
+  'settings-sound-label':{en:'Sound Effects',ru:'Звуковые эффекты'},
   'settings-textsize-label':{en:'Text Size',ru:'Размер текста'},
   'btn-export-save':{en:'Export Save Code','ru':'Экспорт кода сохранения'},
   'btn-import-save':{en:'Import Save Code',ru:'Импорт кода сохранения'},
@@ -590,6 +595,7 @@ const HERO_ICON_SVG = {
   ashra:'<svg viewBox="0 0 24 24"><path d="M12 2.5c1.5 3 4.5 5 4.5 9a4.5 4.5 0 01-9 0c0-1.5.7-2.6 1.5-3.6-.1 1.3.4 2 1.1 2.4-.4-2.4.6-4.6 1.9-7.8z" fill="#12141a"/></svg>',
   doran:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="4.6" ry="4" fill="#12141a"/><circle cx="6.5" cy="8" r="2" fill="#12141a"/><circle cx="17.5" cy="8" r="2" fill="#12141a"/><circle cx="10" cy="6" r="1.6" fill="#12141a"/><circle cx="14" cy="6" r="1.6" fill="#12141a"/></svg>',
   morwen:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 3 1.5 4.6 2.2 6.4.3.8.3 1.6.3 2.6h9c0-1 0-1.8.3-2.6C17.5 13.6 19 12 19 9a7 7 0 00-7-7z" fill="#12141a"/><circle cx="9.3" cy="9" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="9" r="1.3" fill="#e9e4d6"/><path d="M9.5 19h5M10 21.5h4" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  torvin:'<svg viewBox="0 0 24 24"><path d="M12 2.5l7 3v5c0 5-3 8.6-7 10.5-4-1.9-7-5.5-7-10.5v-5l7-3z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 7v9M8.5 11.5h7" stroke="#12141a" stroke-width="1.8" stroke-linecap="round"/></svg>',
 };
 function avatarContent(unit){
   if(unit&&unit.isHero&&HERO_ICON_SVG[unit.tplKey||unit.key])return HERO_ICON_SVG[unit.tplKey||unit.key];
@@ -648,21 +654,41 @@ const HERO_DEFS = {
       {id:'siphon',name:{en:'Soul Siphon',ru:'Похищение душ'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.45,lifesteal:0.5,desc:{en:'All foes; heals self for 50% of total damage dealt',ru:'По всем врагам; лечит себя на 50% суммарного урона'}},
       {id:'embrace',name:{en:"Death's Embrace",ru:'Объятия смерти'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.6,dot:{amount:5,duration:3},desc:{en:'Ultimate: heavy damage + strong curse (Lv4)',ru:'Ульта: тяжёлый урон и мощное проклятие со временем (Ур.4)'}},
     ]},
+  torvin:{key:'torvin',name:{en:'Torvin',ru:'Торвин'},cls:{en:'Paladin',ru:'Паладин'},icon:'T',color:'#c9a227',baseHp:38,baseAtk:6,baseDef:9,baseSpd:4,defaultRow:'front',cost:35,
+    abilities:[
+      {id:'shieldbash',name:{en:'Shield Bash',ru:'Удар щитом'},cd:0,reach:'melee',targets:'single',type:'damage',mult:0.9,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
+      {id:'oath',name:{en:'Oath of Protection',ru:'Клятва защиты'},cd:2,reach:'any',targets:'single-ally',type:'buff',stat:'def',amount:5,duration:2,desc:{en:'+5 DEF to an ally, 2 turns',ru:'+5 к защите союзнику на 2 хода'}},
+      {id:'light',name:{en:'Righteous Light',ru:'Праведный свет'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0.4,flat:6,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
+      {id:'battlecry',name:{en:'Battle Cry',ru:'Боевой клич'},cd:4,minLevel:4,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:3,duration:2,desc:{en:'Ultimate: +3 ATK to the whole company, 2 turns (Lv4)',ru:'Ульта: +3 к атаке всему отряду на 2 хода (Ур.4)'}},
+    ]},
 };
-const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran','morwen'];
+const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran','morwen','torvin'];
 const CUSTOM_HERO_POINTS = 6;
 const CUSTOM_HERO_MAX = 4;
 const CUSTOM_HP_PER_POINT = 3;
+const CUSTOM_PASSIVES = [
+  {id:'vitality',name:{en:'Vitality',ru:'Живучесть'},desc:{en:'+15% max HP',ru:'+15% к макс. HP'}},
+  {id:'ironskin',name:{en:'Iron Skin',ru:'Стальная кожа'},desc:{en:'+3 DEF',ru:'+3 к защите'}},
+  {id:'swift',name:{en:'Swift',ru:'Быстрота'},desc:{en:'+3 SPD',ru:'+3 к скорости'}},
+  {id:'ferocity',name:{en:'Ferocity',ru:'Ярость'},desc:{en:'+2 ATK',ru:'+2 к атаке'}},
+];
+function customPassiveDef(id){return CUSTOM_PASSIVES.find(function(p){return p.id===id;})||CUSTOM_PASSIVES[0];}
 function customHeroToDef(customId){
   const c=(META.customHeroes||[]).find(function(x){return x.id===customId;});
   if(!c)return null;
   const tpl=HERO_DEFS[c.tplKey];
   if(!tpl)return null;
+  let hp=tpl.baseHp+(c.hp||0)*CUSTOM_HP_PER_POINT;
+  let atk=tpl.baseAtk+(c.atk||0), def=tpl.baseDef+(c.def||0), spd=tpl.baseSpd+(c.spd||0);
+  const passive=c.passive||'vitality';
+  if(passive==='vitality')hp=Math.round(hp*1.15);
+  else if(passive==='ironskin')def+=3;
+  else if(passive==='swift')spd+=3;
+  else if(passive==='ferocity')atk+=2;
   return {
     key:c.id,name:{en:c.name,ru:c.name},cls:tpl.cls,icon:tpl.icon,color:c.color||tpl.color,
-    baseHp:tpl.baseHp+(c.hp||0)*CUSTOM_HP_PER_POINT,
-    baseAtk:tpl.baseAtk+(c.atk||0),baseDef:tpl.baseDef+(c.def||0),baseSpd:tpl.baseSpd+(c.spd||0),
-    defaultRow:tpl.defaultRow,cost:0,abilities:tpl.abilities,custom:true,tplKey:c.tplKey,
+    baseHp:hp,baseAtk:atk,baseDef:def,baseSpd:spd,
+    defaultRow:tpl.defaultRow,cost:0,abilities:tpl.abilities,custom:true,tplKey:c.tplKey,passive:passive,
   };
 }
 function getHeroDef(key){
@@ -724,6 +750,11 @@ const BOSS_DEFS = {
                {id:'quake2',name:{en:'Ground Shatter',ru:'Раскол земли'},cd:2,reach:'melee',targets:'all',type:'damage',mult:0.55,desc:{en:'Hits every foe',ru:'Бьёт по всем врагам'}},
                {id:'harden',name:{en:'Harden Hide',ru:'Затвердение шкуры'},cd:3,reach:'any',targets:'self',type:'buff',stat:'def',amount:8,duration:2},
                {id:'avalanche',name:{en:'Avalanche',ru:'Лавина'},cd:3,reach:'melee',targets:'all',type:'damage',mult:0.9,requiresEnrage:true,desc:{en:'Enrage only: crushes every foe',ru:'Только в ярости: сокрушает всех врагов'}}]},
+  vessel:{key:'vessel',name:{en:'The Withered Vessel',ru:'Иссохший сосуд'},icon:'♱',color:'#3a1f3a',hp:88,atk:13,def:6,spd:8,row:'front',boss:true,
+    abilities:[{id:'grasp',name:{en:'Withering Grasp',ru:'Иссушающая хватка'},cd:0,reach:'any',targets:'single',type:'damage',mult:0.95,dot:{amount:3,duration:2}},
+               {id:'drain',name:{en:'Drain Essence',ru:'Высасывание сути'},cd:2,reach:'any',targets:'single',type:'damage',mult:1.1,lifesteal:0.6},
+               {id:'wither',name:{en:'Wither',ru:'Увядание'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2},
+               {id:'collapse',name:{en:'Hollow Collapse',ru:'Пустотный обвал'},cd:3,reach:'any',targets:'all',type:'damage',mult:0.8,dot:{amount:4,duration:2},requiresEnrage:true,desc:{en:'Enrage only: withering blast on the whole company',ru:'Только в ярости: увядающий взрыв по всему отряду'}}]},
 };
 
 const ITEM_POOL = [
@@ -783,10 +814,24 @@ const EVENTS = [
       {label:{en:'Take their pack',ru:'Забрать его вещи'},resolve(run){
         const g=15+Math.floor(Math.random()*11);run.gold+=g;
         const h=randAlive(run.party);h.def=Math.max(0,h.def-1);
-        return M('You take '+g+' gold. '+h.name+" can't shake the traveler's curse. (-1 DEF this march)",
-                 'Вы забираете '+g+' золота. '+h.name+' не может избавиться от проклятия путника. (-1 к защите в этом походе)');
+        run.pendingChainEvent='traveler_return';
+        return M('You take '+g+' gold. '+h.name+" can't shake the traveler's curse. (-1 DEF this march) Something tells you this isn't the last you'll see of them.",
+                 'Вы забираете '+g+' золота. '+h.name+' не может избавиться от проклятия путника. (-1 к защите в этом походе) Что-то подсказывает: это ещё не конец этой истории.');
       }},
       {label:{en:'Walk on',ru:'Пройти мимо'},resolve(){return M('You leave the traveler to their fate.','Вы оставляете путника его судьбе.');}},
+    ]},
+  {id:'traveler_return',chainOnly:true,title:{en:'The Traveler Returns',ru:'Путник возвращается'},
+    text:{en:'Days later, the same stranger catches up with your company at a rest stop — wounds healed, holding out a wrapped bundle.',
+          ru:'Спустя несколько дней тот же незнакомец нагоняет отряд на привале — раны затянулись, в руках свёрток.'},
+    choices:[
+      {label:{en:'Accept the bundle',ru:'Принять свёрток'},special:'item',resolve(run){
+        const item=randomItem();run.pendingItemPickup=item;
+        return M('Inside the bundle you find something useful.','Внутри свёртка находится что-то полезное.');
+      }},
+      {label:{en:"Refuse it, wary of another curse",ru:'Отказаться, опасаясь нового проклятия'},resolve(run){
+        const h=randAlive(run.party);h.def+=1;
+        return M(h.name+' feels the old curse finally lift. (+1 DEF this march)',h.name+' чувствует, как старое проклятие наконец спадает. (+1 к защите в этом походе)');
+      }},
     ]},
   {id:'battlefield',title:{en:'Old Battlefield',ru:'Старое поле боя'},
     text:{en:'Rusted arms and bleached bone litter a field where some earlier company met its end.',
@@ -931,10 +976,11 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0},
-    heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,caravan:0,vitality_rite:0,vanguard:0},
+    heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
-    settings:{animations:true,textScale:1},
+    seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
+    settings:{animations:true,textScale:1,sound:true},
     dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0};
 }
 let META = loadMeta();
@@ -971,6 +1017,12 @@ const UPGRADE_DEFS = [
   {key:'favor',name:{en:"Quartermaster's Favor",ru:'Милость интенданта'},desc:{en:'Start each march with a free common item',ru:'Начинать каждый поход с бесплатным обычным предметом'},max:1,cost:function(){return 10;}},
   {key:'whetstone',name:{en:'Whetstone Kit',ru:'Точильный набор'},desc:{en:'+1 ATK to every hero per rank',ru:'+1 к атаке каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'boots',name:{en:'Worn Marching Boots',ru:'Разношенные походные сапоги'},desc:{en:'+1 SPD to every hero per rank',ru:'+1 к скорости каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'caravan',name:{en:'Reinforced Caravan',ru:'Усиленный караван'},desc:{en:'+20 starting gold per rank',ru:'+20 к стартовому золоту за уровень'},max:2,cost:function(r){return 18+r*10;},
+    requires:{key:'packs',rank:3}},
+  {key:'vitality_rite',name:{en:'Rite of Vitality',ru:'Обряд живучести'},desc:{en:'+8 max HP to every hero per rank',ru:'+8 к макс. здоровью каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'bones',rank:3}},
+  {key:'vanguard',name:{en:"Vanguard's Resolve",ru:'Стойкость авангарда'},desc:{en:'Capstone: +2 ATK and +2 SPD to every hero',ru:'Вершина ветки: +2 к атаке и +2 к скорости каждого героя'},max:1,cost:function(){return 45;},
+    requires2:[{key:'whetstone',rank:3},{key:'boots',rank:3}]},
 ];
 
 const ACHIEVEMENTS = [
@@ -988,6 +1040,16 @@ const ACHIEVEMENTS = [
     check:function(win){return win&&(META.dailyWinsCount||0)>=3;}},
   {id:'giant_slayer',name:{en:'Giant Slayer',ru:'Победитель исполина'},desc:{en:'Defeat the Colossus.',ru:'Победить Колосса.'},reward:20,
     check:function(win){return win&&RUN.bossKey==='colossus';}},
+  {id:'warden_fallen',name:{en:'The Warden Falls',ru:'Страж повержен'},desc:{en:'Defeat the Warden.',ru:'Победить Стража.'},reward:20,
+    check:function(win){return win&&RUN.bossKey==='warden';}},
+  {id:'vessel_broken',name:{en:'Vessel Broken',ru:'Сосуд разбит'},desc:{en:'Defeat the Withered Vessel.',ru:'Победить Иссохший сосуд.'},reward:20,
+    check:function(win){return win&&RUN.bossKey==='vessel';}},
+  {id:'full_roster',name:{en:'Full Company',ru:'Полный отряд'},desc:{en:'Unlock every hero.',ru:'Открыть всех героев.'},reward:40,
+    check:function(win){return Object.keys(META.heroesUnlocked).every(function(k){return META.heroesUnlocked[k];});}},
+  {id:'hoarder',name:{en:'Ember Hoarder',ru:'Скопидом'},desc:{en:'Accumulate 300 embers over time.',ru:'Накопить 300 угольков за всё время.'},reward:15,
+    check:function(win){return (META.embers||0)>=300;}},
+  {id:'high_ascension',name:{en:'Into the Deep',ru:'В самую глубь'},desc:{en:'Win a march at Ascension 4 or higher.',ru:'Победить в походе со сложностью 4 и выше.'},reward:35,
+    check:function(win){return win&&(RUN.ascension||0)>=4;}},
 ];
 function evaluateAchievements(win){
   META.achievements=META.achievements||{};
@@ -1029,6 +1091,48 @@ function applyDailySeed(seedStr){
 function restoreRandom(){
   if(ORIG_MATH_RANDOM){Math.random=ORIG_MATH_RANDOM;}
 }
+/* ---- procedural sound effects (Web Audio API) ----
+   No external audio files can be fetched in this environment, so all sound is
+   synthesized at runtime with short oscillator/noise beeps rather than real
+   music or sampled SFX. Disabled entirely if the browser has no AudioContext,
+   or if the player turns off "Sound Effects" in settings. */
+let SFX_CTX=null;
+function sfxEnabled(){return !!(META&&META.settings&&META.settings.sound!==false);}
+function sfxCtx(){
+  if(!sfxEnabled())return null;
+  if(SFX_CTX)return SFX_CTX;
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;SFX_CTX=new AC();return SFX_CTX;}catch(e){return null;}
+}
+function sfxTone(freq,dur,opts){
+  const ctx=sfxCtx();if(!ctx)return;
+  opts=opts||{};
+  try{
+    if(ctx.state==='suspended')ctx.resume();
+    const t0=ctx.currentTime;
+    const osc=ctx.createOscillator();osc.type=opts.type||'sine';
+    const gain=ctx.createGain();
+    const vol=opts.vol!==undefined?opts.vol:0.12;
+    osc.frequency.setValueAtTime(freq,t0);
+    if(opts.slideTo)osc.frequency.exponentialRampToValueAtTime(Math.max(20,opts.slideTo),t0+dur);
+    gain.gain.setValueAtTime(0.0001,t0);
+    gain.gain.exponentialRampToValueAtTime(vol,t0+0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.start(t0);osc.stop(t0+dur+0.02);
+  }catch(e){}
+}
+const SFX={
+  hit:function(){sfxTone(180,0.12,{type:'square',slideTo:70,vol:0.1});},
+  crit:function(){sfxTone(260,0.16,{type:'sawtooth',slideTo:60,vol:0.14});setTimeout(function(){sfxTone(420,0.1,{type:'square',vol:0.08});},40);},
+  heal:function(){sfxTone(440,0.14,{type:'sine',slideTo:660,vol:0.1});},
+  buff:function(){sfxTone(520,0.1,{type:'triangle',slideTo:780,vol:0.08});},
+  dodge:function(){sfxTone(300,0.08,{type:'triangle',slideTo:500,vol:0.07});},
+  death:function(){sfxTone(220,0.3,{type:'sawtooth',slideTo:50,vol:0.11});},
+  click:function(){sfxTone(600,0.05,{type:'square',vol:0.05});},
+  levelup:function(){[523,659,784].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.16,{type:'triangle',vol:0.1});},i*90);});},
+  victory:function(){[392,523,659,784].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.22,{type:'triangle',vol:0.12});},i*110);});},
+  defeat:function(){[330,262,220].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.3,{type:'sawtooth',vol:0.1});},i*140);});},
+};
 function randAlive(list){const a=list.filter(function(h){return h.alive;});return a.length?pick(a):list[0];}
 function randomItem(){const base=pick(ITEM_POOL);return Object.assign({},base,{name:L(base.name)});}
 function statOf(c,key){
@@ -1135,10 +1239,11 @@ let RUN=null;
 
 function makeHeroInstance(key){
   const def=getHeroDef(key);
-  const maxHp=def.baseHp+META.upgrades.bones*5;
+  const maxHp=def.baseHp+META.upgrades.bones*5+(META.upgrades.vitality_rite||0)*8;
+  const vanguard=(META.upgrades.vanguard||0)>0;
   return {
     key:key,tplKey:def.tplKey||key,name:L(def.name),cls:L(def.cls),icon:def.icon,color:def.color,isHero:true,side:'hero',
-    maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0),def:def.baseDef,spd:def.baseSpd+(META.upgrades.boots||0),
+    maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0)+(vanguard?2:0),def:def.baseDef,spd:def.baseSpd+(META.upgrades.boots||0)+(vanguard?2:0),
     row:def.defaultRow,
     abilities:def.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),desc:L(a.desc),cdLeft:0});}),
     equip:{weapon:null,armor:null,trinket:null,relic:null},
@@ -1247,7 +1352,7 @@ function hydrateParty(run){
 
 function startNewRun(heroKeys,dailySeed){
   if(dailySeed)applyDailySeed(dailySeed);
-  const startGold=25+META.upgrades.packs*15;
+  const startGold=25+META.upgrades.packs*15+(META.upgrades.caravan||0)*20;
   RUN={
     ascension:dailySeed?0:META.ascensionChoice,
     map:generateMap(),
@@ -1262,12 +1367,17 @@ function startNewRun(heroKeys,dailySeed){
     heroDied:false,
     bossKey:pick(Object.keys(BOSS_DEFS)),
     daily:dailySeed||null,
+    pendingChainEvent:null,
   };
   RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
   if(META.upgrades.favor>0){
     const item=randomItem();applyItemToHero(RUN.party[0],item);
   }
-  if(dailySeed)restoreRandom();
+  /* Daily Challenge: keep the seeded RNG active for the whole march (combat, loot,
+     events, encounters), not just the map layout, so two players on the same day
+     face the same fights and drops if they play the same choices. The seed is
+     re-applied on resume too (see resumeSavedRun), though a mid-run reload still
+     restarts the seeded sequence rather than resuming its exact position. */
   saveRun();
   show('screen-map');
   renderTopbar();
@@ -1414,6 +1524,7 @@ function applyAbilityEffect(caster,ability,target){
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
       totalDealt+=r.amount;
+      if(r.crit)SFX.crit();else SFX.hit();
       const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'');
       const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'');
       logs.push(M(
@@ -1447,7 +1558,7 @@ function applyAbilityEffect(caster,ability,target){
           t.usedPhoenix=true;t.hp=1;
           logs.push(M(t.name+"'s Phoenix Down flares — they cling to life at 1 HP!",t.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
         } else {
-          t.alive=false;if(t.isHero)RUN.heroDied=true;logs.push(M(t.name+' falls.',t.name+' падает замертво.'));
+          t.alive=false;if(t.isHero)RUN.heroDied=true;logs.push(M(t.name+' falls.',t.name+' падает замертво.'));SFX.death();
         }
       }
     });
@@ -1458,6 +1569,7 @@ function applyAbilityEffect(caster,ability,target){
       const amt=Math.round(ability.flat+statOf(caster,'atk')*ability.mult);
       t.hp=Math.min(t.maxHp,t.hp+amt);
       logs.push(M(caster.name+' mends '+t.name+' for '+amt+'.',caster.name+' лечит '+t.name+' на '+amt+'.'));
+      SFX.heal();
     });
   } else if(ability.type==='buff'){
     const allySide=caster.side==='hero'?RUN.combat.party:RUN.combat.enemies;
@@ -1832,7 +1944,13 @@ function enterNode(node){
 /* ---- events ---- */
 let currentEvent=null;
 function startEvent(node){
-  currentEvent={node:node,def:pick(EVENTS)};
+  let def=null;
+  if(RUN.pendingChainEvent){
+    def=EVENTS.find(function(e){return e.id===RUN.pendingChainEvent;})||null;
+    RUN.pendingChainEvent=null;
+  }
+  if(!def)def=pick(EVENTS.filter(function(e){return !e.chainOnly;}));
+  currentEvent={node:node,def:def};
   $('event-title').textContent=L(currentEvent.def.title);
   $('event-text').textContent=L(currentEvent.def.text);
   const box=$('event-choices');box.innerHTML='';
@@ -2302,8 +2420,9 @@ function onVictory(){
   if(META.wins>=1)META.heroesUnlocked.ashra=true;
   if(META.wins>=3)META.heroesUnlocked.doran=true;
   if(META.wins>=5)META.heroesUnlocked.morwen=true;
+  if(META.wins>=7)META.heroesUnlocked.torvin=true;
   META.ascensionUnlocked=Math.max(META.ascensionUnlocked,Math.min(5,RUN.ascension+1));
-  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;META.dailyWinsCount=(META.dailyWinsCount||0)+1;}
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;META.dailyWinsCount=(META.dailyWinsCount||0)+1;restoreRandom();}
   const unlocked=evaluateAchievements(true);
   recordRunHistory(true,embers);
   saveMeta();
@@ -2318,12 +2437,13 @@ function onVictory(){
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
   show('screen-gameover');
+  SFX.victory();
 }
 function onDefeat(){
   const embers=computeEmbers(false);
   META.embers+=embers;
   META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
-  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};META.embers+=5;}
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};META.embers+=5;restoreRandom();}
   const unlocked=evaluateAchievements(false);
   recordRunHistory(false,embers);
   saveMeta();
@@ -2338,6 +2458,7 @@ function onDefeat(){
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
   show('screen-gameover');
+  SFX.defeat();
 }
 
 /* ============================= SCREENS: TITLE / LEGACY / HERO SELECT ============================= */
@@ -2370,32 +2491,45 @@ function renderTitle(){
 function renderLegacy(){
   $('leg-embers').textContent=META.embers;
   const up=$('leg-upgrades');up.innerHTML='';
+  function reqMet(def){
+    if(def.requires)return (META.upgrades[def.requires.key]||0)>=def.requires.rank;
+    if(def.requires2)return def.requires2.every(function(r){return (META.upgrades[r.key]||0)>=r.rank;});
+    return true;
+  }
+  function reqLabel(def){
+    const reqs=def.requires?[def.requires]:(def.requires2||[]);
+    return reqs.map(function(r){const rd=UPGRADE_DEFS.find(function(d){return d.key===r.key;});return L(rd.name)+' '+M('rank ','ур. ')+r.rank;}).join(' + ');
+  }
   UPGRADE_DEFS.forEach(function(def){
-    const rank=META.upgrades[def.key];
+    const rank=META.upgrades[def.key]||0;
     const maxed=rank>=def.max;
     const cost=def.cost(rank);
-    const row=el('div','upgrade-row');
+    const locked=!reqMet(def);
+    const row=el('div','upgrade-row'+(locked?' locked':''));
     const dots=el('div','stack-dots');
     for(let i=0;i<def.max;i++)dots.appendChild(el('span','stack-dot'+(i<rank?' filled':'')));
-    const left=el('div','',"<strong>"+L(def.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(def.desc)+"</span>");
+    const branchTag=(def.requires||def.requires2)?("<span style='color:var(--accent,var(--good));font-size:11px;'>&#9492;&#9472; "+M('Branch','Ветка')+"</span> "):'';
+    const reqText=locked?("<br><span style='color:var(--danger);font-size:11px;'>"+M('Requires: ','Требуется: ')+reqLabel(def)+"</span>"):'';
+    const left=el('div','',branchTag+"<strong>"+L(def.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(def.desc)+"</span>"+reqText);
     left.style.flex='1';
     row.appendChild(left);
     row.appendChild(dots);
-    const btn=el('button',maxed?'':'primary',maxed?M('Maxed','Максимум'):(M('Buy','Купить')+' · '+cost));
-    btn.disabled = maxed || META.embers<cost;
+    const btn=el('button',maxed||locked?'':'primary',locked?M('Locked','Заблокировано'):(maxed?M('Maxed','Максимум'):(M('Buy','Купить')+' · '+cost)));
+    btn.disabled = maxed || locked || META.embers<cost;
     btn.addEventListener('click',function(){
-      if(META.embers<cost||maxed)return;
-      META.embers-=cost;META.upgrades[def.key]++;saveMeta();renderLegacy();
+      if(META.embers<cost||maxed||locked)return;
+      META.embers-=cost;META.upgrades[def.key]=(META.upgrades[def.key]||0)+1;saveMeta();renderLegacy();
     });
     row.appendChild(btn);
     up.appendChild(row);
   });
   const rec=$('leg-recruits');rec.innerHTML='';
-  ['ashra','doran','morwen'].forEach(function(key){
+  ['ashra','doran','morwen','torvin'].forEach(function(key){
     const def=HERO_DEFS[key];
     const owned=META.heroesUnlocked[key];
+    const isNew=owned&&!(META.seenHeroes||[]).includes(key);
     const row=el('div','upgrade-row');
-    const left=el('div','',"<strong>"+L(def.name)+"</strong> <span style='color:var(--muted);font-size:12px;'>"+L(def.cls)+"</span><br><span style='color:var(--muted);font-size:12px;'>"+M('Unlocks by winning marches, or recruit early below.','Открывается победами в походах — либо наймите заранее.')+"</span>");
+    const left=el('div','',(isNew?"<span class='gold-badge' style='margin-right:6px;'>"+M('NEW','НОВОЕ')+"</span>":'')+"<strong>"+L(def.name)+"</strong> <span style='color:var(--muted);font-size:12px;'>"+L(def.cls)+"</span><br><span style='color:var(--muted);font-size:12px;'>"+M('Unlocks by winning marches, or recruit early below.','Открывается победами в походах — либо наймите заранее.')+"</span>");
     left.style.flex='1';
     row.appendChild(left);
     const btn=el('button',owned?'':'primary',owned?M('Recruited','Нанят'):(M('Recruit','Нанять')+' · '+def.cost));
@@ -2446,18 +2580,30 @@ function renderLegacy(){
     achBox.innerHTML='';
     ACHIEVEMENTS.forEach(function(a){
       const unlocked=!!(META.achievements&&META.achievements[a.id]);
+      const isNew=unlocked&&!(META.seenAchievements||[]).includes(a.id);
       const row=el('div','ach-row'+(unlocked?'':' locked'));
       row.appendChild(el('div','ach-icon',unlocked?'&#9733;':'&#128274;'));
-      const info=el('div','',"<strong>"+L(a.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(a.desc)+" &middot; +"+a.reward+M(' embers',' угольков')+"</span>");
+      const info=el('div','',(isNew?"<span class='gold-badge' style='margin-right:6px;'>"+M('NEW','НОВОЕ')+"</span>":'')+"<strong>"+L(a.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(a.desc)+" &middot; +"+a.reward+M(' embers',' угольков')+"</span>");
       info.style.flex='1';
       row.appendChild(info);
       achBox.appendChild(row);
     });
+    const newHeroes=Object.keys(META.heroesUnlocked).filter(function(k){return META.heroesUnlocked[k];});
+    const newAch=ACHIEVEMENTS.filter(function(a){return META.achievements&&META.achievements[a.id];}).map(function(a){return a.id;});
+    let sawSomethingNew=newHeroes.some(function(k){return !(META.seenHeroes||[]).includes(k);})||newAch.some(function(k){return !(META.seenAchievements||[]).includes(k);});
+    if(sawSomethingNew){
+      META.seenHeroes=newHeroes;META.seenAchievements=newAch;saveMeta();
+    }
   }
   const animBtn=$('btn-toggle-animations');
   if(animBtn){
     const on=META.settings.animations!==false;
     animBtn.classList.toggle('on',on);
+  }
+  const soundBtn=$('btn-toggle-sound');
+  if(soundBtn){
+    const on=META.settings.sound!==false;
+    soundBtn.classList.toggle('on',on);
   }
   const sizeBtns=$('text-size-btns');
   if(sizeBtns){
@@ -2574,6 +2720,10 @@ function renderHeroPickCard(list,key,def,unlocked,isCustom){
   info.appendChild(el('div','cls',L(def.cls)));
   const stats=el('div','hero-stats',statAbbr('hp')+' '+def.baseHp+' &middot; '+statAbbr('atk')+' '+def.baseAtk+' &middot; '+statAbbr('def')+' '+def.baseDef+' &middot; '+statAbbr('spd')+' '+def.baseSpd);
   info.appendChild(stats);
+  if(def.passive){
+    const pd=customPassiveDef(def.passive);
+    info.appendChild(el('div','cls',"<span style='color:var(--accent,var(--good));'>"+L(pd.name)+'</span> — '+L(pd.desc)));
+  }
   card.appendChild(info);
   if(isCustom){
     const del=el('button','',M('Delete','Удалить'));
@@ -2692,6 +2842,26 @@ function openCreateHeroModal(){
   renderRemain();
   wrap.appendChild(remainEl);
 
+  wrap.appendChild(el('div','eyebrow',M('Passive','Пассивный навык')));
+  const passiveWrap=el('div','stack');
+  let selectedPassive=CUSTOM_PASSIVES[0].id;
+  const passiveCards={};
+  CUSTOM_PASSIVES.forEach(function(p){
+    const c=el('div','hero-pick');
+    const info=el('div','hero-info');
+    info.appendChild(el('div','name',L(p.name)));
+    info.appendChild(el('div','cls',L(p.desc)));
+    c.appendChild(info);
+    c.addEventListener('click',function(){
+      selectedPassive=p.id;
+      Object.keys(passiveCards).forEach(function(k){passiveCards[k].classList.toggle('selected',k===p.id);});
+    });
+    passiveCards[p.id]=c;
+    passiveWrap.appendChild(c);
+  });
+  passiveCards[selectedPassive].classList.add('selected');
+  wrap.appendChild(passiveWrap);
+
   const err=el('div','','');err.style.cssText='color:var(--danger);font-size:12px;min-height:16px;';
   wrap.appendChild(err);
 
@@ -2702,7 +2872,7 @@ function openCreateHeroModal(){
     if((META.customHeroes||[]).length>=CUSTOM_HERO_MAX){err.textContent=M('Hero roster is full.','Список героев переполнен.');return;}
     const id='custom'+Date.now()+Math.floor(Math.random()*1000);
     META.customHeroes=META.customHeroes||[];
-    META.customHeroes.push({id:id,name:name.slice(0,18),tplKey:selectedTpl,color:selectedColor,atk:alloc.atk,def:alloc.def,spd:alloc.spd,hp:alloc.hp});
+    META.customHeroes.push({id:id,name:name.slice(0,18),tplKey:selectedTpl,color:selectedColor,atk:alloc.atk,def:alloc.def,spd:alloc.spd,hp:alloc.hp,passive:selectedPassive});
     saveMeta();
     closeModal();
     renderHeroSelect();
@@ -2721,6 +2891,7 @@ $('btn-continue').addEventListener('click',function(){
   const saved=loadRun();
   if(!saved)return;
   RUN=saved;
+  if(RUN.daily)applyDailySeed(RUN.daily);
   hydrateParty(RUN);
   if(RUN.combat&&!RUN.combat.over){
     saveRun();
@@ -2775,7 +2946,7 @@ $('btn-abandon').addEventListener('click',function(){
   yes.addEventListener('click',function(){
     const embers=computeEmbers(false);
     META.embers+=embers;META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
-    if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};}
+    if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};restoreRandom();}
     saveMeta();
     clearRun();closeModal();renderTitle();
   });
@@ -2798,6 +2969,11 @@ $('btn-theme-toggle').addEventListener('click',toggleTheme);
 $('btn-toggle-animations').addEventListener('click',function(){
   META.settings.animations = META.settings.animations===false;
   saveMeta();applySettings();renderLegacy();
+});
+$('btn-toggle-sound').addEventListener('click',function(){
+  META.settings.sound = META.settings.sound===false;
+  saveMeta();renderLegacy();
+  if(META.settings.sound!==false)SFX.click();
 });
 $('btn-export-save').addEventListener('click',exportSave);
 $('btn-import-save').addEventListener('click',importSave);
