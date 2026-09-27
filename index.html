@@ -1328,14 +1328,24 @@ function applyItemToHero(hero,item){
   if(old){
     hero.atk-=old.mods.atk||0;hero.def-=old.mods.def||0;hero.spd-=old.mods.spd||0;
     hero.maxHp-=old.mods.hp||0;hero.hp=Math.min(hero.hp,hero.maxHp);
+    if(RUN&&RUN.inventory)RUN.inventory.push(old);
   }
   hero.equip[item.slot]=item;
   hero.atk+=item.mods.atk||0;hero.def+=item.mods.def||0;hero.spd+=item.mods.spd||0;
   if(item.mods.hp){hero.maxHp+=item.mods.hp;hero.hp+=item.mods.hp;}
 }
+function unequipFromHero(hero,slot){
+  const old=hero.equip[slot];
+  if(!old)return;
+  hero.atk-=old.mods.atk||0;hero.def-=old.mods.def||0;hero.spd-=old.mods.spd||0;
+  hero.maxHp-=old.mods.hp||0;hero.hp=Math.min(hero.hp,hero.maxHp);
+  hero.equip[slot]=null;
+  if(RUN&&RUN.inventory)RUN.inventory.push(old);
+}
 
 function hydrateParty(run){
   if(!run||!run.party)return;
+  if(!run.inventory)run.inventory=[];
   run.party.forEach(function(h){
     normalizeLeveling(h);
     if(h.equip&&h.equip.relic===undefined)h.equip.relic=null;
@@ -1368,6 +1378,7 @@ function startNewRun(heroKeys,dailySeed){
     bossKey:pick(Object.keys(BOSS_DEFS)),
     daily:dailySeed||null,
     pendingChainEvent:null,
+    inventory:[],
   };
   RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
   if(META.upgrades.favor>0){
@@ -2356,8 +2367,8 @@ function promptEquip(item,after){
     b.addEventListener('click',function(){applyItemToHero(h,item);closeModal();saveRun();after();});
     wrap.appendChild(b);
   });
-  const skip=el('button','',M('Discard it','Выбросить'));
-  skip.addEventListener('click',function(){closeModal();saveRun();after();});
+  const skip=el('button','',M('Put in backpack','Убрать в рюкзак'));
+  skip.addEventListener('click',function(){if(RUN&&RUN.inventory)RUN.inventory.push(item);closeModal();saveRun();after();});
   wrap.appendChild(skip);
   openModal(wrap);
 }
@@ -2373,6 +2384,28 @@ function promptChooseHero(title,cb){
   });
   openModal(wrap);
 }
+function promptEquipFromInventory(item,idx){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Equip '+item.name+'?','Экипировать «'+item.name+'»?')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>"));
+  RUN.party.forEach(function(h){
+    const cur=h.equip[item.slot];
+    const b=el('button','card-choice');
+    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))+'</span>';
+    b.addEventListener('click',function(){
+      RUN.inventory.splice(idx,1);
+      applyItemToHero(h,item);
+      saveRun();
+      closeModal();
+      openFormationModal();
+    });
+    wrap.appendChild(b);
+  });
+  const cancel=el('button','',M('Cancel','Отмена'));
+  cancel.addEventListener('click',function(){closeModal();openFormationModal();});
+  wrap.appendChild(cancel);
+  openModal(wrap);
+}
 function openFormationModal(){
   const wrap=el('div','stack');
   wrap.appendChild(el('h3','',M('Formation & Gear','Строй и снаряжение')));
@@ -2386,7 +2419,42 @@ function openFormationModal(){
     toggle.addEventListener('click',function(){h.row=h.row==='front'?'back':'front';toggle.textContent=h.row==='front'?M('Front','Перед'):M('Back','Тыл');saveRun();});
     row.appendChild(toggle);
     wrap.appendChild(row);
+    const gearRow=el('div','',null);
+    gearRow.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px;';
+    ['weapon','armor','trinket','relic'].forEach(function(slot){
+      const item=h.equip[slot];
+      const chip=el('div','',null);
+      chip.style.cssText='border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;display:flex;align-items:center;gap:6px;background:var(--surface2);';
+      chip.innerHTML='<span style="color:var(--muted);">'+slotName(slot)+':</span> '+(item?('<strong>'+item.name+'</strong>'):('<span style="color:var(--muted);">'+M('empty','пусто')+'</span>'));
+      if(item){
+        const un=document.createElement('button');un.textContent='×';un.title=M('Unequip to backpack','Снять в рюкзак');
+        un.style.cssText='padding:1px 6px;font-size:11px;margin-left:2px;';
+        un.addEventListener('click',function(){unequipFromHero(h,slot);saveRun();closeModal();openFormationModal();});
+        chip.appendChild(un);
+      }
+      gearRow.appendChild(chip);
+    });
+    wrap.appendChild(gearRow);
   });
+  wrap.appendChild(el('div','eyebrow',M('Backpack','Рюкзак')));
+  const inv=RUN.inventory||[];
+  if(!inv.length){
+    wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Empty. Unequipped and unused items collected during the march end up here.','Пусто. Снятые и неиспользованные вещи, найденные за поход, попадают сюда.')+"</span>"));
+  } else {
+    inv.forEach(function(item,idx){
+      const row=el('div','row',null);
+      const info=el('div','',"<strong>"+item.name+"</strong> <span class='item-tag rarity-"+item.rarity+"'>"+rarityLabel(item.rarity)+"</span><br><span style='color:var(--muted);font-size:11px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>");
+      info.style.flex='1';
+      row.appendChild(info);
+      const eq=el('button','',M('Equip','Экипировать'));
+      eq.addEventListener('click',function(){closeModal();promptEquipFromInventory(item,idx);});
+      row.appendChild(eq);
+      const del=el('button','',M('Discard','Выбросить'));
+      del.addEventListener('click',function(){RUN.inventory.splice(idx,1);saveRun();closeModal();openFormationModal();});
+      row.appendChild(del);
+      wrap.appendChild(row);
+    });
+  }
   const close=el('button','primary',M('Done','Готово'));
   close.addEventListener('click',closeModal);
   wrap.appendChild(close);
