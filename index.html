@@ -1,0 +1,2395 @@
+<title>Embermarch</title>
+<style>
+:root{
+  --bg:#0c0a0d;
+  --surface:#17141a;
+  --surface2:#211c24;
+  --surface3:#2b2430;
+  --border:#3a3242;
+  --text:#f3ead9;
+  --muted:#a89a86;
+  --accent:#ff8a4c;
+  --accent-deep:#c9622e;
+  --accent-soft:#3a2418;
+  --accent2:#7bb0c9;
+  --accent2-soft:#1c2f38;
+  --good:#6fbb86;
+  --good-soft:#1c2e22;
+  --danger:#e2665c;
+  --danger-soft:#331e1c;
+  --gold:#e3b563;
+  --title-glow:rgba(255,138,76,.14);
+  --map-line:#3a3548;
+  --map-line-cleared:#514a2c;
+  --map-locked:#242030;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f7f1e6;
+  --surface:#fffdf9;
+  --surface2:#f2e8d6;
+  --surface3:#e9dcc0;
+  --border:#d8c8a4;
+  --text:#2b2117;
+  --muted:#7a6c53;
+  --accent:#c9622e;
+  --accent-deep:#a04d21;
+  --accent-soft:#f3ddbb;
+  --accent2:#3d7791;
+  --accent2-soft:#d9ecf2;
+  --good:#3f8a5a;
+  --good-soft:#dcf0e1;
+  --danger:#b8483f;
+  --danger-soft:#f6dcd8;
+  --gold:#a97a2e;
+  --title-glow:rgba(201,98,46,.10);
+  --map-line:#cdbb98;
+  --map-line-cleared:#b79a58;
+  --map-locked:#e9dcc0;
+  color-scheme:light;
+}
+*{box-sizing:border-box;}
+html{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Work Sans',system-ui,sans-serif;
+  padding-inline:16px;
+  min-height:100%;
+  margin:0;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{
+  font-family:'Cormorant Garamond','Marcellus',serif;
+  font-weight:600;
+  letter-spacing:.02em;
+  text-wrap:balance;
+  margin:0;
+}
+.mono, .num{
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-variant-numeric:tabular-nums;
+}
+button{
+  font-family:inherit;
+  cursor:pointer;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  border-radius:8px;
+  padding:10px 16px;
+  font-size:14px;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+button:hover:not(:disabled){background:var(--surface3);border-color:var(--accent);}
+button:active:not(:disabled){transform:translateY(1px);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep));border-color:var(--accent);color:#1a0f07;font-weight:600;box-shadow:0 4px 16px -6px var(--title-glow);}
+button.primary:hover:not(:disabled){background:linear-gradient(135deg,var(--accent),var(--accent-deep));filter:brightness(1.08);transform:translateY(-1px);}
+:root[data-theme="light"] button.primary{color:#fff6e9;}
+button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
+#app{max-width:720px;margin:0 auto;padding-block:20px 40px;}
+[hidden]{display:none!important;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+}
+.level-up-card{border-color:var(--accent);background:var(--accent-soft);}
+.level-up-card .row{margin-top:8px;}
+.xp-bar{height:5px;border-radius:3px;background:var(--surface3);overflow:hidden;margin-top:2px;}
+.xp-bar-fill{height:100%;background:var(--accent2);}
+.stack{display:flex;flex-direction:column;gap:12px;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+
+/* ---- language switch ---- */
+.lang-switch{display:flex;gap:6px;justify-content:center;margin-bottom:16px;}
+.lang-btn{padding:5px 14px;font-size:11px;border-radius:99px;}
+.lang-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+
+/* ---- title ---- */
+#screen-title{text-align:center;padding-top:4vh;position:relative;}
+#screen-title::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:640px;height:420px;max-width:90vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 70%);pointer-events:none;z-index:-1;}
+#screen-title h1{font-size:clamp(38px,10vw,58px);font-weight:600;letter-spacing:.03em;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 40%,#fff) 0%,var(--gold) 45%,var(--accent-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+#screen-title .tagline{color:var(--muted);margin-top:6px;font-size:15px;font-style:italic;}
+.title-actions{margin-top:24px;display:flex;flex-direction:column;gap:10px;max-width:280px;margin-inline:auto;}
+.title-actions button{padding:14px;font-size:15px;}
+.title-foot{margin-top:20px;color:var(--muted);font-size:12px;line-height:1.6;display:inline-flex;gap:18px;padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap;justify-content:center;}
+
+/* ---- topbar ---- */
+#topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;
+}
+#topbar .partybit{display:flex;gap:8px;}
+.pb-hp{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted);}
+.pb-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:13px;color:#12141a;font-weight:700;}
+.pb-dot svg,.hero-avatar svg,.unit-avatar svg,.to-item svg{width:62%;height:62%;display:block;}
+.gold-badge{color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+/* ---- map ---- */
+.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;}
+.map-svg{display:block;height:220px;width:auto;max-width:none;}
+.map-node{cursor:pointer;}
+.map-node.locked{cursor:default;}
+.map-node text{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.05em;fill:var(--bg);font-weight:700;}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
+
+/* ---- hero select / formation ---- */
+.hero-pick{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;}
+.hero-pick.selected{border-color:var(--accent);background:var(--accent-soft);}
+.hero-pick.locked{opacity:.45;cursor:not-allowed;}
+.hero-pick-add{border-style:dashed;justify-content:center;color:var(--accent2);font-family:'Marcellus',serif;font-size:15px;}
+.hero-pick-add:hover{border-color:var(--accent);background:var(--accent-soft);}
+.hero-avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:18px;color:#12141a;font-weight:700;flex-shrink:0;}
+.hero-info{flex:1;min-width:0;}
+.hero-info .name{font-family:'Marcellus',serif;font-size:16px;}
+.hero-info .cls{color:var(--muted);font-size:12px;}
+.hero-stats{display:flex;gap:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+/* ---- combat ---- */
+.combat-zone{
+  display:grid;
+  grid-template-columns:1fr 1.15fr;
+  grid-template-areas:"left right";
+  gap:14px;
+  align-items:start;
+}
+.combat-left{grid-area:left;display:flex;flex-direction:column;gap:14px;min-width:0;}
+.combat-right{grid-area:right;display:flex;flex-direction:column;gap:14px;min-width:0;}
+@media (max-width:680px){
+  .combat-zone{grid-template-columns:1fr;grid-template-areas:"right" "left";}
+}
+.unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.unit-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 8px;width:122px;text-align:center;position:relative;transition:box-shadow .15s,border-color .15s;
+}
+.unit-card.dead{opacity:.35;}
+.unit-card.active-turn{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.unit-card.targetable{border-color:var(--danger);cursor:pointer;box-shadow:0 0 0 2px var(--danger-soft);}
+.unit-card.ally-targetable{border-color:var(--good);cursor:pointer;box-shadow:0 0 0 2px var(--good-soft);}
+.unit-avatar{width:36px;height:36px;border-radius:8px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:16px;color:#12141a;font-weight:700;position:relative;}
+.intent-badge{position:absolute;bottom:-4px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text);font-family:inherit;font-weight:400;}
+.unit-card.intent-target{box-shadow:0 0 0 2px var(--gold);}
+.unit-name{font-size:11.5px;font-weight:600;line-height:1.25;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em;}
+.unit-class{font-size:9.5px;color:var(--accent2);margin-top:1px;}
+.unit-row-tag{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.hpbar{height:6px;border-radius:3px;background:var(--bg);margin-top:4px;overflow:hidden;}
+.hpbar-fill{height:100%;background:var(--good);transition:width .25s;}
+.hpbar-fill.low{background:var(--danger);}
+.hp-num{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.status-icons{display:flex;gap:2px;justify-content:center;margin-top:3px;flex-wrap:wrap;}
+.status-icon{font-size:9px;padding:1px 3px;border-radius:3px;background:var(--surface3);color:var(--muted);}
+.status-icon.buff{color:var(--good);}
+.status-icon.debuff{color:var(--danger);}
+
+.enemy-zone{background:var(--danger-soft);border:1px solid #4a2f2e;border-radius:12px;padding:12px;}
+.ally-zone{background:var(--good-soft);border:1px solid #2c4636;border-radius:12px;padding:12px;}
+.zone-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+
+#combat-log{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-size:12.5px;color:var(--muted);max-height:180px;min-height:60px;overflow-y:auto;
+  display:flex;flex-direction:column-reverse;gap:5px;line-height:1.4;
+}
+#combat-log .l-new{color:var(--text);}
+
+.turn-order{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.to-item{
+  width:30px;height:30px;border-radius:8px;flex-shrink:0;position:relative;
+  display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;
+  font-size:13px;font-weight:700;color:#12141a;opacity:.4;transition:opacity .15s;
+}
+.to-item.current{opacity:1;box-shadow:0 0 0 2px var(--accent);}
+.to-item.dead{opacity:.15;text-decoration:line-through;}
+.to-badge{
+  position:absolute;bottom:-3px;right:-3px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:8px;line-height:1;
+  padding:1px 2px;color:var(--text);font-weight:700;
+}
+
+.ability-bar{display:flex;gap:8px;flex-wrap:wrap;}
+.ability-btn{
+  flex:1;min-width:90px;text-align:left;padding:8px 10px;font-size:12px;position:relative;
+}
+.ability-btn .a-name{font-weight:600;display:block;}
+.ability-btn .a-meta{font-size:10px;color:var(--muted);display:block;margin-top:2px;}
+.ability-btn.selected{border-color:var(--accent);background:var(--accent-soft);}
+.cd-badge{position:absolute;top:4px;right:6px;font-size:10px;color:var(--danger);font-family:'JetBrains Mono',monospace;}
+.ult-tag{font-size:8px;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:middle;}
+
+/* ---- reward / shop / event ---- */
+.card-choice{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:14px;text-align:left;width:100%;}
+.card-choice:hover:not(:disabled){border-color:var(--accent);}
+.item-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:var(--surface3);color:var(--muted);margin-top:6px;}
+.rarity-common{color:var(--muted);}
+.rarity-rare{color:var(--accent2);}
+.rarity-epic{color:var(--accent);}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,11,15,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;}
+
+.gameover-banner{font-size:26px;margin-bottom:6px;}
+.gameover-banner.win{color:var(--gold);}
+.gameover-banner.lose{color:var(--danger);}
+
+.upgrade-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.upgrade-row:last-child{border-bottom:none;}
+.stack-dots{display:flex;gap:4px;}
+.stack-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
+.stack-dot.filled{background:var(--accent);}
+
+.asc-row{display:flex;gap:6px;}
+.asc-pip{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'JetBrains Mono',monospace;background:var(--surface2);}
+.asc-pip.locked{opacity:.35;}
+.asc-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+
+@media (max-width:480px){
+  .unit-card{width:98px;}
+  .ability-btn{min-width:100%;}
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<button id="btn-theme-toggle" title="Тема" aria-label="Переключить тему" style="position:fixed;top:14px;left:14px;z-index:50;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);"></button>
+
+<div id="app">
+
+  <div id="topbar" hidden>
+    <div class="row">
+      <span class="eyebrow">EMBERMARCH</span>
+      <span class="mono" id="tb-layer" style="color:var(--muted);font-size:12px;"></span>
+    </div>
+    <div class="row">
+      <span class="gold-badge" id="tb-gold"></span>
+      <div class="partybit" id="tb-party"></div>
+    </div>
+  </div>
+
+  <section id="screen-title">
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="ru">Русский</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+    <div class="eyebrow" id="title-eyebrow" style="margin-bottom:10px;"></div>
+    <h1>EMBERMARCH</h1>
+    <div class="tagline" id="title-tagline"></div>
+    <div class="title-actions">
+      <button class="primary" id="btn-continue" hidden></button>
+      <button class="primary" id="btn-new-run"></button>
+      <button id="btn-open-legacy"></button>
+    </div>
+    <div class="title-foot" id="title-stats"></div>
+  </section>
+
+  <section id="screen-legacy" hidden>
+    <h2 id="legacy-h2" style="color:var(--accent);margin-bottom:4px;"></h2>
+    <div class="eyebrow" id="legacy-eyebrow" style="margin-bottom:14px;"></div>
+    <div class="card stack">
+      <div class="spread">
+        <span id="legacy-embers-label"></span>
+        <span class="gold-badge num" id="leg-embers"></span>
+      </div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-upgrades-h3" style="font-size:15px;"></h3>
+      <div id="leg-upgrades"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-recruits-h3" style="font-size:15px;"></h3>
+      <div id="leg-recruits"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-ascension-h3" style="font-size:15px;"></h3>
+      <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
+      <div class="asc-row" id="leg-ascension"></div>
+      <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-history-h3" style="font-size:15px;"></h3>
+      <div class="stack" id="leg-history"></div>
+    </div>
+    <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
+  </section>
+
+  <section id="screen-hero-select" hidden>
+    <h2 id="hero-select-h2" style="color:var(--accent);"></h2>
+    <div class="eyebrow" id="hero-select-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="stack" id="hero-pick-list"></div>
+    <div class="row" style="margin-top:16px;">
+      <button class="primary" id="btn-confirm-heroes" disabled></button>
+      <button id="btn-back-title"></button>
+    </div>
+  </section>
+
+  <section id="screen-map" hidden>
+    <div class="map-wrap">
+      <svg id="map-svg" class="map-svg" viewBox="0 0 400 100"></svg>
+      <div class="map-legend">
+        <span><span class="legend-dot" style="background:var(--accent)"></span><span id="legend-battle"></span></span>
+        <span><span class="legend-dot" style="background:var(--danger)"></span><span id="legend-elite"></span></span>
+        <span><span class="legend-dot" style="background:var(--accent2)"></span><span id="legend-event"></span></span>
+        <span><span class="legend-dot" style="background:var(--gold)"></span><span id="legend-shop"></span></span>
+        <span><span class="legend-dot" style="background:var(--good)"></span><span id="legend-rest"></span></span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button id="btn-formation"></button>
+      <button id="btn-abandon"></button>
+    </div>
+  </section>
+
+  <section id="screen-combat" hidden>
+    <div class="combat-zone">
+      <div class="combat-left">
+        <div class="card" style="padding:10px 12px;">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="eyebrow" id="turn-order-label" style="margin-bottom:0;"></div>
+            <button id="btn-auto-battle" style="font-size:11px;padding:4px 8px;"></button>
+          </div>
+          <div class="turn-order" id="turn-order"></div>
+        </div>
+        <div id="combat-log"></div>
+        <div class="card" id="action-panel"></div>
+      </div>
+      <div class="combat-right">
+        <div class="enemy-zone">
+          <div class="zone-label" id="zone-foes"></div>
+          <div class="unit-row" id="enemy-row-back"></div>
+          <div class="unit-row" id="enemy-row-front"></div>
+        </div>
+        <div class="ally-zone">
+          <div class="zone-label" id="zone-company"></div>
+          <div class="unit-row" id="hero-row-front"></div>
+          <div class="unit-row" id="hero-row-back"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-reward" hidden>
+    <h2 id="reward-h2" style="color:var(--accent);"></h2>
+    <div class="eyebrow" id="reward-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="stack" id="reward-cards"></div>
+    <div class="row" style="margin-top:14px;"><button class="primary" id="btn-skip-reward"></button></div>
+  </section>
+
+  <section id="screen-event" hidden>
+    <h2 id="event-title" style="color:var(--accent2);"></h2>
+    <p id="event-text" style="color:var(--muted);line-height:1.6;margin:10px 0 18px;"></p>
+    <div class="stack" id="event-choices"></div>
+  </section>
+
+  <section id="screen-shop" hidden>
+    <h2 id="shop-h2" style="color:var(--gold);"></h2>
+    <div class="eyebrow" style="margin:6px 0 14px;"><span id="shop-gold-label"></span> <span class="gold-badge num" id="shop-gold"></span></div>
+    <div class="stack" id="shop-items"></div>
+    <div class="row" style="margin-top:14px;"><button class="primary" id="btn-leave-shop"></button></div>
+  </section>
+
+  <section id="screen-rest" hidden>
+    <h2 id="rest-h2" style="color:var(--good);"></h2>
+    <div class="eyebrow" id="rest-eyebrow" style="margin:6px 0 18px;"></div>
+    <div class="stack">
+      <button class="card-choice" id="btn-rest-heal">
+        <strong id="rest-heal-title"></strong><br><span id="rest-heal-desc" style="color:var(--muted);font-size:13px;"></span>
+      </button>
+      <button class="card-choice" id="btn-rest-train">
+        <strong id="rest-train-title"></strong><br><span id="rest-train-desc" style="color:var(--muted);font-size:13px;"></span>
+      </button>
+    </div>
+  </section>
+
+  <section id="screen-gameover" hidden>
+    <div class="gameover-banner" id="go-banner"></div>
+    <p id="go-text" style="color:var(--muted);line-height:1.6;"></p>
+    <div class="card" style="margin:16px 0;">
+      <div class="spread"><span id="go-layers-label"></span><span class="num" id="go-layers"></span></div>
+      <div class="spread"><span id="go-embers-label"></span><span class="gold-badge num" id="go-embers"></span></div>
+    </div>
+    <div class="stack" id="go-achievements"></div>
+    <button class="primary" id="btn-go-continue"></button>
+  </section>
+
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================= LANGUAGE ============================= */
+
+const LANG_KEY='embermarch_lang_v1';
+let LANG = (function(){
+  try{const v=localStorage.getItem(LANG_KEY);if(v==='en'||v==='ru')return v;}catch(e){}
+  return 'ru';
+})();
+function saveLang(){try{localStorage.setItem(LANG_KEY,LANG);}catch(e){} }
+function L(field){
+  if(field==null)return '';
+  if(typeof field==='string')return field;
+  return field[LANG]!==undefined?field[LANG]:field.en;
+}
+function M(en,ru){return LANG==='ru'?ru:en;}
+
+const STATIC_I18N = {
+  'title-eyebrow':{en:'A COMPANY OF THE LAST ROAD',ru:'ОТРЯД ПОСЛЕДНЕЙ ДОРОГИ'},
+  'title-tagline':{en:'Lead a mercenary company through the burnt marches.<br>Every crossing is different. Not every company returns.',
+                   ru:'Веди отряд наёмников через выжженные земли.<br>Каждый поход не похож на предыдущий. Не каждый отряд возвращается.'},
+  'btn-continue':{en:'Continue Expedition',ru:'Продолжить поход'},
+  'btn-new-run':{en:'New Expedition',ru:'Новый поход'},
+  'btn-open-legacy':{en:'Legacy Ledger',ru:'Летопись'},
+  'legacy-h2':{en:'Legacy Ledger',ru:'Летопись'},
+  'legacy-eyebrow':{en:'Embers carry forward even when the company falls',ru:'Угольки сохраняются, даже если отряд погибнет'},
+  'legacy-embers-label':{en:'Embers banked',ru:'Накоплено угольков'},
+  'legacy-upgrades-h3':{en:'Permanent Upgrades',ru:'Постоянные улучшения'},
+  'legacy-recruits-h3':{en:'Recruits',ru:'Наёмники'},
+  'legacy-ascension-h3':{en:'March Ascension',ru:'Сложность похода'},
+  'legacy-history-h3':{en:'Recent Marches',ru:'Недавние походы'},
+  'legacy-ascension-eyebrow':{en:'Higher ascension hardens every foe, but pays more embers',ru:'Чем выше сложность, тем сильнее враги — но и угольков больше'},
+  'btn-legacy-back':{en:'Back',ru:'Назад'},
+  'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
+  'hero-select-eyebrow':{en:'Choose three. Choose well — there is no reforming mid-march.',ru:'Выбери троих. Выбирай с умом — в середине похода отряд не переформировать.'},
+  'btn-confirm-heroes':{en:'Set Out',ru:'В путь'},
+  'btn-back-title':{en:'Back',ru:'Назад'},
+  'legend-battle':{en:'Battle',ru:'Бой'},
+  'legend-elite':{en:'Elite',ru:'Элита'},
+  'legend-event':{en:'Event',ru:'Событие'},
+  'legend-shop':{en:'Shop',ru:'Лавка'},
+  'legend-rest':{en:'Rest',ru:'Привал'},
+  'btn-formation':{en:'Formation & Gear',ru:'Строй и снаряжение'},
+  'btn-abandon':{en:'Abandon March',ru:'Прервать поход'},
+  'zone-foes':{en:'Foes',ru:'Враги'},
+  'zone-company':{en:'Your Company',ru:'Ваш отряд'},
+  'turn-order-label':{en:'Turn Order',ru:'Порядок ходов'},
+  'reward-h2':{en:'Spoils',ru:'Трофеи'},
+  'reward-eyebrow':{en:'Take one',ru:'Выберите один'},
+  'btn-skip-reward':{en:'Move On',ru:'Идти дальше'},
+  'shop-h2':{en:"Peddler's Cart",ru:'Тележка торговца'},
+  'shop-gold-label':{en:'Gold:',ru:'Золото:'},
+  'btn-leave-shop':{en:'Leave',ru:'Уйти'},
+  'rest-h2':{en:'Ashen Camp',ru:'Пепельный привал'},
+  'rest-eyebrow':{en:'One quiet hour before the road resumes',ru:'Один тихий час перед дорогой'},
+  'rest-heal-title':{en:'Rest',ru:'Отдых'},
+  'rest-heal-desc':{en:'Heal the whole company for 35% of their max health.',ru:'Восстановить всему отряду 35% максимального здоровья.'},
+  'rest-train-title':{en:'Train',ru:'Тренировка'},
+  'rest-train-desc':{en:'Pick a company member to permanently gain +3 attack and +1 defense this march.',ru:'Выберите бойца, который навсегда получит +3 к атаке и +1 к защите в этом походе.'},
+  'go-layers-label':{en:'Layers reached',ru:'Пройдено уровней'},
+  'go-embers-label':{en:'Embers earned',ru:'Получено угольков'},
+  'btn-go-continue':{en:'Return to Camp',ru:'Вернуться в лагерь'},
+};
+function applyStaticI18n(){
+  Object.keys(STATIC_I18N).forEach(function(id){
+    const node=document.getElementById(id);
+    if(node)node.innerHTML=L(STATIC_I18N[id]);
+  });
+}
+function renderLangSwitch(){
+  document.querySelectorAll('.lang-btn').forEach(function(b){
+    b.classList.toggle('active',b.dataset.lang===LANG);
+    b.onclick=function(){setLang(b.dataset.lang);};
+  });
+}
+function setLang(l){
+  if(l!=='en'&&l!=='ru')return;
+  if(l===LANG)return;
+  LANG=l;saveLang();
+  applyStaticI18n();renderLangSwitch();
+  renderTitle();
+}
+
+/* ============================= DATA ============================= */
+
+const HERO_ICON_SVG = {
+  bram:'<svg viewBox="0 0 24 24"><path d="M14.5 2.5L21 9l-1.8 1.8-1.4-1.4-6.6 6.6 1.9 1.9-1.8 1.8-1.9-1.9-2.2 2.2.9.9-1.4 1.4-3.2-3.2 1.4-1.4.9.9 2.2-2.2-1.9-1.9 1.8-1.8 1.9 1.9 6.6-6.6-1.4-1.4z" fill="#12141a"/></svg>',
+  sael:'<svg viewBox="0 0 24 24"><path d="M4 4c8 0 14 4 16 8-2 4-8 8-16 8 4-3.2 6.4-6 7-8-.6-2-3-4.8-7-8z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M11 12h9M18 9l2 3-2 3" fill="none" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  yvana:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 7.5v9M7.5 12h9" stroke="#12141a" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  kest:'<svg viewBox="0 0 24 24"><path d="M8 3l9 9-1.6 5.4L10 21l-6-6 4.4-5.4L8 3z" fill="#12141a"/><path d="M8 3l2 6.6" stroke="#12141a" stroke-width="1.2"/></svg>',
+  ashra:'<svg viewBox="0 0 24 24"><path d="M12 2.5c1.5 3 4.5 5 4.5 9a4.5 4.5 0 01-9 0c0-1.5.7-2.6 1.5-3.6-.1 1.3.4 2 1.1 2.4-.4-2.4.6-4.6 1.9-7.8z" fill="#12141a"/></svg>',
+  doran:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="4.6" ry="4" fill="#12141a"/><circle cx="6.5" cy="8" r="2" fill="#12141a"/><circle cx="17.5" cy="8" r="2" fill="#12141a"/><circle cx="10" cy="6" r="1.6" fill="#12141a"/><circle cx="14" cy="6" r="1.6" fill="#12141a"/></svg>',
+};
+function avatarContent(unit){
+  if(unit&&unit.isHero&&HERO_ICON_SVG[unit.tplKey||unit.key])return HERO_ICON_SVG[unit.tplKey||unit.key];
+  return unit&&unit.icon?unit.icon:'';
+}
+
+const HERO_DEFS = {
+  bram:{key:'bram',name:{en:'Bram',ru:'Брам'},cls:{en:'Warrior',ru:'Воин'},icon:'B',color:'#c98a3b',baseHp:36,baseAtk:8,baseDef:6,baseSpd:5,defaultRow:'front',cost:0,
+    abilities:[
+      {id:'strike',name:{en:'Strike',ru:'Удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
+      {id:'shieldwall',name:{en:'Shield Wall',ru:'Стена щитов'},cd:3,reach:'any',targets:'self',type:'buff',stat:'def',amount:6,duration:2,desc:{en:'+6 DEF, 2 turns',ru:'+6 к защите, 2 хода'}},
+      {id:'cleave',name:{en:'Cleave',ru:'Рассечение'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.65,desc:{en:'All foes in nearest row',ru:'По всем врагам ближайшего ряда'}},
+      {id:'reckoning',name:{en:'Reckoning',ru:'Расплата'},cd:4,minLevel:4,reach:'melee',targets:'single',type:'damage',mult:2.1,desc:{en:'Ultimate: massive hit on nearest-row foe (Lv4)',ru:'Ульта: мощнейший удар по врагу ближайшего ряда (Ур.4)'}},
+    ]},
+  sael:{key:'sael',name:{en:'Sael',ru:'Саэль'},cls:{en:'Ranger',ru:'Лучник'},icon:'S',color:'#5f93ae',baseHp:25,baseAtk:9,baseDef:3,baseSpd:8,defaultRow:'back',cost:0,
+    abilities:[
+      {id:'shot',name:{en:'Quick Shot',ru:'Быстрый выстрел'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.9,desc:{en:'Any foe',ru:'По любому врагу'}},
+      {id:'pin',name:{en:'Pin Down',ru:'Пригвоздить'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.3,debuff:{stat:'spd',amount:-3,duration:2},desc:{en:'Dmg + slows',ru:'Урон + замедление'}},
+      {id:'volley',name:{en:'Volley',ru:'Залп'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.5,desc:{en:'All foes',ru:'По всем врагам'}},
+      {id:'deadeye',name:{en:'Deadeye Shot',ru:'Смертельный выстрел'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:2.0,desc:{en:'Ultimate: precise, devastating shot (Lv4)',ru:'Ульта: точный смертельный выстрел (Ур.4)'}},
+    ]},
+  yvana:{key:'yvana',name:{en:'Yvana',ru:'Ивана'},cls:{en:'Cleric',ru:'Жрица'},icon:'Y',color:'#8fb08a',baseHp:27,baseAtk:5,baseDef:4,baseSpd:6,defaultRow:'back',cost:0,
+    abilities:[
+      {id:'smite',name:{en:'Smite',ru:'Кара'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85,desc:{en:'Any foe',ru:'По любому врагу'}},
+      {id:'mend',name:{en:'Mend',ru:'Исцеление'},cd:0,reach:'any',targets:'single-ally',type:'heal',mult:0.8,flat:5,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
+      {id:'wave',name:{en:'Radiant Wave',ru:'Волна света'},cd:3,reach:'any',targets:'all-ally',type:'heal',mult:0.35,flat:4,desc:{en:'Heal company',ru:'Лечит весь отряд'}},
+      {id:'sanctuary',name:{en:'Sanctuary',ru:'Святилище'},cd:4,minLevel:4,reach:'any',targets:'single-ally',type:'heal',mult:1.4,flat:14,desc:{en:'Ultimate: near-full heal on one ally (Lv4)',ru:'Ульта: почти полное исцеление союзника (Ур.4)'}},
+    ]},
+  kest:{key:'kest',name:{en:'Kest',ru:'Кест'},cls:{en:'Rogue',ru:'Разбойник'},icon:'K',color:'#a56bc9',baseHp:26,baseAtk:10,baseDef:3,baseSpd:9,defaultRow:'back',cost:0,
+    abilities:[
+      {id:'quickstab',name:{en:'Quickstab',ru:'Быстрый укол'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
+      {id:'backstab',name:{en:'Backstab',ru:'Удар в спину'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.5,bonusVsBack:0.5,desc:{en:'+50% vs back row',ru:'+50% урона по заднему ряду'}},
+      {id:'shadowstep',name:{en:'Shadowstep',ru:'Шаг тени'},cd:3,reach:'any',targets:'self',type:'special',effect:'dodge',desc:{en:'Dodge next hit',ru:'Уклонение от следующего удара'}},
+      {id:'assassinate',name:{en:'Assassinate',ru:'Убийство'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.8,bonusVsBack:0.7,desc:{en:'Ultimate: brutal strike, +70% vs back row (Lv4)',ru:'Ульта: смертельный удар, +70% по заднему ряду (Ур.4)'}},
+    ]},
+  ashra:{key:'ashra',name:{en:'Ashra',ru:'Ашра'},cls:{en:'Pyromancer',ru:'Пиромант'},icon:'A',color:'#d9683f',baseHp:23,baseAtk:9,baseDef:2,baseSpd:7,defaultRow:'back',cost:15,
+    abilities:[
+      {id:'flick',name:{en:'Ember Flick',ru:'Всплеск огня'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.8,dot:{amount:3,duration:2},desc:{en:'Dmg + burn',ru:'Урон + поджог'}},
+      {id:'burst',name:{en:'Cinder Burst',ru:'Взрыв углей'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.5,dot:{amount:2,duration:2},desc:{en:'All foes + burn',ru:'По всем врагам + поджог'}},
+      {id:'flare',name:{en:'Flare Guard',ru:'Огненная защита'},cd:2,reach:'any',targets:'self',type:'buff',stat:'spd',amount:3,duration:2,desc:{en:'+3 SPD, 2 turns',ru:'+3 к скорости, 2 хода'}},
+      {id:'inferno',name:{en:'Inferno',ru:'Огненный шторм'},cd:4,minLevel:4,reach:'ranged',targets:'all',type:'damage',mult:0.9,dot:{amount:4,duration:3},desc:{en:'Ultimate: all foes take heavy damage + burn (Lv4)',ru:'Ульта: тяжёлый урон и поджог по всем врагам (Ур.4)'}},
+    ]},
+  doran:{key:'doran',name:{en:'Doran',ru:'Доран'},cls:{en:'Beastmaster',ru:'Зверолов'},icon:'D',color:'#b0995a',baseHp:33,baseAtk:8,baseDef:5,baseSpd:6,defaultRow:'front',cost:25,
+    abilities:[
+      {id:'claw',name:{en:'Claw Strike',ru:'Удар когтем'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.05,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
+      {id:'rally',name:{en:'Rally Cry',ru:'Боевой клич'},cd:3,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:2,duration:2,desc:{en:'+2 ATK, company',ru:'+2 к атаке всему отряду'}},
+      {id:'guard',name:{en:'Guard Stance',ru:'Оборонительная стойка'},cd:2,reach:'any',targets:'self',type:'buff',stat:'def',amount:5,duration:2,desc:{en:'+5 DEF, 2 turns',ru:'+5 к защите, 2 хода'}},
+      {id:'ferocity',name:{en:'Feral Ferocity',ru:'Дикая ярость'},cd:4,minLevel:4,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:5,duration:3,desc:{en:'Ultimate: +5 ATK to the whole company, 3 turns (Lv4)',ru:'Ульта: +5 к атаке всему отряду на 3 хода (Ур.4)'}},
+    ]},
+};
+const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran'];
+const CUSTOM_HERO_POINTS = 6;
+const CUSTOM_HERO_MAX = 4;
+const CUSTOM_HP_PER_POINT = 3;
+function customHeroToDef(customId){
+  const c=(META.customHeroes||[]).find(function(x){return x.id===customId;});
+  if(!c)return null;
+  const tpl=HERO_DEFS[c.tplKey];
+  if(!tpl)return null;
+  return {
+    key:c.id,name:{en:c.name,ru:c.name},cls:tpl.cls,icon:tpl.icon,color:c.color||tpl.color,
+    baseHp:tpl.baseHp+(c.hp||0)*CUSTOM_HP_PER_POINT,
+    baseAtk:tpl.baseAtk+(c.atk||0),baseDef:tpl.baseDef+(c.def||0),baseSpd:tpl.baseSpd+(c.spd||0),
+    defaultRow:tpl.defaultRow,cost:0,abilities:tpl.abilities,custom:true,tplKey:c.tplKey,
+  };
+}
+function getHeroDef(key){
+  return HERO_DEFS[key]||customHeroToDef(key);
+}
+
+const ENEMY_DEFS = {
+  grunt:{name:{en:'Ashling Grunt',ru:'Пепельный головорез'},icon:'G',color:'#8a6a55',hp:19,atk:6,def:3,spd:4,row:'front',
+    abilities:[{id:'gash',name:{en:'Gash',ru:'Рубящий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0}]},
+  archer:{name:{en:'Bone Archer',ru:'Костяной лучник'},icon:'R',color:'#9a9578',hp:15,atk:7,def:1,spd:6,row:'back',
+    abilities:[{id:'shot',name:{en:'Shot',ru:'Выстрел'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.9},
+               {id:'aimed',name:{en:'Aimed Shot',ru:'Прицельный выстрел'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.4}]},
+  hound:{name:{en:'Cursed Hound',ru:'Проклятый пёс'},icon:'H',color:'#7a4a4a',hp:17,atk:8,def:2,spd:9,row:'front',
+    abilities:[{id:'bite',name:{en:'Bite',ru:'Укус'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'rend',name:{en:'Rend',ru:'Разрыв'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.2,dot:{amount:2,duration:2}}]},
+  shaman:{name:{en:'Wretch Shaman',ru:'Шаман-изгой'},icon:'W',color:'#6a7a5a',hp:17,atk:5,def:2,spd:5,row:'back',
+    abilities:[{id:'hex',name:{en:'Hex Bolt',ru:'Проклятый заряд'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.8},
+               {id:'curse',name:{en:'Curse',ru:'Порча'},cd:3,reach:'ranged',targets:'single',type:'debuff',stat:'def',amount:-3,duration:2},
+               {id:'darkmend',name:{en:'Dark Mend',ru:'Тёмное исцеление'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0,flat:9}]},
+  revenant:{name:{en:'Bloated Revenant',ru:'Раздутый ревенант'},icon:'V',color:'#5a3a4a',hp:42,atk:9,def:6,spd:3,row:'front',elite:true,
+    abilities:[{id:'slam',name:{en:'Slam',ru:'Удар оземь'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.1},
+               {id:'quake',name:{en:'Quake',ru:'Сотрясение'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.0}]},
+  wraith:{name:{en:'Iron Wraith',ru:'Железный призрак'},icon:'I',color:'#5a6a7a',hp:31,atk:10,def:7,spd:5,row:'front',
+    abilities:[{id:'chop',name:{en:'Chop',ru:'Рубящий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'sunder',name:{en:'Sunder',ru:'Раскол брони'},cd:2,reach:'melee',targets:'single',type:'debuff',stat:'def',amount:-4,duration:2}]},
+  caster:{name:{en:'Ashfall Caster',ru:'Пепельный заклинатель'},icon:'C',color:'#8a5a7a',hp:21,atk:11,def:3,spd:7,row:'back',
+    abilities:[{id:'bolt',name:{en:'Ash Bolt',ru:'Пепельный заряд'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:1.0},
+               {id:'ashfall',name:{en:'Ashfall',ru:'Пепельный дождь'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.6}]},
+  hand:{name:{en:"Warden's Hand",ru:'Длань стража'},icon:'X',color:'#4a3a3a',hp:58,atk:13,def:8,spd:6,row:'front',elite:true,
+    abilities:[{id:'crush',name:{en:'Crush',ru:'Сокрушение'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.1},
+               {id:'break',name:{en:'Break Guard',ru:'Пролом защиты'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.5}]},
+  knight:{name:{en:'Ashen Knight',ru:'Пепельный рыцарь'},icon:'K',color:'#3a3540',hp:34,atk:14,def:9,spd:7,row:'front',
+    abilities:[{id:'kslash',name:{en:'Ashblade Slash',ru:'Удар пепельным клинком'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.15},
+               {id:'kbreak',name:{en:'Armor Break',ru:'Пролом брони'},cd:2,reach:'melee',targets:'single',type:'debuff',stat:'def',amount:-5,duration:2}]},
+  banshee:{name:{en:'Wailing Banshee',ru:'Воющая банши'},icon:'Y',color:'#7a5a8a',hp:26,atk:13,def:4,spd:9,row:'back',
+    abilities:[{id:'wail',name:{en:'Piercing Wail',ru:'Пронзительный вой'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:1.1},
+               {id:'dirge',name:{en:'Death Dirge',ru:'Похоронный плач'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.7,dot:{amount:3,duration:2}}]},
+  ashlord:{name:{en:'Ashlord',ru:'Владыка пепла'},icon:'Ω',color:'#2a1f28',hp:80,atk:16,def:10,spd:6,row:'front',elite:true,
+    abilities:[{id:'ashslam',name:{en:'Ashlord Slam',ru:'Удар владыки'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.2},
+               {id:'ashwave',name:{en:'Ash Wave',ru:'Пепельная волна'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.9,dot:{amount:3,duration:2}},
+               {id:'ashroar',name:{en:'Doom Roar',ru:'Рёв погибели'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2}]},
+};
+
+const BOSS_DEF = {name:{en:'The Hollow Warden',ru:'Полый Страж'},icon:'☠',color:'#2a2020',hp:95,atk:12,def:8,spd:6,row:'front',boss:true,
+  abilities:[{id:'smash',name:{en:'Smash',ru:'Крушащий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+             {id:'wslam',name:{en:'Warden Slam',ru:'Удар стража'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
+             {id:'roar',name:{en:'Hollow Roar',ru:'Полый рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'atk',amount:-2,duration:2}]};
+
+const ITEM_POOL = [
+  {id:'w1',slot:'weapon',name:{en:'Rusted Shortsword',ru:'Ржавый короткий меч'},rarity:'common',mods:{atk:2}},
+  {id:'w2',slot:'weapon',name:{en:'Ember-forged Blade',ru:'Клинок, кованный в углях'},rarity:'rare',mods:{atk:4,spd:1}},
+  {id:'w3',slot:'weapon',name:{en:"Warden's Cleaver",ru:'Тесак стража'},rarity:'epic',mods:{atk:7,spd:-1}},
+  {id:'a1',slot:'armor',name:{en:'Boiled Leather',ru:'Варёная кожа'},rarity:'common',mods:{def:2,hp:4}},
+  {id:'a2',slot:'armor',name:{en:'Chain Hauberk',ru:'Кольчужный хауберк'},rarity:'rare',mods:{def:4}},
+  {id:'a3',slot:'armor',name:{en:'Bulwark Plate',ru:'Латы бастиона'},rarity:'epic',mods:{def:7,spd:-2}},
+  {id:'t1',slot:'trinket',name:{en:'Lucky Coin',ru:'Счастливая монета'},rarity:'common',mods:{spd:2}},
+  {id:'t2',slot:'trinket',name:{en:'Vial of Vigor',ru:'Флакон бодрости'},rarity:'rare',mods:{hp:8}},
+  {id:'t3',slot:'trinket',name:{en:"Hunter's Charm",ru:'Амулет охотника'},rarity:'epic',mods:{atk:2,spd:1}},
+];
+
+const RELIC_POOL = [
+  {id:'r1',slot:'relic',name:{en:'Ember Charm',ru:'Тлеющий талисман'},rarity:'rare',mods:{},passive:'vampiric',
+    passiveDesc:{en:'Heals the wearer for 15% of damage they deal',ru:'Лечит владельца на 15% от нанесённого им урона'}},
+  {id:'r2',slot:'relic',name:{en:'Thorned Bangle',ru:'Браслет с шипами'},rarity:'rare',mods:{def:1},passive:'thorns',
+    passiveDesc:{en:'Reflects 20% of damage taken back at the attacker',ru:'Отражает 20% полученного урона обратно атакующему'}},
+  {id:'r3',slot:'relic',name:{en:'Lucky Fang',ru:'Счастливый клык'},rarity:'rare',mods:{},passive:'crit_boost',
+    passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
+  {id:'r4',slot:'relic',name:{en:'Phoenix Down',ru:'Перо феникса'},rarity:'epic',mods:{},passive:'revive',
+    passiveDesc:{en:'The first time the wearer would fall, they survive at 1 HP instead (once per march)',ru:'Когда владелец должен пасть, он впервые вместо этого выживает с 1 HP (раз за поход)'}},
+];
+function randomRelic(){const base=pick(RELIC_POOL);return Object.assign({},base,{name:L(base.name),passiveDesc:L(base.passiveDesc)});}
+
+const EVENTS = [
+  {id:'shrine',title:{en:'Abandoned Shrine',ru:'Заброшенное святилище'},
+    text:{en:'A cracked shrine sits half-buried in ash, its offerings long gone cold. Something in the stone still hums.',
+          ru:'Треснувшее святилище наполовину скрыто пеплом, его подношения давно остыли. Но камень всё ещё гудит.'},
+    choices:[
+      {label:{en:'Pray at the shrine',ru:'Помолиться у святилища'},resolve(run){
+        if(Math.random()<0.5){const h=randAlive(run.party);h.atk+=2;return h.name+M(' feels the old blessing settle in. (+2 ATK this march)',' чувствует, как его коснулось старое благословение. (+2 к атаке в этом походе)');}
+        return M('Nothing answers. The shrine stays silent.','Никто не отвечает. Святилище молчит.');
+      }},
+      {label:{en:'Take what remains',ru:'Забрать оставшееся'},resolve(run){
+        const g=15+Math.floor(Math.random()*16);run.gold+=g;
+        if(Math.random()<0.3){const h=randAlive(run.party);const dmg=5;h.hp=Math.max(1,h.hp-dmg);
+          return M('A ward snaps. '+h.name+' takes '+dmg+' damage, but you found '+g+' gold.','Оберег срабатывает. '+h.name+' получает '+dmg+' урона, но вы нашли '+g+' золота.');}
+        return M('You gather '+g+' gold from the offering bowl.','Вы собираете '+g+' золота из чаши для подношений.');
+      }},
+      {label:{en:'Leave it be',ru:'Оставить как есть'},resolve(){return M('You leave the shrine to its silence.','Вы оставляете святилище в тишине.');}},
+    ]},
+  {id:'traveler',title:{en:'Wounded Traveler',ru:'Раненый путник'},
+    text:{en:'A stranger slumps against a burnt signpost, bleeding into the dirt, watching your company approach.',
+          ru:'Незнакомец привалился к обгоревшему указателю, истекая кровью в пыль, и наблюдает за приближением отряда.'},
+    choices:[
+      {label:{en:'Tend their wounds (-10 gold)',ru:'Перевязать раны (-10 золота)'},resolve(run){
+        run.gold=Math.max(0,run.gold-10);
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.1));});
+        return M('The traveler presses a salve into your hands before slipping away. The company feels steadier.','Путник вкладывает вам в руки мазь и исчезает. Отряду становится легче.');
+      }},
+      {label:{en:'Take their pack',ru:'Забрать его вещи'},resolve(run){
+        const g=15+Math.floor(Math.random()*11);run.gold+=g;
+        const h=randAlive(run.party);h.def=Math.max(0,h.def-1);
+        return M('You take '+g+' gold. '+h.name+" can't shake the traveler's curse. (-1 DEF this march)",
+                 'Вы забираете '+g+' золота. '+h.name+' не может избавиться от проклятия путника. (-1 к защите в этом походе)');
+      }},
+      {label:{en:'Walk on',ru:'Пройти мимо'},resolve(){return M('You leave the traveler to their fate.','Вы оставляете путника его судьбе.');}},
+    ]},
+  {id:'battlefield',title:{en:'Old Battlefield',ru:'Старое поле боя'},
+    text:{en:'Rusted arms and bleached bone litter a field where some earlier company met its end.',
+          ru:'Ржавое оружие и побелевшие кости усеивают поле, где нашёл свой конец другой отряд.'},
+    choices:[
+      {label:{en:'Search the gear',ru:'Обыскать снаряжение'},resolve(run){
+        const item=randomItem();run.pendingItemPickup=item;
+        return null;
+      },special:'item'},
+      {label:{en:'Strip what glitters',ru:'Собрать всё блестящее'},resolve(run){
+        const g=10+Math.floor(Math.random()*20);run.gold+=g;
+        return M('You find '+g+' gold among the wreckage.','Вы находите '+g+' золота среди обломков.');
+      }},
+      {label:{en:'Move on quickly',ru:'Быстро уйти'},resolve(){return M('Best not to linger here.','Лучше здесь не задерживаться.');}},
+    ]},
+  {id:'idol',title:{en:'Cursed Idol',ru:'Проклятый идол'},
+    text:{en:'A small black idol watches from a hollow log. It is warm to the touch, and it wants to be carried.',
+          ru:'Маленький чёрный идол смотрит из дупла бревна. Он тёплый на ощупь, и он хочет, чтобы его забрали.'},
+    choices:[
+      {label:{en:'Carry the idol',ru:'Забрать идола'},resolve(run){
+        const h=randAlive(run.party);h.atk+=3;h.def=Math.max(0,h.def-3);
+        return M(h.name+' pockets the idol. Power, and a price. (+3 ATK / -3 DEF this march)',
+                 h.name+' прячет идола в карман. Сила требует цены. (+3 к атаке / -3 к защите в этом походе)');
+      }},
+      {label:{en:'Smash it',ru:'Разбить его'},resolve(){return M('The idol shatters into plain stone. Nothing happens.','Идол рассыпается в обычный камень. Ничего не происходит.');}},
+    ]},
+  {id:'ashes',title:{en:'Campfire Ashes',ru:'Остывший костёр'},
+    text:{en:"Someone's fire, cold for days now. A little warmth might still be found in the embers.",
+          ru:'Чей-то костёр, остывший уже много дней назад. Немного тепла ещё можно найти в углях.'},
+    choices:[
+      {label:{en:'Rest by the ashes',ru:'Отдохнуть у пепелища'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.15));});
+        return M('The company rests a while. Everyone feels a little better.','Отряд немного отдыхает. Всем становится чуть легче.');
+      }},
+      {label:{en:'Search the campsite',ru:'Обыскать стоянку'},resolve(run){
+        const g=8+Math.floor(Math.random()*12);run.gold+=g;
+        return M('A few coins were dropped in the dirt. +'+g+' gold.','В пыли завалялось несколько монет. +'+g+' золота.');
+      }},
+    ]},
+  {id:'merchant',title:{en:'Wandering Peddler',ru:'Бродячий торговец'},
+    text:{en:'A hunched figure with a cart of oddities offers you a single, hurried trade before moving on.',
+          ru:'Сутулая фигура с тележкой диковинок предлагает вам одну быструю сделку, прежде чем уйти.'},
+    choices:[
+      {label:{en:'Buy an elixir (18 gold)',ru:'Купить эликсир (18 золота)'},resolve(run){
+        if(run.gold<18)return M("You don't have enough gold.",'У вас недостаточно золота.');
+        run.gold-=18;const h=randAlive(run.party);h.hp=h.maxHp;
+        return M(h.name+' drinks the elixir and is fully restored.',h.name+' выпивает эликсир и полностью восстанавливается.');
+      }},
+      {label:{en:'Decline and move on',ru:'Отказаться и уйти'},resolve(){return M('The peddler shrugs and vanishes into the haze.','Торговец пожимает плечами и исчезает в дымке.');}},
+    ]},
+  {id:'cache',title:{en:'Sealed Cache',ru:'Запертый сундук'},
+    text:{en:'A iron-banded cache lies wedged between two rocks, its lock long rusted shut.',
+          ru:'Окованный железом сундук застрял между камнями, его замок давно проржавел.'},
+    choices:[
+      {label:{en:'Force it open',ru:'Взломать силой'},resolve(run){
+        if(Math.random()<0.6){
+          const item=Math.random()<0.25?randomRelic():randomItem();
+          run.pendingItemPickup=item;
+          return null;
+        }
+        const h=randAlive(run.party);const dmg=8;h.hp=Math.max(1,h.hp-dmg);
+        return M('A hidden barb springs out. '+h.name+' takes '+dmg+' damage — the cache was empty.','Срабатывает скрытый шип. '+h.name+' получает '+dmg+' урона — сундук оказался пуст.');
+      },special:'item'},
+      {label:{en:'Pick the lock carefully',ru:'Аккуратно вскрыть замок'},resolve(run){
+        const g=10+Math.floor(Math.random()*14);run.gold+=g;
+        return M('The lock gives way quietly. +'+g+' gold.','Замок тихо поддаётся. +'+g+' золота.');
+      }},
+      {label:{en:'Leave it be',ru:'Оставить как есть'},resolve(){return M('You leave the cache to the ash.','Вы оставляете сундук пеплу.');}},
+    ]},
+  {id:'training',title:{en:'Old Training Post',ru:'Старый учебный столб'},
+    text:{en:'A weathered training post stands here, scarred from countless practice strikes.',
+          ru:'Здесь стоит потрёпанный учебный столб, испещрённый следами бесчисленных ударов.'},
+    choices:[
+      {label:{en:'Train with the post',ru:'Потренироваться у столба'},resolve(run){
+        const h=randAlive(run.party);
+        const leveled=grantXpAutoResolve(h,16+Math.floor(Math.random()*10));
+        return leveled>0?M(h.name+' trains hard and reaches level '+h.level+'!',h.name+' усердно тренируется и достигает '+h.level+' уровня!')
+                        :M(h.name+' trains and gains experience.',h.name+' тренируется и получает опыт.');
+      }},
+      {label:{en:'Rest instead',ru:'Лучше отдохнуть'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.12));});
+        return M('The company rests by the post. Everyone feels a little better.','Отряд отдыхает у столба. Всем становится чуть легче.');
+      }},
+      {label:{en:'Move on',ru:'Пройти мимо'},resolve(){return M('Best to keep moving.','Лучше не задерживаться.');}},
+    ]},
+  {id:'spirit',title:{en:'Wandering Spirit',ru:'Блуждающий дух'},
+    text:{en:'A pale, half-formed shade drifts closer, offering a pact in a voice like wind through bone.',
+          ru:'Бледная полупрозрачная тень приближается, предлагая сделку голосом, похожим на ветер сквозь кости.'},
+    choices:[
+      {label:{en:'Accept the pact (-4 max HP, big XP)',ru:'Принять сделку (-4 к макс. HP, много опыта)'},resolve(run){
+        const h=randAlive(run.party);h.maxHp=Math.max(6,h.maxHp-4);h.hp=Math.min(h.hp,h.maxHp);
+        const leveled=grantXpAutoResolve(h,40);
+        return leveled>0?M(h.name+' pays the price and surges to level '+h.level+'!',h.name+' платит цену и стремительно достигает '+h.level+' уровня!')
+                        :M(h.name+' pays the price and gains a rush of experience.',h.name+' платит цену и получает всплеск опыта.');
+      }},
+      {label:{en:'Offer gold instead (-20 gold)',ru:'Предложить золото вместо этого (-20 золота)'},resolve(run){
+        if(run.gold<20)return M("You don't have enough gold, and the spirit fades away.",'У вас недостаточно золота, и дух исчезает.');
+        run.gold-=20;const h=randAlive(run.party);
+        const leveled=grantXpAutoResolve(h,22);
+        return leveled>0?M('The spirit accepts. '+h.name+' reaches level '+h.level+'!','Дух принимает дар. '+h.name+' достигает '+h.level+' уровня!')
+                        :M('The spirit accepts. '+h.name+' gains experience.','Дух принимает дар. '+h.name+' получает опыт.');
+      }},
+      {label:{en:'Refuse',ru:'Отказаться'},resolve(){return M('The shade dissolves back into the ash.','Тень растворяется обратно в пепле.');}},
+    ]},
+];
+
+/* ============================= META (persistent) ============================= */
+
+const META_KEY='embermarch_meta_v1';
+const RUN_KEY='embermarch_run_v1';
+
+function defaultMeta(){
+  return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0},
+    heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false},
+    customHeroes:[],achievements:{},history:[],theme:'dark'};
+}
+let META = loadMeta();
+function loadMeta(){
+  try{const raw=localStorage.getItem(META_KEY);if(!raw)return defaultMeta();
+    const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark'});
+  }catch(e){return defaultMeta();}
+}
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', META.theme==='light'?'light':'dark');
+  const btn=$('btn-theme-toggle');
+  if(btn)btn.innerHTML = META.theme==='light'?ICON_MOON:ICON_SUN;
+}
+function toggleTheme(){
+  META.theme = META.theme==='light'?'dark':'light';
+  saveMeta();
+  applyTheme();
+}
+const ICON_SUN='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>';
+const ICON_MOON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 119.5 4a6.5 6.5 0 0010.5 10.5z"/></svg>';
+function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}catch(e){} }
+function saveRun(){try{localStorage.setItem(RUN_KEY,JSON.stringify(RUN));}catch(e){} }
+function clearRun(){try{localStorage.removeItem(RUN_KEY);}catch(e){} }
+function loadRun(){try{const raw=localStorage.getItem(RUN_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;} }
+
+const UPGRADE_DEFS = [
+  {key:'packs',name:{en:'Sturdy Packs',ru:'Крепкие мешки'},desc:{en:'+15 starting gold per rank',ru:'+15 к стартовому золоту за уровень'},max:3,cost:function(r){return 5+r*4;}},
+  {key:'bones',name:{en:'Hardened Bones',ru:'Закалённые кости'},desc:{en:'+5 max HP to every hero per rank',ru:'+5 к макс. здоровью каждого героя за уровень'},max:3,cost:function(r){return 7+r*5;}},
+  {key:'favor',name:{en:"Quartermaster's Favor",ru:'Милость интенданта'},desc:{en:'Start each march with a free common item',ru:'Начинать каждый поход с бесплатным обычным предметом'},max:1,cost:function(){return 10;}},
+  {key:'whetstone',name:{en:'Whetstone Kit',ru:'Точильный набор'},desc:{en:'+1 ATK to every hero per rank',ru:'+1 к атаке каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'boots',name:{en:'Worn Marching Boots',ru:'Разношенные походные сапоги'},desc:{en:'+1 SPD to every hero per rank',ru:'+1 к скорости каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+];
+
+const ACHIEVEMENTS = [
+  {id:'first_win',name:{en:'First Light',ru:'Первый рассвет'},desc:{en:'Win a march.',ru:'Победить в походе.'},reward:20,
+    check:function(win){return win;}},
+  {id:'flawless',name:{en:'Flawless March',ru:'Безупречный поход'},desc:{en:'Win a march without losing a single hero.',ru:'Победить, не потеряв ни одного героя.'},reward:30,
+    check:function(win){return win&&!RUN.heroDied;}},
+  {id:'ascendant',name:{en:'Ascendant',ru:'Восхождение'},desc:{en:'Win a march at Ascension 2 or higher.',ru:'Победить в походе со сложностью 2 и выше.'},reward:30,
+    check:function(win){return win&&(RUN.ascension||0)>=2;}},
+  {id:'collector',name:{en:'Relic Collector',ru:'Коллекционер реликвий'},desc:{en:'Finish a march with a relic equipped.',ru:'Завершить поход с надетой реликвией.'},reward:15,
+    check:function(win){return RUN.party.some(function(h){return h.equip&&h.equip.relic;});}},
+  {id:'veteran',name:{en:'Veteran',ru:'Ветеран'},desc:{en:'Reach level 5 with any hero.',ru:'Достичь 5 уровня хотя бы одним героем.'},reward:20,
+    check:function(win){return RUN.party.some(function(h){return (h.level||1)>=5;});}},
+];
+function evaluateAchievements(win){
+  META.achievements=META.achievements||{};
+  const unlocked=[];
+  ACHIEVEMENTS.forEach(function(a){
+    if(META.achievements[a.id])return;
+    if(a.check(win)){META.achievements[a.id]=true;META.embers+=a.reward;unlocked.push(a);}
+  });
+  return unlocked;
+}
+function recordRunHistory(win,embers){
+  META.history=META.history||[];
+  META.history.push({win:win,layer:RUN.layersCleared,ascension:RUN.ascension||0,embers:embers,ts:Date.now()});
+  if(META.history.length>15)META.history=META.history.slice(-15);
+}
+
+/* ============================= UTIL ============================= */
+
+function $(id){return document.getElementById(id);}
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!==undefined)e.innerHTML=html;return e;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function randAlive(list){const a=list.filter(function(h){return h.alive;});return a.length?pick(a):list[0];}
+function randomItem(){const base=pick(ITEM_POOL);return Object.assign({},base,{name:L(base.name)});}
+function statOf(c,key){
+  let v=c[key];
+  c.status.forEach(function(s){if(s.stat===key)v+=s.amount;});
+  return Math.max(0,v);
+}
+function statAbbr(key){
+  return {atk:M('ATK','АТК'),def:M('DEF','ЗАЩ'),spd:M('SPD','СКР'),hp:M('HP','ЗДР')}[key]||key.toUpperCase();
+}
+function statInfo(key){
+  return {
+    atk:M('Attack power — increases the damage of every hit and ability this hero lands.','Сила атаки — увеличивает урон от всех ударов и способностей этого героя.'),
+    def:M('Defense — reduces the damage taken from every incoming hit.','Защита — уменьшает урон, получаемый от каждого вражеского удара.'),
+    spd:M('Speed — determines turn order; a faster hero acts sooner (and more often across a long fight).','Скорость — определяет порядок ходов; чем быстрее герой, тем раньше (и чаще за долгий бой) он действует.'),
+    hp:M('Max HP — the total health pool before this hero falls in battle.','Максимальное здоровье — общий запас HP, прежде чем герой падёт в бою.'),
+  }[key]||'';
+}
+function slotName(slot){
+  return {weapon:M('weapon','оружие'),armor:M('armor','броня'),trinket:M('trinket','аксессуар'),relic:M('relic','реликвия')}[slot]||slot;
+}
+function rarityLabel(r){
+  return {common:M('common','обычный'),rare:M('rare','редкий'),epic:M('epic','эпический')}[r]||r;
+}
+function rowLabel(row){return row==='front'?M('front','перед'):M('back','тыл');}
+function show(screenId){
+  ['screen-title','screen-legacy','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
+    .forEach(function(id){$(id).hidden=(id!==screenId);});
+  $('topbar').hidden=(screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
+}
+function closeModal(){$('modal-root').innerHTML='';}
+function openModal(node){const back=el('div','modal-backdrop');const box=el('div','modal-box');box.appendChild(node);back.appendChild(box);back.addEventListener('click',function(e){if(e.target===back)closeModal();});$('modal-root').innerHTML='';$('modal-root').appendChild(back);}
+
+/* ============================= MAP GENERATION ============================= */
+
+function clampIdx(i,n){return clamp(i,0,n-1);}
+
+const LAYER_PLAN = [
+  {count:3, pool:['battle','battle','event']},
+  {count:4, pool:['battle','battle','event','shop']},
+  {count:4, pool:['battle','event','elite','battle']},
+  {count:4, pool:['battle','battle','event','elite','shop']},
+  {count:3, pool:['battle','event','elite']},
+  {count:3, pool:['battle','elite','event','shop']},
+  {count:2, pool:['rest']},
+];
+
+function generateMap(){
+  const layers=[];
+  LAYER_PLAN.forEach(function(def,li){
+    const nodes=[];
+    for(let i=0;i<def.count;i++){
+      const type=pick(def.pool);
+      nodes.push({id:'L'+li+'N'+i,layer:li,idx:i,type:type,cleared:false,next:[]});
+    }
+    layers.push(nodes);
+  });
+  const hasShop=layers.some(function(l){return l.some(function(n){return n.type==='shop';});});
+  if(!hasShop){
+    const candidates=[];
+    layers.forEach(function(l,li){if(li<layers.length-1)l.forEach(function(n){if(n.type!=='rest')candidates.push(n);});});
+    if(candidates.length)pick(candidates).type='shop';
+  }
+  const bossNode={id:'BOSS',layer:layers.length,idx:0,type:'boss',cleared:false,next:[]};
+
+  function connect(curNodes,nextNodes){
+    curNodes.forEach(function(node,i){
+      const nCur=curNodes.length,nNext=nextNodes.length;
+      const base=nCur<=1?Math.floor(nNext/2):Math.round(i*(nNext-1)/(nCur-1));
+      const targets={};targets[clampIdx(base,nNext)]=true;
+      if(Math.random()<0.5)targets[clampIdx(base+(Math.random()<0.5?1:-1),nNext)]=true;
+      node.next=Object.keys(targets).map(function(k){return nextNodes[+k].id;});
+    });
+    nextNodes.forEach(function(n,j){
+      const has=curNodes.some(function(c){return c.next.indexOf(n.id)>=0;});
+      if(!has){
+        const nCur=curNodes.length,nNext=nextNodes.length;
+        const base=nNext<=1?Math.floor(nCur/2):Math.round(j*(nCur-1)/(nNext-1));
+        curNodes[clampIdx(base,nCur)].next.push(n.id);
+      }
+    });
+  }
+  for(let li=0;li<layers.length-1;li++)connect(layers[li],layers[li+1]);
+  connect(layers[layers.length-1],[bossNode]);
+
+  return {layers:layers,bossNode:bossNode};
+}
+function mapAllNodes(map){
+  const all=[];
+  map.layers.forEach(function(l){l.forEach(function(n){all.push(n);});});
+  all.push(map.bossNode);
+  return all;
+}
+function findNode(map,id){
+  if(id==='BOSS')return map.bossNode;
+  let found=null;
+  map.layers.forEach(function(l){l.forEach(function(n){if(n.id===id)found=n;});});
+  return found;
+}
+
+/* ============================= RUN STATE ============================= */
+
+let RUN=null;
+
+function makeHeroInstance(key){
+  const def=getHeroDef(key);
+  const maxHp=def.baseHp+META.upgrades.bones*5;
+  return {
+    key:key,tplKey:def.tplKey||key,name:L(def.name),cls:L(def.cls),icon:def.icon,color:def.color,isHero:true,side:'hero',
+    maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0),def:def.baseDef,spd:def.baseSpd+(META.upgrades.boots||0),
+    row:def.defaultRow,
+    abilities:def.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),desc:L(a.desc),cdLeft:0});}),
+    equip:{weapon:null,armor:null,trinket:null,relic:null},
+    status:[],alive:true,level:1,xp:0,usedPhoenix:false,
+  };
+}
+
+/* ---- in-run leveling ---- */
+const LEVEL_PERKS=[
+  {key:'atk',name:{en:'Might',ru:'Мощь'},desc:{en:'+2 ATK',ru:'+2 к атаке'},apply:function(h){h.atk+=2;}},
+  {key:'def',name:{en:'Warding',ru:'Стойкость'},desc:{en:'+2 DEF',ru:'+2 к защите'},apply:function(h){h.def+=2;}},
+  {key:'spd',name:{en:'Swiftness',ru:'Проворство'},desc:{en:'+1 SPD',ru:'+1 к скорости'},apply:function(h){h.spd+=1;}},
+  {key:'hp',name:{en:'Vitality',ru:'Живучесть'},desc:{en:'+6 Max HP',ru:'+6 к макс. здоровью'},apply:function(h){h.maxHp+=6;h.hp+=6;}},
+];
+function xpToNext(level){return 18+(level-1)*14;}
+function xpForNode(node){
+  const tier=tierForLayer(node.layer);
+  let base=10+tier*6;
+  if(node.type==='elite')base=Math.round(base*1.6);
+  return base;
+}
+function sampleTwoPerks(){
+  const a=LEVEL_PERKS.map(function(p){return p.key;});
+  const first=a.splice(Math.floor(Math.random()*a.length),1)[0];
+  const second=a.splice(Math.floor(Math.random()*a.length),1)[0];
+  return [first,second];
+}
+function normalizeLeveling(h){
+  if(typeof h.level!=='number')h.level=1;
+  if(typeof h.xp!=='number')h.xp=0;
+}
+function grantXpToHero(h,gain){
+  normalizeLeveling(h);
+  RUN.pendingLevelUps=RUN.pendingLevelUps||[];
+  h.xp+=gain;
+  while(h.xp>=xpToNext(h.level)){
+    h.xp-=xpToNext(h.level);
+    h.level++;
+    RUN.pendingLevelUps.push({heroKey:h.key,heroName:h.name,level:h.level,options:sampleTwoPerks()});
+  }
+}
+function awardXp(node){
+  const gain=xpForNode(node);
+  RUN.pendingLevelUps=RUN.pendingLevelUps||[];
+  RUN.party.forEach(function(h){
+    if(!h.alive)return;
+    grantXpToHero(h,gain);
+  });
+}
+/* Used outside the reward-screen flow (map events): resolves any resulting level-up
+   immediately with a random perk instead of queuing a UI choice. Returns levels gained. */
+function grantXpAutoResolve(h,gain){
+  normalizeLeveling(h);
+  h.xp+=gain;
+  let leveled=0;
+  while(h.xp>=xpToNext(h.level)){
+    h.xp-=xpToNext(h.level);
+    h.level++;
+    leveled++;
+    applyLevelPerkByKey(h,pick(sampleTwoPerks()));
+  }
+  return leveled;
+}
+function applyLevelPerkByKey(hero,key){
+  const perk=LEVEL_PERKS.find(function(p){return p.key===key;});
+  if(perk&&hero)perk.apply(hero);
+}
+function resolvePendingLevelUps(){
+  (RUN.pendingLevelUps||[]).forEach(function(pl){
+    const h=RUN.party.find(function(x){return x.key===pl.heroKey;});
+    if(h)applyLevelPerkByKey(h,pick(pl.options));
+  });
+  RUN.pendingLevelUps=[];
+}
+function finishRewardNode(node){
+  resolvePendingLevelUps();
+  completeCurrentNode(node);
+  goToMap();
+}
+function applyItemToHero(hero,item){
+  const old=hero.equip[item.slot];
+  if(old){
+    hero.atk-=old.mods.atk||0;hero.def-=old.mods.def||0;hero.spd-=old.mods.spd||0;
+    hero.maxHp-=old.mods.hp||0;hero.hp=Math.min(hero.hp,hero.maxHp);
+  }
+  hero.equip[item.slot]=item;
+  hero.atk+=item.mods.atk||0;hero.def+=item.mods.def||0;hero.spd+=item.mods.spd||0;
+  if(item.mods.hp){hero.maxHp+=item.mods.hp;hero.hp+=item.mods.hp;}
+}
+
+function hydrateParty(run){
+  if(!run||!run.party)return;
+  run.party.forEach(function(h){
+    normalizeLeveling(h);
+    if(h.equip&&h.equip.relic===undefined)h.equip.relic=null;
+    const def=getHeroDef(h.key);
+    if(!def)return;
+    h.cls=L(def.cls);
+    const cdMap={};
+    (h.abilities||[]).forEach(function(a){cdMap[a.id]=a.cdLeft||0;});
+    h.abilities=def.abilities.map(function(a){
+      return Object.assign({},a,{name:L(a.name),desc:L(a.desc),cdLeft:cdMap[a.id]||0});
+    });
+  });
+}
+
+function startNewRun(heroKeys){
+  const startGold=25+META.upgrades.packs*15;
+  RUN={
+    ascension:META.ascensionChoice,
+    map:generateMap(),
+    availableNodeIds:null,
+    currentNodeId:null,
+    party:heroKeys.map(makeHeroInstance),
+    gold:startGold,
+    layersCleared:0,
+    combat:null,
+    pendingReward:null,
+    pendingItemPickup:null,
+    heroDied:false,
+  };
+  RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
+  if(META.upgrades.favor>0){
+    const item=randomItem();applyItemToHero(RUN.party[0],item);
+  }
+  saveRun();
+  show('screen-map');
+  renderTopbar();
+  renderMap();
+}
+
+/* ============================= COMBAT ENGINE ============================= */
+
+function tierForLayer(li){return li<2?1:(li<4?2:(li<6?3:4));}
+
+function makeEnemyInstance(defKey){
+  const d=ENEMY_DEFS[defKey];
+  const asc=1+RUN.ascension*0.12;
+  return {
+    key:defKey,name:L(d.name),icon:d.icon,color:d.color,isHero:false,side:'enemy',
+    maxHp:Math.round(d.hp*asc),hp:Math.round(d.hp*asc),
+    atk:Math.round(d.atk*asc),def:d.def,spd:d.spd,row:d.row,elite:!!d.elite,
+    abilities:d.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
+    status:[],alive:true,
+  };
+}
+function makeBossInstance(){
+  const asc=1+RUN.ascension*0.12;
+  return {
+    key:'boss',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
+    maxHp:Math.round(BOSS_DEF.hp*asc),hp:Math.round(BOSS_DEF.hp*asc),
+    atk:Math.round(BOSS_DEF.atk*asc),def:BOSS_DEF.def,spd:BOSS_DEF.spd,row:'front',boss:true,
+    abilities:BOSS_DEF.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
+    status:[],alive:true,enraged:false,
+  };
+}
+function disambiguateNames(list){
+  const counts={};
+  list.forEach(function(u){counts[u.name]=(counts[u.name]||0)+1;});
+  const seen={};
+  const roman=['I','II','III','IV','V'];
+  list.forEach(function(u){
+    if(counts[u.name]>1){
+      seen[u.name]=(seen[u.name]||0)+1;
+      u.name=u.name+' '+(roman[seen[u.name]-1]||seen[u.name]);
+    }
+  });
+  return list;
+}
+function buildEncounter(node){
+  const li=node.layer;
+  const tier=tierForLayer(li);
+  if(node.type==='boss')return disambiguateNames([makeBossInstance()]);
+  if(node.type==='elite'){
+    const eliteKey=tier<=1?'revenant':(tier===2?'revenant':(tier===3?'hand':'ashlord'));
+    const minions={1:['grunt'],2:['grunt','archer','hound'],3:['wraith','caster'],4:['knight','banshee']}[tier];
+    const list=[makeEnemyInstance(eliteKey)];
+    if(Math.random()<0.7)list.push(makeEnemyInstance(pick(minions)));
+    return disambiguateNames(list);
+  }
+  const pools={1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman'],4:['knight','banshee','wraith','caster']};
+  const pool=pools[tier];
+  const count=randInt(2,3);
+  const list=[];
+  for(let i=0;i<count;i++)list.push(makeEnemyInstance(pick(pool)));
+  return disambiguateNames(list);
+}
+
+function hasRelic(unit,passive){
+  return !!(unit&&unit.isHero&&unit.equip&&unit.equip.relic&&unit.equip.relic.passive===passive);
+}
+function dmgCalc(actor,target,mult){
+  const atk=statOf(actor,'atk');
+  const def=statOf(target,'def');
+  let base=Math.max(1,Math.round(atk*mult - def*0.5));
+  base=Math.round(base*(0.88+Math.random()*0.24));
+  let crit=false;
+  let critChance=0.12+(hasRelic(actor,'crit_boost')?0.15:0);
+  if(Math.random()<critChance){base=Math.round(base*1.5);crit=true;}
+  return {amount:Math.max(1,base),crit:crit};
+}
+function frontAlive(list){return list.filter(function(c){return c.alive&&c.row==='front';});}
+function backAlive(list){return list.filter(function(c){return c.alive&&c.row==='back';});}
+function anyAlive(list){return list.filter(function(c){return c.alive;});}
+/* "Nearest row": the front row if anyone's alive there, otherwise the back row acts as the front line. */
+function nearestRowAlive(list){
+  const f=frontAlive(list);
+  return f.length?f:backAlive(list);
+}
+
+function getValidTargets(ability,caster){
+  const enemySide=caster.side==='hero'?RUN.combat.enemies:RUN.combat.party;
+  const allySide=caster.side==='hero'?RUN.combat.party:RUN.combat.enemies;
+  if(ability.targets==='single-ally'||ability.targets==='all-ally')return anyAlive(allySide);
+  if(ability.targets==='self')return [caster];
+  if(ability.reach==='melee'){
+    return nearestRowAlive(enemySide);
+  }
+  return anyAlive(enemySide);
+}
+function targetsForRow(ability,caster){
+  if(ability.targets!=='row')return null;
+  const enemySide=caster.side==='hero'?RUN.combat.enemies:RUN.combat.party;
+  return nearestRowAlive(enemySide);
+}
+function abilityHasTargets(ability,caster){
+  if(ability.targets==='row'){
+    const enemySide=caster.side==='hero'?RUN.combat.enemies:RUN.combat.party;
+    return nearestRowAlive(enemySide).length>0;
+  }
+  if(ability.targets==='single'||ability.targets==='single-ally'){
+    return getValidTargets(ability,caster).length>0;
+  }
+  return true;
+}
+
+function applyAbilityEffect(caster,ability,target){
+  const logs=[];
+  if(ability.type==='damage'){
+    const targets = ability.targets==='row'?targetsForRow(ability,caster):(ability.targets==='all'?anyAlive(caster.side==='hero'?RUN.combat.enemies:RUN.combat.party):[target]);
+    if(!targets||!targets.length){
+      logs.push(M(caster.name+"'s "+ability.name+' finds no one in range.',caster.name+' использует «'+ability.name+'», но там некого атаковать.'));
+      return logs;
+    }
+    targets.forEach(function(t){
+      if(!t.alive)return;
+      let mult=ability.mult;
+      if(ability.bonusVsBack&&t.row==='back')mult+=ability.bonusVsBack;
+      const burning=t.status.some(function(s){return s.type==='dot';});
+      if(burning)mult*=1.25;
+      const dodged = t.status.some(function(s){return s.type==='dodge';});
+      if(dodged){
+        t.status=t.status.filter(function(s){return s.type!=='dodge';});
+        logs.push(M(t.name+' dodges the attack!',t.name+' уклоняется от удара!'));
+        return;
+      }
+      const r=dmgCalc(caster,t,mult);
+      t.hp=Math.max(0,t.hp-r.amount);
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'');
+      logs.push(M(
+        caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
+        caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
+      ));
+      if(hasRelic(caster,'vampiric')&&caster.alive){
+        const heal=Math.max(1,Math.round(r.amount*0.15));
+        caster.hp=Math.min(caster.maxHp,caster.hp+heal);
+        logs.push(M(caster.name+"'s Ember Charm heals them for "+heal+'.',caster.name+' исцеляется на '+heal+' благодаря Тлеющему талисману.'));
+      }
+      if(hasRelic(t,'thorns')&&caster!==t&&caster.alive){
+        const reflect=Math.max(1,Math.round(r.amount*0.2));
+        caster.hp=Math.max(0,caster.hp-reflect);
+        logs.push(M(t.name+"'s Thorned Bangle reflects "+reflect+' damage onto '+caster.name+'.',t.name+' отражает '+reflect+' урона Браслетом с шипами обратно '+caster.name+'.'));
+        if(caster.hp<=0&&caster.alive){caster.alive=false;if(caster.isHero)RUN.heroDied=true;logs.push(M(caster.name+' falls.',caster.name+' падает замертво.'));}
+      }
+      if(ability.dot){t.status.push({type:'dot',amount:ability.dot.amount,duration:ability.dot.duration,label:M('burn','ожог')});}
+      if(ability.debuff){t.status.push({type:'debuff',stat:ability.debuff.stat,amount:ability.debuff.amount,duration:ability.debuff.duration,label:statAbbr(ability.debuff.stat)});}
+      if(t.hp<=0&&t.alive){
+        if(hasRelic(t,'revive')&&!t.usedPhoenix){
+          t.usedPhoenix=true;t.hp=1;
+          logs.push(M(t.name+"'s Phoenix Down flares — they cling to life at 1 HP!",t.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
+        } else {
+          t.alive=false;if(t.isHero)RUN.heroDied=true;logs.push(M(t.name+' falls.',t.name+' падает замертво.'));
+        }
+      }
+    });
+  } else if(ability.type==='heal'){
+    const targets=ability.targets==='all-ally'?anyAlive(caster.side==='hero'?RUN.combat.party:RUN.combat.enemies):[target];
+    targets.forEach(function(t){
+      if(!t.alive)return;
+      const amt=Math.round(ability.flat+statOf(caster,'atk')*ability.mult);
+      t.hp=Math.min(t.maxHp,t.hp+amt);
+      logs.push(M(caster.name+' mends '+t.name+' for '+amt+'.',caster.name+' лечит '+t.name+' на '+amt+'.'));
+    });
+  } else if(ability.type==='buff'){
+    const targets=ability.targets==='all-ally'?anyAlive(caster.side==='hero'?RUN.combat.party:RUN.combat.enemies):[caster];
+    targets.forEach(function(t){t.status.push({type:'buff',stat:ability.stat,amount:ability.amount,duration:ability.duration,label:statAbbr(ability.stat)});});
+    logs.push(M(caster.name+' uses '+ability.name+'.',caster.name+' использует «'+ability.name+'».'));
+  } else if(ability.type==='debuff'){
+    const targets = ability.targets==='all-ally'?anyAlive(caster.side==='hero'?RUN.combat.enemies:RUN.combat.party):[target];
+    targets.forEach(function(t){t.status.push({type:'debuff',stat:ability.stat,amount:ability.amount,duration:ability.duration,label:statAbbr(ability.stat)});});
+    logs.push(M(
+      caster.name+' uses '+ability.name+' on '+(target?target.name:'the company')+'.',
+      caster.name+' использует «'+ability.name+'» на '+(target?target.name:'весь отряд')+'.'
+    ));
+  } else if(ability.type==='special'&&ability.effect==='dodge'){
+    caster.status.push({type:'dodge',duration:1,label:M('dodge','уклонение')});
+    logs.push(M(caster.name+' readies to slip the next blow.',caster.name+' готовится уклониться от следующего удара.'));
+  }
+  return logs;
+}
+
+function tickStatus(unit){
+  const logs=[];
+  const keep=[];
+  unit.status.forEach(function(s){
+    if(s.type==='dot'){
+      unit.hp=Math.max(0,unit.hp-s.amount);
+      logs.push(M(unit.name+' burns for '+s.amount+'.',unit.name+' горит и получает '+s.amount+' урона.'));
+      if(unit.hp<=0 && unit.alive){
+        if(hasRelic(unit,'revive')&&!unit.usedPhoenix){
+          unit.usedPhoenix=true;unit.hp=1;
+          logs.push(M(unit.name+"'s Phoenix Down flares — they cling to life at 1 HP!",unit.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
+        } else {
+          unit.alive=false;
+          if(unit.isHero&&RUN.combat)RUN.heroDied=true;
+          logs.push(M(unit.name+' falls.',unit.name+' падает замертво.'));
+        }
+      }
+    }
+    const nd=s.duration-1;
+    if(nd>0)keep.push(Object.assign({},s,{duration:nd}));
+  });
+  unit.status=keep;
+  return logs;
+}
+
+function buildTurnOrder(){
+  const all=RUN.combat.party.concat(RUN.combat.enemies).filter(function(c){return c.alive;});
+  all.sort(function(a,b){return statOf(b,'spd')-statOf(a,'spd');});
+  return all;
+}
+
+function startCombat(node){
+  RUN.combat={
+    node:node,
+    enemies:buildEncounter(node),
+    party:RUN.party,
+    queue:[],
+    qi:0,
+    round:1,
+    log:[],
+    selectedAbility:null,
+    targetingUnit:null,
+    over:false,
+    autoBattle:false,
+  };
+  RUN.party.forEach(function(h){h.abilities.forEach(function(a){a.cdLeft=0;});h.status=[];});
+  logCombat(M(
+    'The company braces as '+RUN.combat.enemies.map(function(e){return e.name;}).join(', ')+' close in.',
+    'Отряд готовится к бою: приближаются '+RUN.combat.enemies.map(function(e){return e.name;}).join(', ')+'.'
+  ));
+  show('screen-combat');
+  renderTopbar();
+  newRound();
+}
+function logCombat(msg){RUN.combat.log.push(msg);renderCombatLog();}
+/* Resume a battle that was left mid-fight (page reload / closed browser). Every combat
+   checkpoint saves RUN.combat.phase alongside the state it describes, so we just re-enter
+   at that exact phase instead of restarting the encounter. */
+function resumeCombat(){
+  if(!RUN.combat)return;
+  renderCombat();
+  const phase=RUN.combat.phase;
+  const unit=RUN.combat.activeUnit;
+  if(phase==='hero_choose'||phase==='hero_target'){
+    renderActionPanel();
+    if(phase==='hero_choose'&&RUN.combat.autoBattle&&unit)setTimeout(function(){autoActHero(unit);},500);
+  } else if(phase==='enemy_turn'&&unit&&unit.alive){
+    renderActionPanel();
+    setTimeout(function(){enemyAct(unit);},550);
+  } else {
+    advanceTurn();
+  }
+}
+
+function newRound(){
+  RUN.combat.queue=buildTurnOrder();
+  RUN.combat.qi=0;
+  advanceTurn();
+}
+function checkCombatEnd(){
+  if(RUN.combat.over)return true;
+  const heroesAlive=anyAlive(RUN.combat.party).length>0;
+  const enemiesAlive=anyAlive(RUN.combat.enemies).length>0;
+  if(!enemiesAlive){RUN.combat.over=true;onCombatWin();return true;}
+  if(!heroesAlive){RUN.combat.over=true;onCombatLoss();return true;}
+  return false;
+}
+function advanceTurn(){
+  if(checkCombatEnd())return;
+  if(RUN.combat.qi>=RUN.combat.queue.length){RUN.combat.round++;newRound();return;}
+  const unit=RUN.combat.queue[RUN.combat.qi];
+  if(!unit.alive){RUN.combat.qi++;RUN.combat.phase='advance';advanceTurn();return;}
+  const dl=tickStatus(unit);
+  dl.forEach(logCombat);
+  if(checkCombatEnd())return;
+  if(!unit.alive){RUN.combat.qi++;RUN.combat.phase='advance';advanceTurn();return;}
+  unit.abilities.forEach(function(a){if(a.cdLeft>0)a.cdLeft--;});
+  if(unit.boss&&!unit.enraged&&unit.hp<=unit.maxHp*0.5){
+    unit.enraged=true;unit.atk=Math.round(unit.atk*1.3);
+    logCombat(M(unit.name+' enters a hollow rage!',unit.name+' впадает в бездушную ярость!'));
+  }
+  RUN.combat.activeUnit=unit;
+  if(unit.side==='hero'){
+    RUN.combat.activeHero=unit;
+    RUN.combat.phase='hero_choose';
+    renderCombat();
+    renderActionPanel();
+    if(RUN.combat.autoBattle)setTimeout(function(){autoActHero(unit);},500);
+  } else {
+    RUN.combat.activeHero=null;
+    RUN.combat.phase='enemy_turn';
+    RUN.combat.enemyIntent=buildEnemyIntent(unit);
+    renderCombat();
+    renderActionPanel();
+    setTimeout(function(){enemyAct(unit);},550);
+  }
+}
+function buildEnemyIntent(unit){
+  const usable=unit.abilities.filter(function(a){return a.cdLeft<=0 && abilityHasTargets(a,unit);});
+  if(!usable.length)return null;
+  let ability=usable.length>1&&Math.random()<0.55?pick(usable.slice(1)):usable[0];
+  let target=null;
+  if(ability.type==='heal'){
+    const allies=anyAlive(RUN.combat.enemies).sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);});
+    target=allies[0];
+  } else if(ability.targets==='single'){
+    const valid=getValidTargets(ability,unit);
+    target=valid.sort(function(a,b){return a.hp-b.hp;})[0];
+  }
+  const enemyIdx=RUN.combat.enemies.indexOf(unit);
+  let targetSide=null,targetIdx=-1;
+  if(target){
+    const pIdx=RUN.combat.party.indexOf(target);
+    if(pIdx>=0){targetSide='party';targetIdx=pIdx;}
+    else{targetSide='enemies';targetIdx=RUN.combat.enemies.indexOf(target);}
+  }
+  return {enemyIdx:enemyIdx,abilityId:ability.id,abilityName:ability.name,abilityType:ability.type,targetSide:targetSide,targetIdx:targetIdx};
+}
+function enemyAct(unit){
+  if(!unit.alive){RUN.combat.qi++;RUN.combat.phase='advance';RUN.combat.enemyIntent=null;renderCombat();setTimeout(advanceTurn,50);return;}
+  const intent=RUN.combat.enemyIntent;
+  const ability=intent?unit.abilities.find(function(a){return a.id===intent.abilityId;}):null;
+  if(!intent||!ability){
+    logCombat(M(unit.name+' finds no target and holds.',unit.name+' не находит цель и медлит.'));
+    RUN.combat.qi++;
+    RUN.combat.activeUnit=null;
+    RUN.combat.enemyIntent=null;
+    RUN.combat.phase='advance';
+    renderCombat();
+    setTimeout(advanceTurn,350);
+    return;
+  }
+  const target = intent.targetSide==='party'?RUN.combat.party[intent.targetIdx]:(intent.targetSide==='enemies'?RUN.combat.enemies[intent.targetIdx]:null);
+  ability.cdLeft=ability.cd;
+  const logs=applyAbilityEffect(unit,ability,target);
+  logs.forEach(logCombat);
+  RUN.combat.qi++;
+  RUN.combat.activeUnit=null;
+  RUN.combat.enemyIntent=null;
+  RUN.combat.phase='advance';
+  renderCombat();
+  setTimeout(advanceTurn,450);
+}
+
+function autoChooseForHero(unit){
+  const usableAbilities=unit.abilities.filter(function(a){return a.cdLeft<=0&&(!a.minLevel||(unit.level||1)>=a.minLevel)&&abilityHasTargets(a,unit);});
+  const healAbility=usableAbilities.find(function(a){return a.type==='heal';});
+  if(healAbility){
+    const allies=anyAlive(RUN.combat.party);
+    const hurt=allies.filter(function(a){return a.hp/a.maxHp<0.6;});
+    if(hurt.length){
+      const target=healAbility.targets==='all-ally'?null:hurt.sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);})[0];
+      return {ability:healAbility,target:target};
+    }
+  }
+  const dmgAbilities=usableAbilities.filter(function(a){return a.type==='damage';});
+  if(!dmgAbilities.length)return null;
+  dmgAbilities.sort(function(a,b){return (b.mult||0)-(a.mult||0);});
+  const ability=dmgAbilities[0];
+  let target=null;
+  if(ability.targets==='single'){
+    const valid=getValidTargets(ability,unit);
+    target=valid.sort(function(a,b){return a.hp-b.hp;})[0];
+  }
+  return {ability:ability,target:target};
+}
+function autoActHero(unit){
+  if(!RUN.combat||!RUN.combat.autoBattle||RUN.combat.activeHero!==unit||!unit.alive)return;
+  const decision=autoChooseForHero(unit);
+  if(!decision){
+    logCombat(M(unit.name+' finds no target and holds.',unit.name+' не находит цель и медлит.'));
+    RUN.combat.activeHero=null;
+    RUN.combat.activeUnit=null;
+    RUN.combat.qi++;
+    RUN.combat.phase='advance';
+    renderCombat();
+    setTimeout(advanceTurn,300);
+    return;
+  }
+  resolveHeroAbility(decision.ability,decision.target);
+}
+function heroChooseAbility(ability){
+  if(ability.cdLeft>0)return;
+  if(ability.minLevel&&(RUN.combat.activeHero.level||1)<ability.minLevel)return;
+  if(!abilityHasTargets(ability,RUN.combat.activeHero))return;
+  RUN.combat.selectedAbility=ability;
+  const needsTarget = ability.targets==='single'||ability.targets==='single-ally';
+  if(!needsTarget){
+    resolveHeroAbility(ability,null);
+    return;
+  }
+  RUN.combat.phase='hero_target';
+  renderActionPanel();
+  renderCombat();
+}
+function resolveHeroAbility(ability,target){
+  const unit=RUN.combat.activeHero;
+  ability.cdLeft=ability.cd;
+  const logs=applyAbilityEffect(unit,ability,target);
+  logs.forEach(logCombat);
+  RUN.combat.selectedAbility=null;
+  RUN.combat.activeHero=null;
+  RUN.combat.activeUnit=null;
+  RUN.combat.qi++;
+  RUN.combat.phase='advance';
+  renderCombat();
+  setTimeout(advanceTurn,250);
+}
+function heroChooseTarget(target){
+  if(!RUN.combat.selectedAbility)return;
+  resolveHeroAbility(RUN.combat.selectedAbility,target);
+}
+
+function onCombatWin(){
+  logCombat(M('The foes are defeated.','Враги повержены.'));
+  RUN.layersCleared=Math.max(RUN.layersCleared,RUN.combat.node.layer+1);
+  const node=RUN.combat.node;
+  if(node.type==='boss'){
+    saveRun();
+    setTimeout(function(){onVictory();},700);
+    return;
+  }
+  const baseGold=20+node.layer*7+randInt(0,14);
+  RUN.gold+=baseGold;
+  const cards=buildRewardCards(node.layer);
+  RUN.pendingReward={gold:baseGold,cards:cards,node:node};
+  awardXp(node);
+  saveRun();
+  setTimeout(function(){renderRewardScreen();},700);
+}
+function onCombatLoss(){
+  logCombat(M('The company has fallen.','Отряд пал.'));
+  saveRun();
+  setTimeout(function(){onDefeat();},900);
+}
+
+/* ============================= REWARD / NODES ============================= */
+
+function buildRewardCards(layer){
+  const tier=tierForLayer(layer);
+  const cards=[];
+  cards.push({type:'item',item:randomItem()});
+  const r=Math.random();
+  if(r<0.4)cards.push({type:'gold',amount:20+tier*10+randInt(0,10)});
+  else if(r<0.75)cards.push({type:'elixir'});
+  else cards.push({type:'item',item:randomItem()});
+  const r2=Math.random();
+  if(r2<0.34)cards.push({type:'gold',amount:15+tier*8+randInt(0,10)});
+  else if(r2<0.67)cards.push({type:'elixir'});
+  else cards.push({type:'item',item:randomItem()});
+  if(Math.random()<0.14)cards.push({type:'item',item:randomRelic()});
+  return cards;
+}
+
+function completeCurrentNode(node){
+  node.cleared=true;
+  RUN.currentNodeId=node.id;
+  RUN.availableNodeIds=node.next;
+  saveRun();
+}
+
+function goToMap(){
+  show('screen-map');
+  renderTopbar();
+  renderMap();
+  saveRun();
+}
+
+function enterNode(node){
+  if(node.type==='battle'||node.type==='elite'){startCombat(node);}
+  else if(node.type==='event'){startEvent(node);}
+  else if(node.type==='shop'){startShop(node);}
+  else if(node.type==='rest'){startRest(node);}
+  else if(node.type==='boss'){startCombat(node);}
+}
+
+/* ---- events ---- */
+let currentEvent=null;
+function startEvent(node){
+  currentEvent={node:node,def:pick(EVENTS)};
+  $('event-title').textContent=L(currentEvent.def.title);
+  $('event-text').textContent=L(currentEvent.def.text);
+  const box=$('event-choices');box.innerHTML='';
+  currentEvent.def.choices.forEach(function(choice){
+    const b=el('button','card-choice',L(choice.label));
+    b.addEventListener('click',function(){
+      RUN.pendingItemPickup=null;
+      const msg=choice.resolve(RUN);
+      completeCurrentNode(node);
+      if(choice.special==='item'&&RUN.pendingItemPickup){
+        const item=RUN.pendingItemPickup;RUN.pendingItemPickup=null;
+        showEventResult(M('You find: '+item.name+'.','Вы находите: '+item.name+'.'),function(){promptEquip(item,goToMap);});
+      } else {
+        showEventResult(msg,goToMap);
+      }
+    });
+    box.appendChild(b);
+  });
+  show('screen-event');
+  renderTopbar();
+}
+function showEventResult(msg,after){
+  $('event-title').textContent='…';
+  $('event-text').textContent=msg;
+  const box=$('event-choices');box.innerHTML='';
+  const b=el('button','primary',M('Continue','Продолжить'));
+  b.addEventListener('click',after);
+  box.appendChild(b);
+}
+
+/* ---- shop ---- */
+function startShop(node){
+  RUN.shopStock = RUN.shopStock||buildShopStock();
+  renderShop();
+  show('screen-shop');
+  renderTopbar();
+  RUN._shopNode=node;
+}
+function buildShopStock(){
+  const stock=[
+    {kind:'item',item:randomItem(),price:0},
+    {kind:'item',item:randomItem(),price:0},
+    {kind:'elixir',price:22},
+    {kind:'vigor',price:35},
+  ];
+  if(Math.random()<0.4)stock.push({kind:'item',item:randomRelic(),price:0});
+  return stock.map(function(s){if(s.kind==='item')s.price=({common:24,rare:42,epic:65})[s.item.rarity];return s;});
+}
+function goldSuffix(){return M(' gold',' золота');}
+function renderShop(){
+  $('shop-gold').textContent=RUN.gold;
+  const box=$('shop-items');box.innerHTML='';
+  RUN.shopStock.forEach(function(stock){
+    if(stock.sold)return;
+    const b=el('button','card-choice');
+    let label='';
+    if(stock.kind==='item')label='<strong>'+stock.item.name+'</strong> <span class="item-tag rarity-'+stock.item.rarity+'">'+rarityLabel(stock.item.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+itemDescText(stock.item)+'</span>';
+    else if(stock.kind==='elixir')label='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Fully heal one company member.','Полностью восстанавливает здоровье одному бойцу.')+'</span>';
+    else if(stock.kind==='vigor')label='<strong>'+M('Vial of Deep Vigor','Флакон глубокой бодрости')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('+6 max HP, permanently, to one member.','Даёт одному бойцу +6 к макс. здоровью навсегда.')+'</span>';
+    label+='<br><span class="gold-badge" style="font-size:13px;">'+stock.price+goldSuffix()+'</span>';
+    b.innerHTML=label;
+    b.disabled=RUN.gold<stock.price;
+    b.addEventListener('click',function(){
+      if(RUN.gold<stock.price)return;
+      RUN.gold-=stock.price;stock.sold=true;
+      if(stock.kind==='item'){promptEquip(stock.item,function(){renderShop();saveRun();});}
+      else if(stock.kind==='elixir'){promptChooseHero(M('Elixir on whom?','Кому дать эликсир?'),function(h){h.hp=h.maxHp;renderShop();saveRun();});}
+      else if(stock.kind==='vigor'){promptChooseHero(M('Vigor for whom?','Кому дать флакон бодрости?'),function(h){h.maxHp+=6;h.hp+=6;renderShop();saveRun();});}
+    });
+    box.appendChild(b);
+  });
+  if(!box.children.length)box.appendChild(el('div','','<span style="color:var(--muted);">'+M('The cart is empty. Nothing left to buy.','Тележка пуста. Больше нечего купить.')+'</span>'));
+}
+function modsToText(mods){
+  const parts=[];
+  if(mods.atk)parts.push((mods.atk>0?'+':'')+mods.atk+' '+statAbbr('atk'));
+  if(mods.def)parts.push((mods.def>0?'+':'')+mods.def+' '+statAbbr('def'));
+  if(mods.spd)parts.push((mods.spd>0?'+':'')+mods.spd+' '+statAbbr('spd'));
+  if(mods.hp)parts.push((mods.hp>0?'+':'')+mods.hp+' '+statAbbr('hp'));
+  return parts.join(', ');
+}
+function itemDescText(item){
+  const parts=[];
+  const mt=modsToText(item.mods||{});
+  if(mt)parts.push(mt);
+  if(item.passiveDesc)parts.push(item.passiveDesc);
+  return parts.join(' · ')||M('No bonus','Без бонуса');
+}
+
+/* ---- rest ---- */
+function startRest(node){
+  show('screen-rest');
+  renderTopbar();
+  RUN._restNode=node;
+}
+
+/* ============================= RENDER ============================= */
+
+function renderTopbar(){
+  if(!RUN)return;
+  const cur = RUN.currentNodeId?findNode(RUN.map,RUN.currentNodeId):null;
+  const layerNum = cur? (cur.layer+2) : 1;
+  $('tb-layer').textContent=M('Layer ','Уровень ')+Math.min(layerNum,8)+' / 8'+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
+  $('tb-gold').textContent=RUN.gold+M('g',M(' зол.',' зол.'));
+  const wrap=$('tb-party');wrap.innerHTML='';
+  RUN.party.forEach(function(h){
+    const b=el('div','pb-hp');
+    const dot=el('div','pb-dot',avatarContent(h));
+    dot.style.background=h.alive?h.color:'#4a4a4a';
+    if(!h.alive)dot.style.opacity='0.4';
+    dot.title=h.name+' · '+h.cls+' · '+M('Lv','Ур.')+' '+(h.level||1);
+    b.appendChild(dot);
+    b.appendChild(el('div','',M('Lv','Ур.')+(h.level||1)));
+    b.appendChild(el('div','',h.alive?h.hp+'/'+h.maxHp:M('down','пал')));
+    wrap.appendChild(b);
+  });
+}
+
+function nodeColor(type){
+  return {battle:'var(--accent)',elite:'var(--danger)',event:'var(--accent2)',shop:'var(--gold)',rest:'var(--good)',boss:'var(--danger)'}[type];
+}
+function nodeLabel(type){
+  return {battle:M('BTL','БОЙ'),elite:M('ELT','ЭЛТ'),event:M('EVT','СОБ'),shop:M('SHP','МАГ'),rest:M('RST','ПРВ'),boss:'☠'}[type];
+}
+function renderMap(){
+  const map=RUN.map;
+  const layers=map.layers;
+  const totalLayers=layers.length+1;
+  const maxPerLayer=layers.reduce(function(m,l){return Math.max(m,l.length);},1);
+  const w=60+totalLayers*92;
+  const h=Math.max(220,80+(maxPerLayer-1)*90);
+  const svg=$('map-svg');
+  svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  svg.setAttribute('width',w);
+  svg.setAttribute('height',h);
+  svg.innerHTML='';
+  const NS='http://www.w3.org/2000/svg';
+  function coordsFor(node){
+    const arr = node.type==='boss'?[node]:layers[node.layer];
+    const n=arr.length;
+    const y = n<=1?h/2:40+node.idx*((h-80)/(n-1));
+    const x = 50+node.layer*92;
+    return {x:x,y:y};
+  }
+  const allNodes=mapAllNodes(map);
+  const posMap={};
+  allNodes.forEach(function(n){posMap[n.id]=coordsFor(n);});
+
+  allNodes.forEach(function(n){
+    n.next.forEach(function(nid){
+      const p1=posMap[n.id],p2=posMap[nid];
+      const line=document.createElementNS(NS,'line');
+      line.setAttribute('x1',p1.x);line.setAttribute('y1',p1.y);
+      line.setAttribute('x2',p2.x);line.setAttribute('y2',p2.y);
+      line.setAttribute('stroke', n.cleared?'var(--map-line-cleared)':'var(--map-line)');
+      line.setAttribute('stroke-width','2');
+      svg.appendChild(line);
+    });
+  });
+  allNodes.forEach(function(n){
+    const p=posMap[n.id];
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','map-node'+(RUN.availableNodeIds&&RUN.availableNodeIds.indexOf(n.id)>=0?'':' locked'));
+    const r = n.type==='boss'?18:(n.type==='elite'?15:13);
+    const circle=document.createElementNS(NS,'circle');
+    circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y);circle.setAttribute('r',r);
+    const available=RUN.availableNodeIds&&RUN.availableNodeIds.indexOf(n.id)>=0;
+    let fill=nodeColor(n.type);
+    if(n.cleared)fill='var(--map-line-cleared)';
+    else if(!available)fill='var(--map-locked)';
+    circle.setAttribute('fill',fill);
+    circle.setAttribute('stroke', n.id===RUN.currentNodeId?'var(--text)':'var(--border)');
+    circle.setAttribute('stroke-width', n.id===RUN.currentNodeId?'2':'1');
+    g.appendChild(circle);
+    if(available&&!n.cleared){
+      const glow=document.createElementNS(NS,'circle');
+      glow.setAttribute('cx',p.x);glow.setAttribute('cy',p.y);glow.setAttribute('r',r+5);
+      glow.setAttribute('fill','none');glow.setAttribute('stroke',fill);
+      glow.setAttribute('stroke-width','1.5');glow.setAttribute('opacity','.45');
+      svg.appendChild(glow);
+    }
+    const text=document.createElementNS(NS,'text');
+    text.setAttribute('x',p.x);text.setAttribute('y',p.y+3);text.setAttribute('text-anchor','middle');
+    text.textContent = n.cleared? '✓' : nodeLabel(n.type);
+    g.appendChild(text);
+    if(available){
+      g.addEventListener('click',function(){enterNode(n);});
+    }
+    svg.appendChild(g);
+  });
+}
+
+function renderCombatLog(){
+  const box=$('combat-log');box.innerHTML='';
+  const msgs=RUN.combat.log.slice(-30).slice().reverse();
+  msgs.forEach(function(m,i){box.appendChild(el('div',i===0?'l-new':'',m));});
+}
+const ROMAN_SUFFIX_RE=/ (I{1,3}|IV|V)$/;
+function renderTurnOrder(){
+  const strip=$('turn-order');
+  if(!strip||!RUN.combat.queue)return;
+  strip.innerHTML='';
+  RUN.combat.queue.forEach(function(u,i){
+    const it=el('div','to-item'+(i===RUN.combat.qi&&u.alive?' current':'')+(!u.alive?' dead':''),avatarContent(u));
+    it.style.background=u.color;
+    it.title=u.name;
+    const m=u.name.match(ROMAN_SUFFIX_RE);
+    if(m){
+      const badge=el('span','to-badge',m[1]);
+      it.appendChild(badge);
+    }
+    strip.appendChild(it);
+  });
+}
+
+function intentIcon(type){
+  return {damage:'⚔',heal:'✚',buff:'▲',debuff:'▼',special:'✦'}[type]||'?';
+}
+function unitCard(unit,isTargetable,isAllyTargetable,intentBadge,isIntentTarget){
+  const card=el('div','unit-card'+(unit.alive?'':' dead'));
+  if(RUN.combat.activeUnit===unit)card.classList.add('active-turn');
+  if(isTargetable)card.classList.add('targetable');
+  if(isAllyTargetable)card.classList.add('ally-targetable');
+  if(isIntentTarget)card.classList.add('intent-target');
+  const av=el('div','unit-avatar',avatarContent(unit));
+  av.style.background=unit.color;
+  if(intentBadge){
+    const ib=el('span','intent-badge',intentIcon(intentBadge.type));
+    ib.title=intentBadge.name;
+    av.appendChild(ib);
+  }
+  card.appendChild(av);
+  card.title=unit.isHero?(unit.name+' · '+unit.cls+' · '+M('Lv','Ур.')+' '+(unit.level||1)):unit.name;
+  card.appendChild(el('div','unit-name',unit.name));
+  if(unit.isHero)card.appendChild(el('div','unit-class',unit.cls+' · '+M('Lv','Ур.')+(unit.level||1)));
+  card.appendChild(el('div','unit-row-tag',rowLabel(unit.row)+(unit.elite?(' · '+M('elite','элита')):'')+(unit.boss?(' · '+M('boss','босс')):'')));
+  const pct=Math.max(0,unit.hp/unit.maxHp*100);
+  const bar=el('div','hpbar');
+  const fill=el('div','hpbar-fill'+(pct<30?' low':''));fill.style.width=pct+'%';
+  bar.appendChild(fill);card.appendChild(bar);
+  card.appendChild(el('div','hp-num',unit.hp+'/'+unit.maxHp));
+  const icons=el('div','status-icons');
+  unit.status.forEach(function(s){
+    const cls=s.type==='dot'?'debuff':(s.type==='debuff'?'debuff':'buff');
+    const sign=(typeof s.amount==='number')?(s.amount>0?'+':'')+s.amount+' ':'';
+    icons.appendChild(el('span','status-icon '+cls, sign+(s.label||s.type)+' '+s.duration));
+  });
+  card.appendChild(icons);
+  if(isTargetable){card.addEventListener('click',function(){heroChooseTarget(unit);});}
+  if(isAllyTargetable){card.addEventListener('click',function(){heroChooseTarget(unit);});}
+  return card;
+}
+
+function renderCombat(){
+  if(!RUN.combat)return;
+  const ability=RUN.combat.selectedAbility;
+  const active=RUN.combat.activeHero;
+  let targetableEnemies=[],targetableAllies=[];
+  if(ability&&active){
+    if(ability.targets==='single')targetableEnemies=getValidTargets(ability,active);
+    if(ability.targets==='single-ally')targetableAllies=getValidTargets(ability,active);
+  }
+  const intent=RUN.combat.enemyIntent;
+  const intentUnit=intent?RUN.combat.enemies[intent.enemyIdx]:null;
+  const intentTarget=intent&&intent.targetSide?((intent.targetSide==='party'?RUN.combat.party:RUN.combat.enemies)[intent.targetIdx]):null;
+  const eb=$('enemy-row-back'),ef=$('enemy-row-front');
+  eb.innerHTML='';ef.innerHTML='';
+  RUN.combat.enemies.forEach(function(en){
+    const tgt=targetableEnemies.indexOf(en)>=0;
+    const badge=(intentUnit===en)?{type:intent.abilityType,name:intent.abilityName}:null;
+    (en.row==='back'?eb:ef).appendChild(unitCard(en,tgt,false,badge,intentTarget===en));
+  });
+  const hf=$('hero-row-front'),hb=$('hero-row-back');
+  hf.innerHTML='';hb.innerHTML='';
+  RUN.combat.party.forEach(function(h){
+    const tgt=targetableAllies.indexOf(h)>=0;
+    (h.row==='back'?hb:hf).appendChild(unitCard(h,false,tgt,null,intentTarget===h));
+  });
+  renderTurnOrder();
+  renderCombatLog();
+  updateAutoBattleButton();
+  saveRun();
+}
+function updateAutoBattleButton(){
+  const btn=$('btn-auto-battle');
+  if(!btn||!RUN.combat)return;
+  const on=!!RUN.combat.autoBattle;
+  btn.textContent=on?M('Auto: ON','Авто: ВКЛ'):M('Auto: OFF','Авто: ВЫКЛ');
+  btn.className=on?'primary':'';
+}
+
+function renderActionPanel(){
+  const panel=$('action-panel');panel.innerHTML='';
+  const unit=RUN.combat.activeHero;
+  if(!unit){panel.innerHTML='<div style="color:var(--muted);font-size:13px;">'+M('The foe stirs…','Враг готовится…')+'</div>';return;}
+  panel.appendChild(el('div','eyebrow',M(unit.name+"'s turn",'Ход: '+unit.name)));
+  const bar=el('div','ability-bar');
+  unit.abilities.forEach(function(a){
+    const btn=el('button','ability-btn');
+    if(RUN.combat.selectedAbility===a)btn.classList.add('selected');
+    btn.innerHTML='<span class="a-name">'+a.name+(a.minLevel?' <span class="ult-tag">'+M('ULT','УЛЬТ')+'</span>':'')+'</span><span class="a-meta">'+(a.desc||'')+'</span>';
+    if(a.minLevel&&(unit.level||1)<a.minLevel){
+      btn.disabled=true;
+      btn.classList.add('no-target');
+      const badge=el('span','cd-badge',M('Lv','Ур.')+a.minLevel);
+      btn.appendChild(badge);
+    } else if(a.cdLeft>0){
+      btn.disabled=true;
+      const badge=el('span','cd-badge',a.cdLeft);
+      btn.appendChild(badge);
+    } else if(!abilityHasTargets(a,unit)){
+      btn.disabled=true;
+      btn.classList.add('no-target');
+      const badge=el('span','cd-badge',M('N/A','нет цели'));
+      btn.appendChild(badge);
+    }
+    btn.addEventListener('click',function(){heroChooseAbility(a);});
+    bar.appendChild(btn);
+  });
+  panel.appendChild(bar);
+  if(RUN.combat.selectedAbility){
+    const hint = {'single':M('Choose a foe to strike.','Выберите врага для удара.'),'single-ally':M('Choose an ally.','Выберите союзника.')}[RUN.combat.selectedAbility.targets]||'';
+    panel.appendChild(el('div','eyebrow',hint));
+  }
+}
+
+/* ---- reward screen ---- */
+function renderRewardScreen(){
+  const box=$('reward-cards');box.innerHTML='';
+  const pr=RUN.pendingReward;
+  (RUN.pendingLevelUps||[]).forEach(function(pl){
+    const card=el('div','card level-up-card');
+    card.appendChild(el('div','',M(
+      '<strong>'+pl.heroName+'</strong> reaches level '+pl.level+'! Choose a bonus:',
+      '<strong>'+pl.heroName+'</strong> достигает '+pl.level+' уровня! Выберите бонус:'
+    )));
+    const opts=el('div','row');
+    pl.options.forEach(function(key){
+      const perk=LEVEL_PERKS.find(function(p){return p.key===key;});
+      const b=el('button','card-choice');
+      b.innerHTML='<strong>'+L(perk.name)+'</strong><br><span style="color:var(--muted);font-size:12px;">'+L(perk.desc)+'</span>';
+      b.addEventListener('click',function(){
+        const h=RUN.party.find(function(x){return x.key===pl.heroKey;});
+        applyLevelPerkByKey(h,key);
+        const idx=RUN.pendingLevelUps.indexOf(pl);
+        if(idx>=0)RUN.pendingLevelUps.splice(idx,1);
+        saveRun();
+        renderRewardScreen();
+      });
+      opts.appendChild(b);
+    });
+    card.appendChild(opts);
+    box.appendChild(card);
+  });
+  box.appendChild(el('div','card',M(
+    "You claim <strong style='color:var(--gold)'>"+pr.gold+' gold</strong> from the fallen.',
+    "Вы забираете у павших <strong style='color:var(--gold)'>"+pr.gold+' золота</strong>.'
+  )));
+  pr.cards.forEach(function(card){
+    const b=el('button','card-choice');
+    if(card.type==='item'){
+      b.innerHTML='<strong>'+card.item.name+'</strong> <span class="item-tag rarity-'+card.item.rarity+'">'+rarityLabel(card.item.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+slotName(card.item.slot)+' · '+itemDescText(card.item)+'</span>';
+      b.addEventListener('click',function(){promptEquip(card.item,function(){finishRewardNode(pr.node);});});
+    } else if(card.type==='gold'){
+      b.innerHTML='<strong>'+M('Extra Gold','Дополнительное золото')+'</strong><br><span style="color:var(--muted);font-size:12px;">+'+card.amount+goldSuffix()+'</span>';
+      b.addEventListener('click',function(){RUN.gold+=card.amount;finishRewardNode(pr.node);});
+    } else if(card.type==='elixir'){
+      b.innerHTML='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Fully heal one company member.','Полностью восстанавливает здоровье одному бойцу.')+'</span>';
+      b.addEventListener('click',function(){promptChooseHero(M('Heal whom?','Кого исцелить?'),function(h){h.hp=h.maxHp;finishRewardNode(pr.node);});});
+    }
+    box.appendChild(b);
+  });
+  show('screen-reward');
+  renderTopbar();
+  $('btn-skip-reward').onclick=function(){finishRewardNode(pr.node);};
+}
+
+/* ---- modals ---- */
+function promptEquip(item,after){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Equip '+item.name+'?','Экипировать «'+item.name+'»?')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>"));
+  RUN.party.forEach(function(h){
+    const cur=h.equip[item.slot];
+    const b=el('button','card-choice');
+    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))+'</span>';
+    b.addEventListener('click',function(){applyItemToHero(h,item);closeModal();saveRun();after();});
+    wrap.appendChild(b);
+  });
+  const skip=el('button','',M('Discard it','Выбросить'));
+  skip.addEventListener('click',function(){closeModal();saveRun();after();});
+  wrap.appendChild(skip);
+  openModal(wrap);
+}
+function promptChooseHero(title,cb){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',title));
+  RUN.party.forEach(function(h){
+    if(!h.alive)return;
+    const b=el('button','card-choice');
+    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span> <span style="color:var(--muted);font-size:12px;">'+h.hp+'/'+h.maxHp+' '+statAbbr('hp')+'</span>';
+    b.addEventListener('click',function(){closeModal();cb(h);});
+    wrap.appendChild(b);
+  });
+  openModal(wrap);
+}
+function openFormationModal(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Formation & Gear','Строй и снаряжение')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Melee attacks hit the nearest row — the front row if anyone stands there, otherwise the back row. Ranged attacks reach anyone.','Атаки ближнего боя бьют по ближайшему ряду — переднему, если там кто-то есть, иначе по заднему. Дальние атаки достают любого.')+"</span>"));
+  RUN.party.forEach(function(h){
+    const row=el('div','row',null);
+    const info=el('div','',"<strong>"+h.name+"</strong> <span class='item-tag' style='color:var(--accent2);'>"+h.cls+' · '+M('Lv','Ур.')+(h.level||1)+"</span><br><span style='color:var(--muted);font-size:11px;'>"+statAbbr('atk')+' '+h.atk+' &middot; '+statAbbr('def')+' '+h.def+' &middot; '+statAbbr('spd')+' '+h.spd+' &middot; XP '+(h.xp||0)+'/'+xpToNext(h.level||1)+"</span>");
+    info.style.flex='1';
+    row.appendChild(info);
+    const toggle=el('button','',h.row==='front'?M('Front','Перед'):M('Back','Тыл'));
+    toggle.addEventListener('click',function(){h.row=h.row==='front'?'back':'front';toggle.textContent=h.row==='front'?M('Front','Перед'):M('Back','Тыл');saveRun();});
+    row.appendChild(toggle);
+    wrap.appendChild(row);
+  });
+  const close=el('button','primary',M('Done','Готово'));
+  close.addEventListener('click',closeModal);
+  wrap.appendChild(close);
+  openModal(wrap);
+}
+
+/* ============================= RUN END ============================= */
+
+function computeEmbers(win){
+  const allNodes = mapAllNodes(RUN.map);
+  const cleared = allNodes.filter(function(n){return n.cleared;}).length;
+  let embers = cleared*2 + RUN.ascension*3;
+  if(win)embers+=15;
+  return Math.max(1,Math.round(embers));
+}
+function renderAchievementUnlocks(unlocked){
+  const box=$('go-achievements');box.innerHTML='';
+  if(!unlocked.length)return;
+  box.appendChild(el('div','eyebrow',M('Achievements unlocked','Открытые достижения')));
+  unlocked.forEach(function(a){
+    box.appendChild(el('div','card',
+      "<strong>"+L(a.name)+"</strong> <span class='gold-badge'>+"+a.reward+M(' embers',' угольков')+"</span><br><span style='color:var(--muted);font-size:12px;'>"+L(a.desc)+"</span>"
+    ));
+  });
+}
+function onVictory(){
+  const embers=computeEmbers(true);
+  META.embers+=embers;
+  META.wins++;
+  META.bestLayer=Math.max(META.bestLayer,8);
+  if(META.wins>=1)META.heroesUnlocked.ashra=true;
+  if(META.wins>=3)META.heroesUnlocked.doran=true;
+  META.ascensionUnlocked=Math.max(META.ascensionUnlocked,Math.min(5,RUN.ascension+1));
+  const unlocked=evaluateAchievements(true);
+  recordRunHistory(true,embers);
+  saveMeta();
+  clearRun();
+  $('go-banner').textContent=M('The March is Won','Поход завершён победой');
+  $('go-banner').className='gameover-banner win';
+  $('go-text').textContent=M(
+    'The company breaks through the last of the ash and finds open sky. The road behind them is finally quiet.',
+    'Отряд пробивается сквозь последний пепел и находит открытое небо. Дорога позади них наконец затихает.'
+  );
+  $('go-layers').textContent='8 / 8';
+  $('go-embers').textContent=embers;
+  renderAchievementUnlocks(unlocked);
+  show('screen-gameover');
+}
+function onDefeat(){
+  const embers=computeEmbers(false);
+  META.embers+=embers;
+  META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
+  const unlocked=evaluateAchievements(false);
+  recordRunHistory(false,embers);
+  saveMeta();
+  clearRun();
+  $('go-banner').textContent=M('The Company Falls','Отряд погиб');
+  $('go-banner').className='gameover-banner lose';
+  $('go-text').textContent=M(
+    'The ash takes what remains. Somewhere behind, the next company is already being mustered.',
+    'Пепел забирает всё, что осталось. Где-то позади уже собирают следующий отряд.'
+  );
+  $('go-layers').textContent=(RUN.layersCleared)+' / 8';
+  $('go-embers').textContent=embers;
+  renderAchievementUnlocks(unlocked);
+  show('screen-gameover');
+}
+
+/* ============================= SCREENS: TITLE / LEGACY / HERO SELECT ============================= */
+
+function renderTitle(){
+  $('btn-continue').hidden = !loadRun();
+  const el2=$('title-stats');
+  el2.innerHTML = M(
+    'Marches won: '+META.wins+' &middot; Embers banked: '+META.embers+' &middot; Best reach: layer '+META.bestLayer+' / 8',
+    'Походов пройдено: '+META.wins+' &middot; Угольков накоплено: '+META.embers+' &middot; Лучший результат: уровень '+META.bestLayer+' / 8'
+  );
+  renderLangSwitch();
+  show('screen-title');
+}
+
+function renderLegacy(){
+  $('leg-embers').textContent=META.embers;
+  const up=$('leg-upgrades');up.innerHTML='';
+  UPGRADE_DEFS.forEach(function(def){
+    const rank=META.upgrades[def.key];
+    const maxed=rank>=def.max;
+    const cost=def.cost(rank);
+    const row=el('div','upgrade-row');
+    const dots=el('div','stack-dots');
+    for(let i=0;i<def.max;i++)dots.appendChild(el('span','stack-dot'+(i<rank?' filled':'')));
+    const left=el('div','',"<strong>"+L(def.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(def.desc)+"</span>");
+    left.style.flex='1';
+    row.appendChild(left);
+    row.appendChild(dots);
+    const btn=el('button',maxed?'':'primary',maxed?M('Maxed','Максимум'):(M('Buy','Купить')+' · '+cost));
+    btn.disabled = maxed || META.embers<cost;
+    btn.addEventListener('click',function(){
+      if(META.embers<cost||maxed)return;
+      META.embers-=cost;META.upgrades[def.key]++;saveMeta();renderLegacy();
+    });
+    row.appendChild(btn);
+    up.appendChild(row);
+  });
+  const rec=$('leg-recruits');rec.innerHTML='';
+  ['ashra','doran'].forEach(function(key){
+    const def=HERO_DEFS[key];
+    const owned=META.heroesUnlocked[key];
+    const row=el('div','upgrade-row');
+    const left=el('div','',"<strong>"+L(def.name)+"</strong> <span style='color:var(--muted);font-size:12px;'>"+L(def.cls)+"</span><br><span style='color:var(--muted);font-size:12px;'>"+M('Unlocks by winning marches, or recruit early below.','Открывается победами в походах — либо наймите заранее.')+"</span>");
+    left.style.flex='1';
+    row.appendChild(left);
+    const btn=el('button',owned?'':'primary',owned?M('Recruited','Нанят'):(M('Recruit','Нанять')+' · '+def.cost));
+    btn.disabled = owned || META.embers<def.cost;
+    btn.addEventListener('click',function(){
+      if(owned||META.embers<def.cost)return;
+      META.embers-=def.cost;META.heroesUnlocked[key]=true;saveMeta();renderLegacy();
+    });
+    row.appendChild(btn);
+    rec.appendChild(row);
+  });
+  const ascWrap=$('leg-ascension');ascWrap.innerHTML='';
+  for(let i=0;i<=5;i++){
+    const locked=i>META.ascensionUnlocked;
+    const pip=el('div','asc-pip'+(locked?' locked':'')+(META.ascensionChoice===i?' selected':''),i);
+    if(!locked)pip.addEventListener('click',function(){META.ascensionChoice=i;saveMeta();renderLegacy();});
+    ascWrap.appendChild(pip);
+  }
+  const ascInfo=$('leg-ascension-info');
+  if(ascInfo){
+    const pct=Math.round(META.ascensionChoice*12);
+    ascInfo.textContent=META.ascensionChoice===0
+      ? M('Ascension 0: no modifiers.','Сложность 0: без модификаторов.')
+      : M('Ascension '+META.ascensionChoice+': enemies have +'+pct+'% HP and ATK, and you gain +'+(META.ascensionChoice*3)+' bonus embers per march.',
+          'Сложность '+META.ascensionChoice+': у врагов +'+pct+'% к HP и атаке, а вы получаете +'+(META.ascensionChoice*3)+' угольков за поход.');
+  }
+  const histBox=$('leg-history');
+  if(histBox){
+    histBox.innerHTML='';
+    const hist=(META.history||[]).slice().reverse();
+    if(!hist.length){
+      histBox.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('No completed marches yet.','Пока нет завершённых походов.')+"</span>"));
+    } else {
+      hist.forEach(function(h){
+        const row=el('div','upgrade-row');
+        const outcome=h.win?M('Victory','Победа'):M('Defeat','Поражение');
+        const color=h.win?'var(--good)':'var(--danger)';
+        row.innerHTML="<div style='flex:1;'><strong style='color:"+color+"'>"+outcome+"</strong> · "+M('layer','уровень')+' '+h.layer+'/8'+(h.ascension?(' · '+M('Asc ','Слож. ')+h.ascension):'')+"<br><span style='color:var(--muted);font-size:11px;'>+"+h.embers+M(' embers',' угольков')+"</span></div>";
+        histBox.appendChild(row);
+      });
+    }
+  }
+  renderLangSwitch();
+  show('screen-legacy');
+}
+
+let heroSelectState=[];
+function renderHeroPickCard(list,key,def,unlocked,isCustom){
+  const card=el('div','hero-pick'+(unlocked?'':' locked'));
+  const av=el('div','hero-avatar',HERO_ICON_SVG[def.tplKey||key]||def.icon);av.style.background=def.color;
+  card.appendChild(av);
+  const info=el('div','hero-info');
+  info.appendChild(el('div','name',L(def.name)+(unlocked?'':M(' (locked)',' (заблокировано)'))));
+  info.appendChild(el('div','cls',L(def.cls)));
+  const stats=el('div','hero-stats',statAbbr('hp')+' '+def.baseHp+' &middot; '+statAbbr('atk')+' '+def.baseAtk+' &middot; '+statAbbr('def')+' '+def.baseDef+' &middot; '+statAbbr('spd')+' '+def.baseSpd);
+  info.appendChild(stats);
+  card.appendChild(info);
+  if(isCustom){
+    const del=el('button','',M('Delete','Удалить'));
+    del.style.cssText='flex-shrink:0;align-self:center;font-size:11px;padding:5px 8px;';
+    del.addEventListener('click',function(e){
+      e.stopPropagation();
+      META.customHeroes=META.customHeroes.filter(function(c){return c.id!==key;});
+      saveMeta();renderHeroSelect();
+    });
+    card.appendChild(del);
+  }
+  if(unlocked){
+    card.addEventListener('click',function(){
+      const idx=heroSelectState.indexOf(key);
+      if(idx>=0)heroSelectState.splice(idx,1);
+      else if(heroSelectState.length<3)heroSelectState.push(key);
+      card.classList.toggle('selected',heroSelectState.indexOf(key)>=0);
+      $('btn-confirm-heroes').disabled=heroSelectState.length!==3;
+    });
+  }
+  list.appendChild(card);
+}
+function renderHeroSelect(){
+  heroSelectState=[];
+  const list=$('hero-pick-list');list.innerHTML='';
+  HERO_ORDER.forEach(function(key){
+    renderHeroPickCard(list,key,HERO_DEFS[key],META.heroesUnlocked[key],false);
+  });
+  (META.customHeroes||[]).forEach(function(c){
+    renderHeroPickCard(list,c.id,customHeroToDef(c.id),true,true);
+  });
+  if((META.customHeroes||[]).length<CUSTOM_HERO_MAX){
+    const addCard=el('div','hero-pick hero-pick-add');
+    addCard.innerHTML='<div class="hero-info" style="text-align:center;width:100%;">+ '+M('Create a Hero','Создать героя')+'</div>';
+    addCard.addEventListener('click',openCreateHeroModal);
+    list.appendChild(addCard);
+  }
+  $('btn-confirm-heroes').disabled=true;
+  show('screen-hero-select');
+}
+
+function openCreateHeroModal(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Create a Hero','Создать героя')));
+
+  wrap.appendChild(el('div','eyebrow',M('Name','Имя')));
+  const nameInput=document.createElement('input');
+  nameInput.type='text';nameInput.maxLength=18;nameInput.placeholder=M('Hero name','Имя героя');
+  nameInput.style.cssText='width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;box-sizing:border-box;';
+  wrap.appendChild(nameInput);
+
+  wrap.appendChild(el('div','eyebrow',M('Class','Класс')));
+  const tplWrap=el('div','stack');
+  let selectedTpl=HERO_ORDER[0];
+  const tplCards={};
+  HERO_ORDER.forEach(function(key){
+    const def=HERO_DEFS[key];
+    const c=el('div','hero-pick');
+    const av=el('div','hero-avatar',HERO_ICON_SVG[key]||def.icon);av.style.background=def.color;
+    c.appendChild(av);
+    const info=el('div','hero-info');
+    info.appendChild(el('div','name',L(def.cls)));
+    info.appendChild(el('div','cls',def.abilities.map(function(a){return L(a.name);}).join(' · ')));
+    c.appendChild(info);
+    c.addEventListener('click',function(){
+      selectedTpl=key;
+      Object.keys(tplCards).forEach(function(k){tplCards[k].classList.toggle('selected',k===key);});
+    });
+    tplCards[key]=c;
+    tplWrap.appendChild(c);
+  });
+  tplCards[selectedTpl].classList.add('selected');
+  wrap.appendChild(tplWrap);
+
+  wrap.appendChild(el('div','eyebrow',M('Color','Цвет')));
+  const colorWrap=el('div','row');
+  colorWrap.style.cssText='gap:8px;';
+  const COLOR_SWATCHES=['#c98a3b','#5f93ae','#8fb08a','#a56bc9','#d9683f','#b0995a','#d94f6a','#4fb0d9','#e0c341','#6a6aa0'];
+  let selectedColor=null;
+  const swatchEls={};
+  COLOR_SWATCHES.forEach(function(c){
+    const sw=el('div','',null);
+    sw.style.cssText='width:26px;height:26px;border-radius:50%;cursor:pointer;background:'+c+';border:2px solid transparent;';
+    sw.addEventListener('click',function(){
+      selectedColor=c;
+      Object.keys(swatchEls).forEach(function(k){swatchEls[k].style.borderColor=(k===c)?'var(--text)':'transparent';});
+    });
+    swatchEls[c]=sw;
+    colorWrap.appendChild(sw);
+  });
+  wrap.appendChild(colorWrap);
+
+  wrap.appendChild(el('div','eyebrow',M('Distribute '+CUSTOM_HERO_POINTS+' stat points','Распределите '+CUSTOM_HERO_POINTS+' очков характеристик')));
+  const alloc={atk:0,def:0,spd:0,hp:0};
+  const remainEl=el('div','','');
+  function pointsUsed(){return alloc.atk+alloc.def+alloc.spd+alloc.hp;}
+  function renderRemain(){remainEl.innerHTML=M('Points left: ','Осталось очков: ')+'<strong>'+(CUSTOM_HERO_POINTS-pointsUsed())+'</strong>';}
+  const statsWrap=el('div','stack');
+  ['atk','def','spd','hp'].forEach(function(stat){
+    const block=el('div','',null);
+    const row=el('div','row');
+    row.style.cssText='align-items:center;gap:8px;';
+    const label=el('div','',"<strong>"+statAbbr(stat)+"</strong>"+(stat==='hp'?(' (+'+CUSTOM_HP_PER_POINT+'/'+M('pt','очко')+')'):' (+1/'+M('pt','очко')+')'));
+    label.style.flex='1';
+    const minus=el('button','','−');
+    const val=el('span','',String(alloc[stat]));val.style.cssText='min-width:22px;text-align:center;display:inline-block;font-family:JetBrains Mono,monospace;';
+    const plus=el('button','','+');
+    minus.addEventListener('click',function(){if(alloc[stat]>0){alloc[stat]--;val.textContent=alloc[stat];renderRemain();}});
+    plus.addEventListener('click',function(){if(pointsUsed()<CUSTOM_HERO_POINTS){alloc[stat]++;val.textContent=alloc[stat];renderRemain();}});
+    row.appendChild(label);row.appendChild(minus);row.appendChild(val);row.appendChild(plus);
+    block.appendChild(row);
+    block.appendChild(el('div','',"<span style='color:var(--muted);font-size:11px;'>"+statInfo(stat)+"</span>"));
+    statsWrap.appendChild(block);
+  });
+  wrap.appendChild(statsWrap);
+  renderRemain();
+  wrap.appendChild(remainEl);
+
+  const err=el('div','','');err.style.cssText='color:var(--danger);font-size:12px;min-height:16px;';
+  wrap.appendChild(err);
+
+  const save=el('button','primary',M('Create','Создать'));
+  save.addEventListener('click',function(){
+    const name=nameInput.value.trim();
+    if(!name){err.textContent=M('Enter a name.','Введите имя.');return;}
+    if((META.customHeroes||[]).length>=CUSTOM_HERO_MAX){err.textContent=M('Hero roster is full.','Список героев переполнен.');return;}
+    const id='custom'+Date.now()+Math.floor(Math.random()*1000);
+    META.customHeroes=META.customHeroes||[];
+    META.customHeroes.push({id:id,name:name.slice(0,18),tplKey:selectedTpl,color:selectedColor,atk:alloc.atk,def:alloc.def,spd:alloc.spd,hp:alloc.hp});
+    saveMeta();
+    closeModal();
+    renderHeroSelect();
+  });
+  wrap.appendChild(save);
+  const cancel=el('button','',M('Cancel','Отмена'));
+  cancel.addEventListener('click',closeModal);
+  wrap.appendChild(cancel);
+  openModal(wrap);
+}
+
+/* ============================= WIRE UP ============================= */
+
+$('btn-new-run').addEventListener('click',renderHeroSelect);
+$('btn-continue').addEventListener('click',function(){
+  const saved=loadRun();
+  if(!saved)return;
+  RUN=saved;
+  hydrateParty(RUN);
+  if(RUN.combat&&!RUN.combat.over){
+    saveRun();
+    show('screen-combat');
+    renderTopbar();
+    resumeCombat();
+    return;
+  }
+  if(RUN.combat&&RUN.combat.over){
+    if(RUN.pendingReward){renderRewardScreen();return;}
+    if(!anyAlive(RUN.combat.party).length){onDefeat();return;}
+    onVictory();return;
+  }
+  if(RUN.pendingReward){renderRewardScreen();return;}
+  saveRun();show('screen-map');renderTopbar();renderMap();
+});
+$('btn-open-legacy').addEventListener('click',renderLegacy);
+$('btn-legacy-back').addEventListener('click',renderTitle);
+$('btn-back-title').addEventListener('click',renderTitle);
+$('btn-confirm-heroes').addEventListener('click',function(){
+  if(heroSelectState.length===3)startNewRun(heroSelectState.slice());
+});
+$('btn-formation').addEventListener('click',openFormationModal);
+$('btn-auto-battle').addEventListener('click',function(){
+  if(!RUN.combat)return;
+  RUN.combat.autoBattle=!RUN.combat.autoBattle;
+  updateAutoBattleButton();
+  saveRun();
+  if(RUN.combat.autoBattle&&RUN.combat.phase==='hero_choose'&&RUN.combat.activeHero){
+    setTimeout(function(){autoActHero(RUN.combat.activeHero);},400);
+  }
+});
+$('btn-abandon').addEventListener('click',function(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Abandon this march?','Прервать этот поход?')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+M('Your embers earned so far will still be banked, but the company disperses.','Заработанные угольки сохранятся, но отряд распустят.')+"</span>"));
+  const row=el('div','row');
+  const yes=el('button','danger-btn',M('Abandon','Прервать'));
+  yes.addEventListener('click',function(){
+    const embers=computeEmbers(false);
+    META.embers+=embers;META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);saveMeta();
+    clearRun();closeModal();renderTitle();
+  });
+  const no=el('button','',M('Keep Going','Продолжить поход'));
+  no.addEventListener('click',closeModal);
+  row.appendChild(yes);row.appendChild(no);
+  wrap.appendChild(row);
+  openModal(wrap);
+});
+$('btn-leave-shop').addEventListener('click',function(){completeCurrentNode(RUN._shopNode);goToMap();});
+$('btn-rest-heal').addEventListener('click',function(){
+  RUN.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.35));});
+  completeCurrentNode(RUN._restNode);goToMap();
+});
+$('btn-rest-train').addEventListener('click',function(){
+  promptChooseHero(M('Train whom?','Кого тренировать?'),function(h){h.atk+=3;h.def+=1;completeCurrentNode(RUN._restNode);goToMap();});
+});
+$('btn-go-continue').addEventListener('click',renderTitle);
+$('btn-theme-toggle').addEventListener('click',toggleTheme);
+
+applyStaticI18n();
+applyTheme();
+renderTitle();
+})();
+</script>
