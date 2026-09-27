@@ -88,10 +88,26 @@ button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep
 button.primary:hover:not(:disabled){background:linear-gradient(135deg,var(--accent),var(--accent-deep));filter:brightness(1.08);transform:translateY(-1px);}
 :root[data-theme="light"] button.primary{color:#fff6e9;}
 button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
-#app{max-width:860px;margin:0 auto;padding-block:20px 40px;zoom:1.18;}
-#modal-root{zoom:1.18;}
-@media (max-width:720px){#app,#modal-root{zoom:1.05;}}
+#app{max-width:860px;margin:0 auto;padding-block:20px 40px;zoom:calc(1.18 * var(--text-scale,1));}
+#modal-root{zoom:calc(1.18 * var(--text-scale,1));}
+@media (max-width:720px){#app,#modal-root{zoom:calc(1.05 * var(--text-scale,1));}}
 [hidden]{display:none!important;}
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{transition:none!important;animation:none!important;}
+.settings-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.seg-btns{display:flex;gap:4px;}
+.seg-btn{border-radius:7px;padding:6px 11px;font-size:12px;}
+.seg-btn.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+.toggle-switch{width:40px;height:22px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);position:relative;cursor:pointer;padding:0;}
+.toggle-switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:left .15s ease,background .15s ease;}
+.toggle-switch.on{border-color:var(--accent);background:var(--accent-soft);}
+.toggle-switch.on .knob{left:20px;background:var(--accent);}
+.ach-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);}
+.ach-row:last-child{border-bottom:none;}
+.ach-row.locked{opacity:.4;}
+.ach-icon{width:26px;height:26px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--surface2);border:1px solid var(--border);}
+.ach-row:not(.locked) .ach-icon{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;resize:vertical;}
 
 .eyebrow{
   font-family:'JetBrains Mono',monospace;
@@ -292,9 +308,11 @@ button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
     <div class="title-actions">
       <button class="primary" id="btn-continue" hidden></button>
       <button class="primary" id="btn-new-run"></button>
+      <button id="btn-daily"></button>
       <button id="btn-open-legacy"></button>
     </div>
     <div class="title-foot" id="title-stats"></div>
+    <div class="title-foot" id="title-daily-info" style="margin-top:8px;"></div>
   </section>
 
   <section id="screen-legacy" hidden>
@@ -323,6 +341,28 @@ button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
     <div class="card stack" style="margin-top:14px;">
       <h3 id="legacy-history-h3" style="font-size:15px;"></h3>
       <div class="stack" id="leg-history"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-achievements-h3" style="font-size:15px;"></h3>
+      <div id="leg-achievements"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
+      <div class="settings-row">
+        <span id="settings-animations-label"></span>
+        <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
+      </div>
+      <div class="settings-row">
+        <span id="settings-textsize-label"></span>
+        <div class="seg-btns" id="text-size-btns"></div>
+      </div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-save-h3" style="font-size:15px;"></h3>
+      <div class="row">
+        <button id="btn-export-save"></button>
+        <button id="btn-import-save"></button>
+      </div>
     </div>
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
   </section>
@@ -463,6 +503,14 @@ const STATIC_I18N = {
   'legacy-recruits-h3':{en:'Recruits',ru:'Наёмники'},
   'legacy-ascension-h3':{en:'March Ascension',ru:'Сложность похода'},
   'legacy-history-h3':{en:'Recent Marches',ru:'Недавние походы'},
+  'legacy-achievements-h3':{en:'Achievements',ru:'Достижения'},
+  'legacy-settings-h3':{en:'Settings',ru:'Настройки'},
+  'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
+  'btn-daily':{en:'Daily Challenge',ru:'Испытание дня'},
+  'settings-animations-label':{en:'Animations',ru:'Анимации'},
+  'settings-textsize-label':{en:'Text Size',ru:'Размер текста'},
+  'btn-export-save':{en:'Export Save Code','ru':'Экспорт кода сохранения'},
+  'btn-import-save':{en:'Import Save Code',ru:'Импорт кода сохранения'},
   'legacy-ascension-eyebrow':{en:'Higher ascension hardens every foe, but pays more embers',ru:'Чем выше сложность, тем сильнее враги — но и угольков больше'},
   'btn-legacy-back':{en:'Back',ru:'Назад'},
   'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
@@ -524,6 +572,7 @@ const HERO_ICON_SVG = {
   kest:'<svg viewBox="0 0 24 24"><path d="M8 3l9 9-1.6 5.4L10 21l-6-6 4.4-5.4L8 3z" fill="#12141a"/><path d="M8 3l2 6.6" stroke="#12141a" stroke-width="1.2"/></svg>',
   ashra:'<svg viewBox="0 0 24 24"><path d="M12 2.5c1.5 3 4.5 5 4.5 9a4.5 4.5 0 01-9 0c0-1.5.7-2.6 1.5-3.6-.1 1.3.4 2 1.1 2.4-.4-2.4.6-4.6 1.9-7.8z" fill="#12141a"/></svg>',
   doran:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="15" rx="4.6" ry="4" fill="#12141a"/><circle cx="6.5" cy="8" r="2" fill="#12141a"/><circle cx="17.5" cy="8" r="2" fill="#12141a"/><circle cx="10" cy="6" r="1.6" fill="#12141a"/><circle cx="14" cy="6" r="1.6" fill="#12141a"/></svg>',
+  morwen:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 3 1.5 4.6 2.2 6.4.3.8.3 1.6.3 2.6h9c0-1 0-1.8.3-2.6C17.5 13.6 19 12 19 9a7 7 0 00-7-7z" fill="#12141a"/><circle cx="9.3" cy="9" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="9" r="1.3" fill="#e9e4d6"/><path d="M9.5 19h5M10 21.5h4" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
 };
 function avatarContent(unit){
   if(unit&&unit.isHero&&HERO_ICON_SVG[unit.tplKey||unit.key])return HERO_ICON_SVG[unit.tplKey||unit.key];
@@ -558,6 +607,7 @@ const HERO_DEFS = {
       {id:'backstab',name:{en:'Backstab',ru:'Удар в спину'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.5,bonusVsBack:0.5,desc:{en:'+50% vs back row',ru:'+50% урона по заднему ряду'}},
       {id:'shadowstep',name:{en:'Shadowstep',ru:'Шаг тени'},cd:3,reach:'any',targets:'self',type:'special',effect:'dodge',desc:{en:'Dodge next hit',ru:'Уклонение от следующего удара'}},
       {id:'assassinate',name:{en:'Assassinate',ru:'Убийство'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.8,bonusVsBack:0.7,desc:{en:'Ultimate: brutal strike, +70% vs back row (Lv4)',ru:'Ульта: смертельный удар, +70% по заднему ряду (Ур.4)'}},
+      {id:'trip',name:{en:'Trip',ru:'Подножка'},cd:2,reach:'melee',targets:'single',type:'swap_row',desc:{en:'Melee foe; forces them to the opposite row',ru:'Ближний враг перемещается в противоположный ряд'}},
     ]},
   ashra:{key:'ashra',name:{en:'Ashra',ru:'Ашра'},cls:{en:'Pyromancer',ru:'Пиромант'},icon:'A',color:'#d9683f',baseHp:23,baseAtk:9,baseDef:2,baseSpd:7,defaultRow:'back',cost:15,
     abilities:[
@@ -572,9 +622,17 @@ const HERO_DEFS = {
       {id:'rally',name:{en:'Rally Cry',ru:'Боевой клич'},cd:3,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:2,duration:2,desc:{en:'+2 ATK, company',ru:'+2 к атаке всему отряду'}},
       {id:'guard',name:{en:'Guard Stance',ru:'Оборонительная стойка'},cd:2,reach:'any',targets:'self',type:'buff',stat:'def',amount:5,duration:2,desc:{en:'+5 DEF, 2 turns',ru:'+5 к защите, 2 хода'}},
       {id:'ferocity',name:{en:'Feral Ferocity',ru:'Дикая ярость'},cd:4,minLevel:4,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:5,duration:3,desc:{en:'Ultimate: +5 ATK to the whole company, 3 turns (Lv4)',ru:'Ульта: +5 к атаке всему отряду на 3 хода (Ур.4)'}},
+      {id:'tackle',name:{en:'Pack Tackle',ru:'Стая набрасывается'},cd:3,reach:'melee',targets:'single',type:'special',effect:'stun',desc:{en:'Melee foe; stuns them for 1 turn',ru:'Ближний враг оглушается на 1 ход'}},
+    ]},
+  morwen:{key:'morwen',name:{en:'Morwen',ru:'Морвена'},cls:{en:'Necromancer',ru:'Некромант'},icon:'M',color:'#7a5aa0',baseHp:24,baseAtk:9,baseDef:2,baseSpd:6,defaultRow:'back',cost:30,
+    abilities:[
+      {id:'wither',name:{en:'Withering Touch',ru:'Иссушающее касание'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85,lifesteal:0.3,desc:{en:'Dmg; heals self for 30% of damage dealt',ru:'Урон; лечит себя на 30% от нанесённого урона'}},
+      {id:'frailty',name:{en:'Curse of Frailty',ru:'Проклятие немощи'},cd:2,reach:'ranged',targets:'single',type:'debuff',stat:'def',amount:-4,duration:2,desc:{en:'-4 DEF, 2 turns',ru:'-4 к защите, 2 хода'}},
+      {id:'siphon',name:{en:'Soul Siphon',ru:'Похищение душ'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.45,lifesteal:0.5,desc:{en:'All foes; heals self for 50% of total damage dealt',ru:'По всем врагам; лечит себя на 50% суммарного урона'}},
+      {id:'embrace',name:{en:"Death's Embrace",ru:'Объятия смерти'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.6,dot:{amount:5,duration:3},desc:{en:'Ultimate: heavy damage + strong curse (Lv4)',ru:'Ульта: тяжёлый урон и мощное проклятие со временем (Ур.4)'}},
     ]},
 };
-const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran'];
+const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran','morwen'];
 const CUSTOM_HERO_POINTS = 6;
 const CUSTOM_HERO_MAX = 4;
 const CUSTOM_HP_PER_POINT = 3;
@@ -631,10 +689,18 @@ const ENEMY_DEFS = {
                {id:'ashroar',name:{en:'Doom Roar',ru:'Рёв погибели'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2}]},
 };
 
-const BOSS_DEF = {name:{en:'The Hollow Warden',ru:'Полый Страж'},icon:'☠',color:'#2a2020',hp:95,atk:12,def:8,spd:6,row:'front',boss:true,
-  abilities:[{id:'smash',name:{en:'Smash',ru:'Крушащий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
-             {id:'wslam',name:{en:'Warden Slam',ru:'Удар стража'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
-             {id:'roar',name:{en:'Hollow Roar',ru:'Полый рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'atk',amount:-2,duration:2}]};
+const BOSS_DEFS = {
+  warden:{key:'warden',name:{en:'The Hollow Warden',ru:'Полый Страж'},icon:'☠',color:'#2a2020',hp:95,atk:12,def:8,spd:6,row:'front',boss:true,
+    abilities:[{id:'smash',name:{en:'Smash',ru:'Крушащий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'wslam',name:{en:'Warden Slam',ru:'Удар стража'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
+               {id:'roar',name:{en:'Hollow Roar',ru:'Полый рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'atk',amount:-2,duration:2},
+               {id:'overwhelm',name:{en:'Overwhelm',ru:'Подавление'},cd:3,reach:'melee',targets:'row',type:'damage',mult:1.7,requiresEnrage:true,desc:{en:'Enrage only: devastating blow on the nearest row',ru:'Только в ярости: сокрушительный удар по ближайшему ряду'}}]},
+  colossus:{key:'colossus',name:{en:'The Ashwoken Colossus',ru:'Пепельно-пробуждённый колосс'},icon:'⛰',color:'#3a2a1f',hp:110,atk:11,def:11,spd:4,row:'front',boss:true,
+    abilities:[{id:'stomp',name:{en:'Stomp',ru:'Топот'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'quake2',name:{en:'Ground Shatter',ru:'Раскол земли'},cd:2,reach:'melee',targets:'all',type:'damage',mult:0.55,desc:{en:'Hits every foe',ru:'Бьёт по всем врагам'}},
+               {id:'harden',name:{en:'Harden Hide',ru:'Затвердение шкуры'},cd:3,reach:'any',targets:'self',type:'buff',stat:'def',amount:8,duration:2},
+               {id:'avalanche',name:{en:'Avalanche',ru:'Лавина'},cd:3,reach:'melee',targets:'all',type:'damage',mult:0.9,requiresEnrage:true,desc:{en:'Enrage only: crushes every foe',ru:'Только в ярости: сокрушает всех врагов'}}]},
+};
 
 const ITEM_POOL = [
   {id:'w1',slot:'weapon',name:{en:'Rusted Shortsword',ru:'Ржавый короткий меч'},rarity:'common',mods:{atk:2}},
@@ -657,6 +723,10 @@ const RELIC_POOL = [
     passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
   {id:'r4',slot:'relic',name:{en:'Phoenix Down',ru:'Перо феникса'},rarity:'epic',mods:{},passive:'revive',
     passiveDesc:{en:'The first time the wearer would fall, they survive at 1 HP instead (once per march)',ru:'Когда владелец должен пасть, он впервые вместо этого выживает с 1 HP (раз за поход)'}},
+  {id:'r5',slot:'relic',name:{en:'Frostbrand Ring',ru:'Ледяное клеймо'},rarity:'epic',mods:{},passive:'chill_on_hit',
+    passiveDesc:{en:'25% chance on hit to stun the target for 1 turn',ru:'25% шанс при ударе оглушить цель на 1 ход'}},
+  {id:'r6',slot:'relic',name:{en:'Iron Will Talisman',ru:'Талисман железной воли'},rarity:'rare',mods:{},passive:'last_stand',
+    passiveDesc:{en:'+30% DEF while below 25% HP',ru:'+30% к защите, когда HP ниже 25%'}},
 ];
 function randomRelic(){const base=pick(RELIC_POOL);return Object.assign({},base,{name:L(base.name),passiveDesc:L(base.passiveDesc)});}
 
@@ -797,6 +867,37 @@ const EVENTS = [
       }},
       {label:{en:'Refuse',ru:'Отказаться'},resolve(){return M('The shade dissolves back into the ash.','Тень растворяется обратно в пепле.');}},
     ]},
+  {id:'forge',title:{en:'Abandoned Forge',ru:'Заброшенная кузница'},
+    text:{en:'A cold forge sits under a collapsed roof, its coals long dead but the anvil still true.',
+          ru:'Остывшая кузница стоит под обрушенной крышей — угли давно погасли, но наковальня всё ещё цела.'},
+    choices:[
+      {label:{en:'Temper a weapon (-15 gold)',ru:'Закалить оружие (-15 золота)'},resolve(run){
+        if(run.gold<15)return M("You don't have enough gold to work the forge.",'У вас недостаточно золота, чтобы разжечь кузницу.');
+        run.gold-=15;const h=randAlive(run.party);h.atk+=2;
+        return M(h.name+"'s weapon comes out keener than before. (+2 ATK this march)",h.name+' — оружие становится острее прежнего. (+2 к атаке в этом походе)');
+      }},
+      {label:{en:'Melt down the scrap',ru:'Переплавить металлолом'},resolve(run){
+        const g=12+Math.floor(Math.random()*11);run.gold+=g;
+        return M('You melt down the old fittings for '+g+' gold.','Вы переплавляете старую оснастку и получаете '+g+' золота.');
+      }},
+      {label:{en:'Leave it cold',ru:'Оставить остывшей'},resolve(){return M('The forge stays silent.','Кузница остаётся безмолвной.');}},
+    ]},
+  {id:'omen',title:{en:'Dark Omen',ru:'Тёмное предзнаменование'},
+    text:{en:'The sky above bruises to a wrong color. Something is watching, and it is willing to bargain.',
+          ru:'Небо над головой наливается неправильным цветом. Что-то наблюдает — и оно готово торговаться.'},
+    choices:[
+      {label:{en:'Embrace the omen',ru:'Принять предзнаменование'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.def=Math.max(0,h.def-2);});
+        const item=randomRelic();run.pendingItemPickup=item;
+        return null;
+      },special:'item'},
+      {label:{en:'Ward it off (-10 gold)',ru:'Отвадить его (-10 золота)'},resolve(run){
+        if(run.gold<10)return M('You have nothing to ward it off with. It lingers, then fades.','Вам нечем от него отбиться. Оно медлит, затем исчезает.');
+        run.gold-=10;
+        return M('A small ward drives the omen off before it can take hold.','Небольшой оберег отгоняет предзнаменование, не дав ему укорениться.');
+      }},
+      {label:{en:'Look away',ru:'Отвести взгляд'},resolve(){return M('You refuse to meet its gaze. It passes.','Вы не смотрите на него. Оно проходит мимо.');}},
+    ]},
 ];
 
 /* ============================= META (persistent) ============================= */
@@ -807,14 +908,21 @@ const RUN_KEY='embermarch_run_v1';
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
     upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0},
-    heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false},
-    customHeroes:[],achievements:{},history:[],theme:'dark'};
+    heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false},
+    customHeroes:[],achievements:{},history:[],theme:'dark',
+    settings:{animations:true,textScale:1},
+    dailyLastDate:null,dailyLastResult:null};
 }
 let META = loadMeta();
 function loadMeta(){
   try{const raw=localStorage.getItem(META_KEY);if(!raw)return defaultMeta();
-    const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark'});
+    const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark',
+      settings:Object.assign(defaultMeta().settings,m.settings)});
   }catch(e){return defaultMeta();}
+}
+function applySettings(){
+  document.documentElement.classList.toggle('no-anim', !!(META.settings&&META.settings.animations===false));
+  document.documentElement.style.setProperty('--text-scale', (META.settings&&META.settings.textScale)||1);
 }
 function applyTheme(){
   document.documentElement.setAttribute('data-theme', META.theme==='light'?'light':'dark');
@@ -875,6 +983,24 @@ function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+/* ---- seeded RNG for daily challenge runs ---- */
+let ORIG_MATH_RANDOM=null;
+function xmur3(str){
+  let h=1779033703^str.length;
+  for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
+  return function(){h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^=h>>>16)>>>0;};
+}
+function mulberry32(a){
+  return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};
+}
+function todayDateStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function applyDailySeed(seedStr){
+  if(!ORIG_MATH_RANDOM)ORIG_MATH_RANDOM=Math.random;
+  Math.random=mulberry32(xmur3(seedStr)());
+}
+function restoreRandom(){
+  if(ORIG_MATH_RANDOM){Math.random=ORIG_MATH_RANDOM;}
+}
 function randAlive(list){const a=list.filter(function(h){return h.alive;});return a.length?pick(a):list[0];}
 function randomItem(){const base=pick(ITEM_POOL);return Object.assign({},base,{name:L(base.name)});}
 function statOf(c,key){
@@ -1091,10 +1217,11 @@ function hydrateParty(run){
   });
 }
 
-function startNewRun(heroKeys){
+function startNewRun(heroKeys,dailySeed){
+  if(dailySeed)applyDailySeed(dailySeed);
   const startGold=25+META.upgrades.packs*15;
   RUN={
-    ascension:META.ascensionChoice,
+    ascension:dailySeed?0:META.ascensionChoice,
     map:generateMap(),
     availableNodeIds:null,
     currentNodeId:null,
@@ -1105,11 +1232,14 @@ function startNewRun(heroKeys){
     pendingReward:null,
     pendingItemPickup:null,
     heroDied:false,
+    bossKey:pick(Object.keys(BOSS_DEFS)),
+    daily:dailySeed||null,
   };
   RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
   if(META.upgrades.favor>0){
     const item=randomItem();applyItemToHero(RUN.party[0],item);
   }
+  if(dailySeed)restoreRandom();
   saveRun();
   show('screen-map');
   renderTopbar();
@@ -1133,6 +1263,7 @@ function makeEnemyInstance(defKey){
 }
 function makeBossInstance(){
   const asc=1+RUN.ascension*0.12;
+  const BOSS_DEF=BOSS_DEFS[RUN.bossKey]||BOSS_DEFS.warden;
   return {
     key:'boss',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
     maxHp:Math.round(BOSS_DEF.hp*asc),hp:Math.round(BOSS_DEF.hp*asc),
@@ -1178,7 +1309,8 @@ function hasRelic(unit,passive){
 }
 function dmgCalc(actor,target,mult){
   const atk=statOf(actor,'atk');
-  const def=statOf(target,'def');
+  let def=statOf(target,'def');
+  if(hasRelic(target,'last_stand')&&target.hp/target.maxHp<0.25)def=Math.round(def*1.3);
   let base=Math.max(1,Math.round(atk*mult - def*0.5));
   base=Math.round(base*(0.88+Math.random()*0.24));
   let crit=false;
@@ -1229,12 +1361,15 @@ function applyAbilityEffect(caster,ability,target){
       logs.push(M(caster.name+"'s "+ability.name+' finds no one in range.',caster.name+' использует «'+ability.name+'», но там некого атаковать.'));
       return logs;
     }
+    let totalDealt=0;
     targets.forEach(function(t){
       if(!t.alive)return;
       let mult=ability.mult;
       if(ability.bonusVsBack&&t.row==='back')mult+=ability.bonusVsBack;
       const burning=t.status.some(function(s){return s.type==='dot';});
       if(burning)mult*=1.25;
+      const stunned=t.status.some(function(s){return s.type==='stun';});
+      if(stunned)mult*=1.2;
       const dodged = t.status.some(function(s){return s.type==='dodge';});
       if(dodged){
         t.status=t.status.filter(function(s){return s.type!=='dodge';});
@@ -1243,16 +1378,26 @@ function applyAbilityEffect(caster,ability,target){
       }
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
-      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'');
-      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'');
+      totalDealt+=r.amount;
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'');
       logs.push(M(
         caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
         caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
       ));
+      if(ability.lifesteal&&caster.alive){
+        const heal=Math.max(1,Math.round(r.amount*ability.lifesteal));
+        caster.hp=Math.min(caster.maxHp,caster.hp+heal);
+        logs.push(M(caster.name+' drains '+heal+' HP from the wound.',caster.name+' поглощает '+heal+' HP из раны.'));
+      }
       if(hasRelic(caster,'vampiric')&&caster.alive){
         const heal=Math.max(1,Math.round(r.amount*0.15));
         caster.hp=Math.min(caster.maxHp,caster.hp+heal);
         logs.push(M(caster.name+"'s Ember Charm heals them for "+heal+'.',caster.name+' исцеляется на '+heal+' благодаря Тлеющему талисману.'));
+      }
+      if(hasRelic(caster,'chill_on_hit')&&t.alive&&Math.random()<0.25){
+        t.status.push({type:'stun',duration:1,label:M('stun','оглушение')});
+        logs.push(M(caster.name+"'s Frostbrand Ring freezes "+t.name+' in place!',caster.name+' сковывает '+t.name+' Ледяным клеймом!'));
       }
       if(hasRelic(t,'thorns')&&caster!==t&&caster.alive){
         const reflect=Math.max(1,Math.round(r.amount*0.2));
@@ -1293,6 +1438,20 @@ function applyAbilityEffect(caster,ability,target){
   } else if(ability.type==='special'&&ability.effect==='dodge'){
     caster.status.push({type:'dodge',duration:1,label:M('dodge','уклонение')});
     logs.push(M(caster.name+' readies to slip the next blow.',caster.name+' готовится уклониться от следующего удара.'));
+  } else if(ability.type==='special'&&ability.effect==='stun'){
+    if(target&&target.alive){
+      target.status.push({type:'stun',duration:1,label:M('stun','оглушение')});
+      logs.push(M(caster.name+' stuns '+target.name+'!',caster.name+' оглушает '+target.name+'!'));
+    } else {
+      logs.push(M(caster.name+' swings at nothing.',caster.name+' бьёт в пустоту.'));
+    }
+  } else if(ability.type==='swap_row'){
+    if(target&&target.alive){
+      target.row = target.row==='front'?'back':'front';
+      logs.push(M(caster.name+' shoves '+target.name+' to the '+rowLabel(target.row)+' row!',caster.name+' толкает '+target.name+' в '+rowLabel(target.row)+' ряд!'));
+    } else {
+      logs.push(M(caster.name+' finds no one to shove.',caster.name+' не находит, кого толкнуть.'));
+    }
   }
   return logs;
 }
@@ -1398,6 +1557,10 @@ function advanceTurn(){
     unit.enraged=true;unit.atk=Math.round(unit.atk*1.3);
     logCombat(M(unit.name+' enters a hollow rage!',unit.name+' впадает в бездушную ярость!'));
   }
+  if(unit.status.some(function(s){return s.type==='stun';})){
+    logCombat(M(unit.name+' is stunned and cannot act.',unit.name+' оглушён и не может действовать.'));
+    RUN.combat.qi++;RUN.combat.phase='advance';advanceTurn();return;
+  }
   RUN.combat.activeUnit=unit;
   if(unit.side==='hero'){
     RUN.combat.activeHero=unit;
@@ -1415,7 +1578,7 @@ function advanceTurn(){
   }
 }
 function buildEnemyIntent(unit){
-  const usable=unit.abilities.filter(function(a){return a.cdLeft<=0 && abilityHasTargets(a,unit);});
+  const usable=unit.abilities.filter(function(a){return a.cdLeft<=0 && (!a.requiresEnrage||unit.enraged) && abilityHasTargets(a,unit);});
   if(!usable.length)return null;
   let ability=usable.length>1&&Math.random()<0.55?pick(usable.slice(1)):usable[0];
   let target=null;
@@ -1812,6 +1975,14 @@ function renderTurnOrder(){
   });
 }
 
+function statusTooltip(s){
+  if(s.type==='dot')return M('Burning: loses '+s.amount+' HP at the start of each turn.','Горит: теряет '+s.amount+' HP в начале каждого хода.');
+  if(s.type==='stun')return M('Stunned: skips their next turn.','Оглушён: пропускает следующий ход.');
+  if(s.type==='dodge')return M('Will dodge the next attack against them.','Уклонится от следующей атаки по себе.');
+  if(s.type==='buff')return M(statAbbr(s.stat)+' '+(s.amount>0?'+':'')+s.amount+' for '+s.duration+' more turn(s).',statAbbr(s.stat)+' '+(s.amount>0?'+':'')+s.amount+' ещё '+s.duration+' ход(а/ов).');
+  if(s.type==='debuff')return M(statAbbr(s.stat)+' '+s.amount+' for '+s.duration+' more turn(s).',statAbbr(s.stat)+' '+s.amount+' ещё '+s.duration+' ход(а/ов).');
+  return '';
+}
 function intentIcon(type){
   return {damage:'⚔',heal:'✚',buff:'▲',debuff:'▼',special:'✦'}[type]||'?';
 }
@@ -1842,7 +2013,9 @@ function unitCard(unit,isTargetable,isAllyTargetable,intentBadge,isIntentTarget)
   unit.status.forEach(function(s){
     const cls=s.type==='dot'?'debuff':(s.type==='debuff'?'debuff':'buff');
     const sign=(typeof s.amount==='number')?(s.amount>0?'+':'')+s.amount+' ':'';
-    icons.appendChild(el('span','status-icon '+cls, sign+(s.label||s.type)+' '+s.duration));
+    const icon=el('span','status-icon '+cls, sign+(s.label||s.type)+' '+s.duration);
+    icon.title=statusTooltip(s);
+    icons.appendChild(icon);
   });
   card.appendChild(icons);
   if(isTargetable){card.addEventListener('click',function(){heroChooseTarget(unit);});}
@@ -1897,6 +2070,7 @@ function renderActionPanel(){
   unit.abilities.forEach(function(a){
     const btn=el('button','ability-btn');
     if(RUN.combat.selectedAbility===a)btn.classList.add('selected');
+    btn.title=(a.desc||'')+(a.cd?' · '+M('Cooldown','Откат')+' '+a.cd:'');
     btn.innerHTML='<span class="a-name">'+a.name+(a.minLevel?' <span class="ult-tag">'+M('ULT','УЛЬТ')+'</span>':'')+'</span><span class="a-meta">'+(a.desc||'')+'</span>';
     if(a.minLevel&&(unit.level||1)<a.minLevel){
       btn.disabled=true;
@@ -2049,7 +2223,9 @@ function onVictory(){
   META.bestLayer=Math.max(META.bestLayer,8);
   if(META.wins>=1)META.heroesUnlocked.ashra=true;
   if(META.wins>=3)META.heroesUnlocked.doran=true;
+  if(META.wins>=5)META.heroesUnlocked.morwen=true;
   META.ascensionUnlocked=Math.max(META.ascensionUnlocked,Math.min(5,RUN.ascension+1));
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;}
   const unlocked=evaluateAchievements(true);
   recordRunHistory(true,embers);
   saveMeta();
@@ -2069,6 +2245,7 @@ function onDefeat(){
   const embers=computeEmbers(false);
   META.embers+=embers;
   META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};META.embers+=5;}
   const unlocked=evaluateAchievements(false);
   recordRunHistory(false,embers);
   saveMeta();
@@ -2094,6 +2271,12 @@ function renderTitle(){
     'Marches won: '+META.wins+' &middot; Embers banked: '+META.embers+' &middot; Best reach: layer '+META.bestLayer+' / 8',
     'Походов пройдено: '+META.wins+' &middot; Угольков накоплено: '+META.embers+' &middot; Лучший результат: уровень '+META.bestLayer+' / 8'
   );
+  const today=todayDateStr();
+  const dailyDone=META.dailyLastDate===today;
+  const dailyBtn=$('btn-daily');
+  if(dailyBtn)dailyBtn.textContent=dailyDone?M('Daily Challenge ✓','Испытание дня ✓'):M('Daily Challenge','Испытание дня');
+  const dailyInfo=$('title-daily-info');
+  if(dailyInfo)dailyInfo.innerHTML=M('A fixed map, the same for everyone today. Ascension 0, +10 embers on a win.','Одинаковая карта для всех сегодня. Сложность 0, +10 угольков за победу.');
   renderLangSwitch();
   show('screen-title');
 }
@@ -2122,7 +2305,7 @@ function renderLegacy(){
     up.appendChild(row);
   });
   const rec=$('leg-recruits');rec.innerHTML='';
-  ['ashra','doran'].forEach(function(key){
+  ['ashra','doran','morwen'].forEach(function(key){
     const def=HERO_DEFS[key];
     const owned=META.heroesUnlocked[key];
     const row=el('div','upgrade-row');
@@ -2139,16 +2322,19 @@ function renderLegacy(){
     rec.appendChild(row);
   });
   const ascWrap=$('leg-ascension');ascWrap.innerHTML='';
-  for(let i=0;i<=5;i++){
+  for(let i=-1;i<=5;i++){
     const locked=i>META.ascensionUnlocked;
-    const pip=el('div','asc-pip'+(locked?' locked':'')+(META.ascensionChoice===i?' selected':''),i);
+    const label=i===-1?M('S','И'):i;
+    const pip=el('div','asc-pip'+(locked?' locked':'')+(META.ascensionChoice===i?' selected':''),label);
     if(!locked)pip.addEventListener('click',function(){META.ascensionChoice=i;saveMeta();renderLegacy();});
     ascWrap.appendChild(pip);
   }
   const ascInfo=$('leg-ascension-info');
   if(ascInfo){
     const pct=Math.round(META.ascensionChoice*12);
-    ascInfo.textContent=META.ascensionChoice===0
+    ascInfo.textContent=META.ascensionChoice===-1
+      ? M('Story Mode: enemies have 12% less HP and ATK. A gentler march, no embers penalty.','Режим истории: у врагов на 12% меньше HP и атаки. Более спокойный поход, без штрафа к уголькам.')
+      : META.ascensionChoice===0
       ? M('Ascension 0: no modifiers.','Сложность 0: без модификаторов.')
       : M('Ascension '+META.ascensionChoice+': enemies have +'+pct+'% HP and ATK, and you gain +'+(META.ascensionChoice*3)+' bonus embers per march.',
           'Сложность '+META.ascensionChoice+': у врагов +'+pct+'% к HP и атаке, а вы получаете +'+(META.ascensionChoice*3)+' угольков за поход.');
@@ -2169,8 +2355,88 @@ function renderLegacy(){
       });
     }
   }
+  const achBox=$('leg-achievements');
+  if(achBox){
+    achBox.innerHTML='';
+    ACHIEVEMENTS.forEach(function(a){
+      const unlocked=!!(META.achievements&&META.achievements[a.id]);
+      const row=el('div','ach-row'+(unlocked?'':' locked'));
+      row.appendChild(el('div','ach-icon',unlocked?'&#9733;':'&#128274;'));
+      const info=el('div','',"<strong>"+L(a.name)+"</strong><br><span style='color:var(--muted);font-size:12px;'>"+L(a.desc)+" &middot; +"+a.reward+M(' embers',' угольков')+"</span>");
+      info.style.flex='1';
+      row.appendChild(info);
+      achBox.appendChild(row);
+    });
+  }
+  const animBtn=$('btn-toggle-animations');
+  if(animBtn){
+    const on=META.settings.animations!==false;
+    animBtn.classList.toggle('on',on);
+  }
+  const sizeBtns=$('text-size-btns');
+  if(sizeBtns){
+    sizeBtns.innerHTML='';
+    [{k:0.9,l:'S'},{k:1,l:'M'},{k:1.15,l:'L'}].forEach(function(opt){
+      const b=el('button','seg-btn'+(META.settings.textScale===opt.k?' selected':''),opt.l);
+      b.type='button';
+      b.addEventListener('click',function(){META.settings.textScale=opt.k;saveMeta();applySettings();renderLegacy();});
+      sizeBtns.appendChild(b);
+    });
+  }
   renderLangSwitch();
   show('screen-legacy');
+}
+
+function exportSave(){
+  let code='';
+  try{code='EMBERMARCH1:'+btoa(unescape(encodeURIComponent(JSON.stringify(META))));}catch(e){code='';}
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Export Save Code','Экспорт кода сохранения')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Copy this code and keep it somewhere safe. Paste it back in on another device to restore your progress.','Скопируйте этот код и сохраните его. Вставьте его на другом устройстве, чтобы восстановить прогресс.')+"</span>"));
+  const ta=document.createElement('textarea');
+  ta.className='save-code';ta.readOnly=true;ta.value=code;
+  wrap.appendChild(ta);
+  const row=el('div','row');
+  const copyBtn=el('button','primary',M('Copy','Копировать'));
+  copyBtn.addEventListener('click',function(){
+    ta.select();
+    try{navigator.clipboard&&navigator.clipboard.writeText(code);}catch(e){}
+    try{document.execCommand('copy');}catch(e){}
+    copyBtn.textContent=M('Copied!','Скопировано!');
+  });
+  const close=el('button','',M('Close','Закрыть'));
+  close.addEventListener('click',closeModal);
+  row.appendChild(copyBtn);row.appendChild(close);
+  wrap.appendChild(row);
+  openModal(wrap);
+}
+function importSave(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Import Save Code','Импорт кода сохранения')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Pasting a code will overwrite your current progress on this device.','Вставка кода перезапишет текущий прогресс на этом устройстве.')+"</span>"));
+  const ta=document.createElement('textarea');
+  ta.className='save-code';ta.placeholder=M('Paste save code here…','Вставьте код сохранения сюда…');
+  wrap.appendChild(ta);
+  const err=el('div','',"");err.style.cssText='color:var(--danger);font-size:12px;min-height:14px;';
+  wrap.appendChild(err);
+  const row=el('div','row');
+  const load=el('button','primary',M('Load','Загрузить'));
+  load.addEventListener('click',function(){
+    let raw=ta.value.trim();
+    if(raw.indexOf('EMBERMARCH1:')===0)raw=raw.slice('EMBERMARCH1:'.length);
+    try{
+      const parsed=JSON.parse(decodeURIComponent(escape(atob(raw))));
+      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings)});
+      saveMeta();applyTheme();applySettings();closeModal();renderLegacy();
+    }catch(e){
+      err.textContent=M('That code could not be read. Check for typos and try again.','Не удалось прочитать код. Проверьте на опечатки и попробуйте снова.');
+    }
+  });
+  const cancel=el('button','',M('Cancel','Отмена'));
+  cancel.addEventListener('click',closeModal);
+  row.appendChild(load);row.appendChild(cancel);
+  wrap.appendChild(row);
+  openModal(wrap);
 }
 
 let heroSelectState=[];
@@ -2348,9 +2614,12 @@ $('btn-continue').addEventListener('click',function(){
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
 $('btn-legacy-back').addEventListener('click',renderTitle);
-$('btn-back-title').addEventListener('click',renderTitle);
+$('btn-back-title').addEventListener('click',function(){dailyPendingSeed=null;renderTitle();});
 $('btn-confirm-heroes').addEventListener('click',function(){
-  if(heroSelectState.length===3)startNewRun(heroSelectState.slice());
+  if(heroSelectState.length===3){
+    const seed=dailyPendingSeed;dailyPendingSeed=null;
+    startNewRun(heroSelectState.slice(),seed);
+  }
 });
 $('btn-formation').addEventListener('click',openFormationModal);
 $('btn-auto-battle').addEventListener('click',function(){
@@ -2370,7 +2639,9 @@ $('btn-abandon').addEventListener('click',function(){
   const yes=el('button','danger-btn',M('Abandon','Прервать'));
   yes.addEventListener('click',function(){
     const embers=computeEmbers(false);
-    META.embers+=embers;META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);saveMeta();
+    META.embers+=embers;META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
+    if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};}
+    saveMeta();
     clearRun();closeModal();renderTitle();
   });
   const no=el('button','',M('Keep Going','Продолжить поход'));
@@ -2389,9 +2660,32 @@ $('btn-rest-train').addEventListener('click',function(){
 });
 $('btn-go-continue').addEventListener('click',renderTitle);
 $('btn-theme-toggle').addEventListener('click',toggleTheme);
-
+$('btn-toggle-animations').addEventListener('click',function(){
+  META.settings.animations = META.settings.animations===false;
+  saveMeta();applySettings();renderLegacy();
+});
+$('btn-export-save').addEventListener('click',exportSave);
+$('btn-import-save').addEventListener('click',importSave);
+let dailyPendingSeed=null;
+$('btn-daily').addEventListener('click',function(){
+  const today=todayDateStr();
+  if(META.dailyLastDate===today){
+    const res=META.dailyLastResult;
+    const wrap=el('div','stack');
+    wrap.appendChild(el('h3','',M("Today's Challenge",'Испытание дня')));
+    wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+(res&&res.win?M("You've already completed today's challenge. Come back tomorrow for a new march!","Вы уже прошли сегодняшнее испытание. Возвращайтесь завтра за новым походом!"):M("You've already attempted today's challenge. Come back tomorrow for a new march!","Вы уже пытались пройти сегодняшнее испытание. Возвращайтесь завтра за новым походом!"))+"</span>"));
+    const close=el('button','primary',M('Got it','Понятно'));
+    close.addEventListener('click',closeModal);
+    wrap.appendChild(close);
+    openModal(wrap);
+    return;
+  }
+  dailyPendingSeed=today;
+  renderHeroSelect();
+});
 applyStaticI18n();
 applyTheme();
+applySettings();
 renderTitle();
 })();
 </script>
