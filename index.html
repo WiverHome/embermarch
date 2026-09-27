@@ -332,7 +332,10 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
   </section>
 
   <section id="screen-legacy" hidden>
-    <h2 id="legacy-h2" style="color:var(--accent);margin-bottom:4px;"></h2>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="legacy-h2" style="color:var(--accent);"></h2>
+      <button id="btn-legacy-back-top" style="flex-shrink:0;"></button>
+    </div>
     <div class="eyebrow" id="legacy-eyebrow" style="margin-bottom:14px;"></div>
     <div class="card stack">
       <div class="spread">
@@ -392,7 +395,10 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
   </section>
 
   <section id="screen-hero-select" hidden>
-    <h2 id="hero-select-h2" style="color:var(--accent);"></h2>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;">
+      <h2 id="hero-select-h2" style="color:var(--accent);"></h2>
+      <button id="btn-back-title-top" style="flex-shrink:0;"></button>
+    </div>
     <div class="eyebrow" id="hero-select-eyebrow" style="margin:6px 0 14px;"></div>
     <div class="stack" id="hero-pick-list"></div>
     <div class="row" style="margin-top:16px;">
@@ -542,10 +548,12 @@ const STATIC_I18N = {
   'btn-import-save':{en:'Import Save Code',ru:'Импорт кода сохранения'},
   'legacy-ascension-eyebrow':{en:'Higher ascension hardens every foe, but pays more embers',ru:'Чем выше сложность, тем сильнее враги — но и угольков больше'},
   'btn-legacy-back':{en:'Back',ru:'Назад'},
+  'btn-legacy-back-top':{en:'← Back',ru:'← Назад'},
   'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
   'hero-select-eyebrow':{en:'Choose three. Choose well — there is no reforming mid-march.',ru:'Выбери троих. Выбирай с умом — в середине похода отряд не переформировать.'},
   'btn-confirm-heroes':{en:'Set Out',ru:'В путь'},
   'btn-back-title':{en:'Back',ru:'Назад'},
+  'btn-back-title-top':{en:'← Back',ru:'← Назад'},
   'legend-battle':{en:'Battle',ru:'Бой'},
   'legend-elite':{en:'Elite',ru:'Элита'},
   'legend-event':{en:'Event',ru:'Событие'},
@@ -3203,7 +3211,9 @@ $('btn-save-reminder-dismiss').addEventListener('click',function(){
   renderTitle();
 });
 $('btn-legacy-back').addEventListener('click',renderTitle);
+$('btn-legacy-back-top').addEventListener('click',renderTitle);
 $('btn-back-title').addEventListener('click',function(){dailyPendingSeed=null;renderTitle();});
+$('btn-back-title-top').addEventListener('click',function(){dailyPendingSeed=null;renderTitle();});
 $('btn-confirm-heroes').addEventListener('click',function(){
   if(heroSelectState.length===3){
     const seed=dailyPendingSeed;dailyPendingSeed=null;
