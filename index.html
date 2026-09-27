@@ -316,9 +316,17 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
       <button class="primary" id="btn-new-run"></button>
       <button id="btn-daily"></button>
       <button id="btn-open-legacy"></button>
+      <button id="btn-open-rules"></button>
     </div>
     <div class="title-foot" id="title-stats"></div>
     <div class="title-foot" id="title-daily-info" style="margin-top:8px;"></div>
+    <div class="card" id="title-save-reminder" hidden style="margin-top:14px;max-width:420px;margin-inline:auto;text-align:left;padding:12px 14px;">
+      <div style="font-size:13px;color:var(--text);" id="title-save-reminder-text"></div>
+      <div class="row" style="margin-top:8px;">
+        <button class="primary" id="btn-save-reminder-export" style="font-size:12px;padding:6px 12px;"></button>
+        <button id="btn-save-reminder-dismiss" style="font-size:12px;padding:6px 12px;"></button>
+      </div>
+    </div>
   </section>
 
   <section id="screen-legacy" hidden>
@@ -513,6 +521,9 @@ const STATIC_I18N = {
   'legacy-settings-h3':{en:'Settings',ru:'Настройки'},
   'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
   'btn-daily':{en:'Daily Challenge',ru:'Испытание дня'},
+  'btn-open-rules':{en:'How to Play',ru:'Правила игры'},
+  'btn-save-reminder-export':{en:'Export code now',ru:'Экспортировать код'},
+  'btn-save-reminder-dismiss':{en:'Remind me later',ru:'Напомнить позже'},
   'settings-animations-label':{en:'Animations',ru:'Анимации'},
   'settings-textsize-label':{en:'Text Size',ru:'Размер текста'},
   'btn-export-save':{en:'Export Save Code','ru':'Экспорт кода сохранения'},
@@ -693,6 +704,13 @@ const ENEMY_DEFS = {
     abilities:[{id:'ashslam',name:{en:'Ashlord Slam',ru:'Удар владыки'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.2},
                {id:'ashwave',name:{en:'Ash Wave',ru:'Пепельная волна'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.9,dot:{amount:3,duration:2}},
                {id:'ashroar',name:{en:'Doom Roar',ru:'Рёв погибели'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2}]},
+  stalker:{name:{en:'Cinder Stalker',ru:'Тлеющий крадец'},icon:'S',color:'#a3572e',hp:22,atk:11,def:2,spd:11,row:'front',
+    abilities:[{id:'quickslash',name:{en:'Quick Slash',ru:'Быстрый разрез'},cd:0,reach:'melee',targets:'single',type:'damage',mult:0.95},
+               {id:'pounce',name:{en:'Pounce',ru:'Прыжок'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.3,dot:{amount:3,duration:2}}]},
+  zealot:{name:{en:'Ash Zealot',ru:'Пепельный фанатик'},icon:'Z',color:'#7a3a2a',hp:25,atk:9,def:4,spd:6,row:'back',
+    abilities:[{id:'zealbolt',name:{en:'Zeal Bolt',ru:'Заряд рвения'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85},
+               {id:'fanaticmend',name:{en:'Fanatic Mending',ru:'Фанатичное исцеление'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0,flat:14},
+               {id:'bloodrite',name:{en:'Blood Rite',ru:'Кровавый ритуал'},cd:3,reach:'any',targets:'single-ally',type:'buff',stat:'atk',amount:4,duration:2}]},
 };
 
 const BOSS_DEFS = {
@@ -917,7 +935,7 @@ function defaultMeta(){
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     settings:{animations:true,textScale:1},
-    dailyLastDate:null,dailyLastResult:null};
+    dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0};
 }
 let META = loadMeta();
 function loadMeta(){
@@ -966,6 +984,10 @@ const ACHIEVEMENTS = [
     check:function(win){return RUN.party.some(function(h){return h.equip&&h.equip.relic;});}},
   {id:'veteran',name:{en:'Veteran',ru:'Ветеран'},desc:{en:'Reach level 5 with any hero.',ru:'Достичь 5 уровня хотя бы одним героем.'},reward:20,
     check:function(win){return RUN.party.some(function(h){return (h.level||1)>=5;});}},
+  {id:'wanderer',name:{en:'Wanderer',ru:'Странник'},desc:{en:'Win 3 Daily Challenge marches.',ru:'Победить в 3 испытаниях дня.'},reward:25,
+    check:function(win){return win&&(META.dailyWinsCount||0)>=3;}},
+  {id:'giant_slayer',name:{en:'Giant Slayer',ru:'Победитель исполина'},desc:{en:'Defeat the Colossus.',ru:'Победить Колосса.'},reward:20,
+    check:function(win){return win&&RUN.bossKey==='colossus';}},
 ];
 function evaluateAchievements(win){
   META.achievements=META.achievements||{};
@@ -1256,24 +1278,29 @@ function startNewRun(heroKeys,dailySeed){
 
 function tierForLayer(li){return li<2?1:(li<4?2:(li<6?3:4));}
 
-function makeEnemyInstance(defKey){
+function enemyScale(li){
+  const asc=1+RUN.ascension*0.14;
+  const ramp=1+Math.max(0,li||0)*0.045;
+  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+Math.max(0,li||0)*0.02};
+}
+function makeEnemyInstance(defKey,li){
   const d=ENEMY_DEFS[defKey];
-  const asc=1+RUN.ascension*0.12;
+  const s=enemyScale(li);
   return {
     key:defKey,name:L(d.name),icon:d.icon,color:d.color,isHero:false,side:'enemy',
-    maxHp:Math.round(d.hp*asc),hp:Math.round(d.hp*asc),
-    atk:Math.round(d.atk*asc),def:d.def,spd:d.spd,row:d.row,elite:!!d.elite,
+    maxHp:Math.round(d.hp*s.hp),hp:Math.round(d.hp*s.hp),
+    atk:Math.round(d.atk*s.atk),def:Math.round(d.def*s.def),spd:d.spd,row:d.row,elite:!!d.elite,
     abilities:d.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
-    status:[],alive:true,
+    status:[],alive:true,enraged:false,
   };
 }
 function makeBossInstance(){
-  const asc=1+RUN.ascension*0.12;
+  const s=enemyScale(7);
   const BOSS_DEF=BOSS_DEFS[RUN.bossKey]||BOSS_DEFS.warden;
   return {
     key:'boss',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
-    maxHp:Math.round(BOSS_DEF.hp*asc),hp:Math.round(BOSS_DEF.hp*asc),
-    atk:Math.round(BOSS_DEF.atk*asc),def:BOSS_DEF.def,spd:BOSS_DEF.spd,row:'front',boss:true,
+    maxHp:Math.round(BOSS_DEF.hp*s.hp),hp:Math.round(BOSS_DEF.hp*s.hp),
+    atk:Math.round(BOSS_DEF.atk*s.atk),def:Math.round(BOSS_DEF.def*s.def),spd:BOSS_DEF.spd,row:'front',boss:true,
     abilities:BOSS_DEF.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
     status:[],alive:true,enraged:false,
   };
@@ -1297,16 +1324,18 @@ function buildEncounter(node){
   if(node.type==='boss')return disambiguateNames([makeBossInstance()]);
   if(node.type==='elite'){
     const eliteKey=tier<=1?'revenant':(tier===2?'revenant':(tier===3?'hand':'ashlord'));
-    const minions={1:['grunt'],2:['grunt','archer','hound'],3:['wraith','caster'],4:['knight','banshee']}[tier];
-    const list=[makeEnemyInstance(eliteKey)];
-    if(Math.random()<0.7)list.push(makeEnemyInstance(pick(minions)));
+    const minions={1:['grunt'],2:['grunt','archer','hound'],3:['wraith','caster','stalker'],4:['knight','banshee','zealot']}[tier];
+    const list=[makeEnemyInstance(eliteKey,li)];
+    const minionChance=tier>=4?0.9:(tier===3?0.8:0.7);
+    if(Math.random()<minionChance)list.push(makeEnemyInstance(pick(minions),li));
+    if(tier>=4&&Math.random()<0.35)list.push(makeEnemyInstance(pick(minions),li));
     return disambiguateNames(list);
   }
-  const pools={1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman'],4:['knight','banshee','wraith','caster']};
+  const pools={1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman','stalker'],4:['knight','banshee','wraith','caster','zealot']};
   const pool=pools[tier];
-  const count=randInt(2,3);
+  const count=randInt(2,3)+(tier>=3&&Math.random()<0.35?1:0);
   const list=[];
-  for(let i=0;i<count;i++)list.push(makeEnemyInstance(pick(pool)));
+  for(let i=0;i<count;i++)list.push(makeEnemyInstance(pick(pool),li));
   return disambiguateNames(list);
 }
 
@@ -1431,7 +1460,8 @@ function applyAbilityEffect(caster,ability,target){
       logs.push(M(caster.name+' mends '+t.name+' for '+amt+'.',caster.name+' лечит '+t.name+' на '+amt+'.'));
     });
   } else if(ability.type==='buff'){
-    const targets=ability.targets==='all-ally'?anyAlive(caster.side==='hero'?RUN.combat.party:RUN.combat.enemies):[caster];
+    const allySide=caster.side==='hero'?RUN.combat.party:RUN.combat.enemies;
+    const targets=ability.targets==='all-ally'?anyAlive(allySide):(ability.targets==='single-ally'&&target?[target]:[caster]);
     targets.forEach(function(t){t.status.push({type:'buff',stat:ability.stat,amount:ability.amount,duration:ability.duration,label:statAbbr(ability.stat)});});
     logs.push(M(caster.name+' uses '+ability.name+'.',caster.name+' использует «'+ability.name+'».'));
   } else if(ability.type==='debuff'){
@@ -1563,6 +1593,10 @@ function advanceTurn(){
     unit.enraged=true;unit.atk=Math.round(unit.atk*1.3);
     logCombat(M(unit.name+' enters a hollow rage!',unit.name+' впадает в бездушную ярость!'));
   }
+  if(unit.elite&&!unit.enraged&&unit.hp<=unit.maxHp*0.5){
+    unit.enraged=true;unit.atk=Math.round(unit.atk*1.25);
+    logCombat(M(unit.name+' finds a second wind!',unit.name+' обретает второе дыхание!'));
+  }
   if(unit.status.some(function(s){return s.type==='stun';})){
     logCombat(M(unit.name+' is stunned and cannot act.',unit.name+' оглушён и не может действовать.'));
     RUN.combat.qi++;RUN.combat.phase='advance';advanceTurn();return;
@@ -1586,14 +1620,47 @@ function advanceTurn(){
 function buildEnemyIntent(unit){
   const usable=unit.abilities.filter(function(a){return a.cdLeft<=0 && (!a.requiresEnrage||unit.enraged) && abilityHasTargets(a,unit);});
   if(!usable.length)return null;
-  let ability=usable.length>1&&Math.random()<0.55?pick(usable.slice(1)):usable[0];
+  const healAbility=usable.find(function(a){return a.type==='heal';});
+  const allyList=anyAlive(RUN.combat.enemies);
+  const hurtAllies=allyList.filter(function(a){return a.hp/a.maxHp<0.55;});
+  let ability;
+  if(healAbility&&hurtAllies.length&&Math.random()<0.85){
+    ability=healAbility;
+  } else {
+    const dmgAbilities=usable.filter(function(a){return a.type==='damage';});
+    const utilAbilities=usable.filter(function(a){return a.type!=='damage'&&a.type!=='heal';});
+    if(dmgAbilities.length){
+      if(utilAbilities.length&&Math.random()<0.18){
+        ability=pick(utilAbilities);
+      } else {
+        dmgAbilities.sort(function(a,b){return (b.mult||0)-(a.mult||0);});
+        ability = Math.random()<0.72 ? dmgAbilities[0] : pick(dmgAbilities);
+      }
+    } else {
+      ability=usable[0];
+    }
+  }
   let target=null;
   if(ability.type==='heal'){
-    const allies=anyAlive(RUN.combat.enemies).sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);});
-    target=allies[0];
+    target=hurtAllies.slice().sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);})[0]||allyList[0];
+  } else if(ability.targets==='single-ally'){
+    const valid=getValidTargets(ability,unit);
+    target=valid.length?pick(valid):null;
   } else if(ability.targets==='single'){
     const valid=getValidTargets(ability,unit);
-    target=valid.sort(function(a,b){return a.hp-b.hp;})[0];
+    if(valid.length){
+      const execTarget=valid.find(function(t){return t.hp/t.maxHp<0.3;});
+      if(execTarget){
+        target=execTarget;
+      } else {
+        const healerTargets=valid.filter(function(t){return t.isHero&&t.abilities&&t.abilities.some(function(a){return a.type==='heal'&&a.cdLeft<=0;});});
+        if(healerTargets.length&&Math.random()<0.45){
+          target=pick(healerTargets);
+        } else {
+          target=valid.slice().sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);})[0];
+        }
+      }
+    }
   }
   const enemyIdx=RUN.combat.enemies.indexOf(unit);
   let targetSide=null,targetIdx=-1;
@@ -1960,7 +2027,7 @@ function renderMap(){
 
 function renderCombatLog(){
   const box=$('combat-log');box.innerHTML='';
-  const msgs=RUN.combat.log.slice(-30).slice().reverse();
+  const msgs=RUN.combat.log.slice(-60).slice().reverse();
   msgs.forEach(function(m,i){box.appendChild(el('div',i===0?'l-new':'',m));});
 }
 const ROMAN_SUFFIX_RE=/ (I{1,3}|IV|V)$/;
@@ -2073,11 +2140,11 @@ function renderActionPanel(){
   if(!unit){panel.innerHTML='<div style="color:var(--muted);font-size:13px;">'+M('The foe stirs…','Враг готовится…')+'</div>';return;}
   panel.appendChild(el('div','eyebrow',M(unit.name+"'s turn",'Ход: '+unit.name)));
   const bar=el('div','ability-bar');
-  unit.abilities.forEach(function(a){
+  unit.abilities.forEach(function(a,idx){
     const btn=el('button','ability-btn');
     if(RUN.combat.selectedAbility===a)btn.classList.add('selected');
-    btn.title=(a.desc||'')+(a.cd?' · '+M('Cooldown','Откат')+' '+a.cd:'');
-    btn.innerHTML='<span class="a-name">'+a.name+(a.minLevel?' <span class="ult-tag">'+M('ULT','УЛЬТ')+'</span>':'')+'</span><span class="a-meta">'+(a.desc||'')+'</span>';
+    btn.title=(a.desc||'')+(a.cd?' · '+M('Cooldown','Откат')+' '+a.cd:'')+' · ['+(idx+1)+']';
+    btn.innerHTML='<span class="a-name">'+(idx+1)+'. '+a.name+(a.minLevel?' <span class="ult-tag">'+M('ULT','УЛЬТ')+'</span>':'')+'</span><span class="a-meta">'+(a.desc||'')+'</span>';
     if(a.minLevel&&(unit.level||1)<a.minLevel){
       btn.disabled=true;
       btn.classList.add('no-target');
@@ -2093,13 +2160,18 @@ function renderActionPanel(){
       const badge=el('span','cd-badge',M('N/A','нет цели'));
       btn.appendChild(badge);
     }
-    btn.addEventListener('click',function(){heroChooseAbility(a);});
+    btn.addEventListener('click',function(){
+      if(RUN.combat.selectedAbility===a){RUN.combat.selectedAbility=null;RUN.combat.phase='hero_choose';renderActionPanel();renderCombat();return;}
+      heroChooseAbility(a);
+    });
     bar.appendChild(btn);
   });
   panel.appendChild(bar);
   if(RUN.combat.selectedAbility){
-    const hint = {'single':M('Choose a foe to strike.','Выберите врага для удара.'),'single-ally':M('Choose an ally.','Выберите союзника.')}[RUN.combat.selectedAbility.targets]||'';
+    const hint = {'single':M('Choose a foe to strike. (Esc to cancel)','Выберите врага для удара. (Esc — отмена)'),'single-ally':M('Choose an ally. (Esc to cancel)','Выберите союзника. (Esc — отмена)')}[RUN.combat.selectedAbility.targets]||'';
     panel.appendChild(el('div','eyebrow',hint));
+  } else {
+    panel.appendChild(el('div','',"<span style='color:var(--muted);font-size:11px;'>"+M('Tip: number keys 1-4 pick an ability.','Подсказка: цифры 1-4 выбирают способность.')+"</span>"));
   }
 }
 
@@ -2231,7 +2303,7 @@ function onVictory(){
   if(META.wins>=3)META.heroesUnlocked.doran=true;
   if(META.wins>=5)META.heroesUnlocked.morwen=true;
   META.ascensionUnlocked=Math.max(META.ascensionUnlocked,Math.min(5,RUN.ascension+1));
-  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;}
+  if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:true,layer:8};META.embers+=10;META.dailyWinsCount=(META.dailyWinsCount||0)+1;}
   const unlocked=evaluateAchievements(true);
   recordRunHistory(true,embers);
   saveMeta();
@@ -2283,6 +2355,14 @@ function renderTitle(){
   if(dailyBtn)dailyBtn.textContent=dailyDone?M('Daily Challenge ✓','Испытание дня ✓'):M('Daily Challenge','Испытание дня');
   const dailyInfo=$('title-daily-info');
   if(dailyInfo)dailyInfo.innerHTML=M('A fixed map, the same for everyone today. Ascension 0, +10 embers on a win.','Одинаковая карта для всех сегодня. Сложность 0, +10 угольков за победу.');
+  const reminder=$('title-save-reminder');
+  if(reminder){
+    const shouldShow = META.embers>0 && (META.lastExportNudgeEmbers===undefined || META.embers-(META.lastExportNudgeEmbers||0)>=40);
+    reminder.hidden=!shouldShow;
+    if(shouldShow){
+      $('title-save-reminder-text').textContent=M('Your progress only lives in this browser. Export a save code so you never lose it.','Ваш прогресс хранится только в этом браузере. Экспортируйте код сохранения, чтобы не потерять его.');
+    }
+  }
   renderLangSwitch();
   show('screen-title');
 }
@@ -2393,6 +2473,45 @@ function renderLegacy(){
   show('screen-legacy');
 }
 
+function showRulesModal(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('How to Play','Правила игры')));
+  const sections=[
+    {h:M('Rows','Ряды'),t:M(
+      'Each side has a front and back row. Melee abilities can only reach the front row (or the back row once the front is empty). Ranged and "any" abilities can strike anyone. Put your fragile heroes in the back.',
+      'У каждой стороны есть передний и задний ряд. Ближние способности достают только до переднего ряда (или до заднего, если передний пуст). Дальние способности и способности «в любого» достают до всех. Держите хрупких героев в тылу.'
+    )},
+    {h:M('Statuses','Статусы'),t:M(
+      'Burning deals damage each turn. Stunned skips the whole turn. Buffs/debuffs change a stat for a few turns. Dodge avoids the next hit. Hover any icon in battle for details.',
+      'Горение наносит урон каждый ход. Оглушение полностью пропускает ход. Баффы/дебаффы меняют характеристику на несколько ходов. Уклонение спасает от следующего удара. Наведите на значок в бою, чтобы увидеть подробности.'
+    )},
+    {h:M('Cooldowns','Откаты'),t:M(
+      'Using a strong ability locks it for a number of turns (shown on the button). Basic attacks usually have no cooldown — lean on them while your big abilities recharge.',
+      'Сильная способность после использования уходит в откат на несколько ходов (показано на кнопке). У базовых ударов обычно нет отката — используйте их, пока перезаряжаются мощные способности.'
+    )},
+    {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
+      'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
+      'У каждого героя есть слоты оружия, брони и аксессуара, а также реликвия с пассивным эффектом. Более редкое снаряжение выпадает за сложные бои. «Строй и снаряжение» на экране карты позволяет переэкипироваться и менять ряды в любой момент.'
+    )},
+    {h:M('Ascension','Сложность похода'),t:M(
+      'Set the difficulty in the Legacy Ledger before starting a march. Higher Ascension makes enemies tougher but pays more embers; Story Mode (S) is gentler with no penalty.',
+      'Сложность выбирается в Летописи перед началом похода. Чем выше — тем сильнее враги, но и больше угольков. Режим истории (И) мягче и без штрафа.'
+    )},
+    {h:M('Permanent progress','Постоянный прогресс'),t:M(
+      'Embers persist even after a defeat — spend them in the Legacy Ledger on permanent upgrades and new recruits. Your save lives in this browser only: use "Export Save Code" in Legacy to back it up.',
+      'Угольки сохраняются даже после поражения — тратьте их в Летописи на постоянные улучшения и наём героев. Сохранение хранится только в этом браузере: используйте «Экспорт кода сохранения» в Летописи, чтобы его не потерять.'
+    )},
+  ];
+  sections.forEach(function(s){
+    const sec=el('div','',"<strong style='color:var(--accent2);'>"+s.h+"</strong><br><span style='color:var(--muted);font-size:13px;line-height:1.5;'>"+s.t+"</span>");
+    sec.style.marginBottom='10px';
+    wrap.appendChild(sec);
+  });
+  const close=el('button','primary',M('Got it','Понятно'));
+  close.addEventListener('click',closeModal);
+  wrap.appendChild(close);
+  openModal(wrap);
+}
 function exportSave(){
   let code='';
   try{code='EMBERMARCH1:'+btoa(unescape(encodeURIComponent(JSON.stringify(META))));}catch(e){code='';}
@@ -2619,6 +2738,16 @@ $('btn-continue').addEventListener('click',function(){
   saveRun();show('screen-map');renderTopbar();renderMap();
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
+$('btn-open-rules').addEventListener('click',showRulesModal);
+$('btn-save-reminder-export').addEventListener('click',function(){
+  META.lastExportNudgeEmbers=META.embers;saveMeta();
+  exportSave();
+  renderTitle();
+});
+$('btn-save-reminder-dismiss').addEventListener('click',function(){
+  META.lastExportNudgeEmbers=META.embers;saveMeta();
+  renderTitle();
+});
 $('btn-legacy-back').addEventListener('click',renderTitle);
 $('btn-back-title').addEventListener('click',function(){dailyPendingSeed=null;renderTitle();});
 $('btn-confirm-heroes').addEventListener('click',function(){
@@ -2688,6 +2817,26 @@ $('btn-daily').addEventListener('click',function(){
   }
   dailyPendingSeed=today;
   renderHeroSelect();
+});
+document.addEventListener('keydown',function(e){
+  if(!RUN||!RUN.combat||RUN.combat.over)return;
+  if(RUN.combat.autoBattle)return;
+  if(e.key==='Escape'&&RUN.combat.phase==='hero_target'){
+    RUN.combat.selectedAbility=null;RUN.combat.phase='hero_choose';renderActionPanel();renderCombat();
+    return;
+  }
+  if(RUN.combat.phase!=='hero_choose'||!RUN.combat.activeHero)return;
+  const n=parseInt(e.key,10);
+  if(n>=1&&n<=9){
+    const a=RUN.combat.activeHero.abilities[n-1];
+    if(a)heroChooseAbility(a);
+  }
+});
+window.addEventListener('beforeunload',function(e){
+  if(RUN&&RUN.combat&&!RUN.combat.over){
+    e.preventDefault();e.returnValue='';
+    return '';
+  }
 });
 applyStaticI18n();
 applyTheme();
