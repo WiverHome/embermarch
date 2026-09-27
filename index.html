@@ -961,11 +961,25 @@ const EVENTS = [
     choices:[
       {label:{en:'Rest by the ashes',ru:'Отдохнуть у пепелища'},resolve(run){
         run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.15));});
-        return M('The company rests a while. Everyone feels a little better.','Отряд немного отдыхает. Всем становится чуть легче.');
+        run.pendingChainEvent='ashes_ember';
+        return M('The company rests a while. Everyone feels a little better. One ember from the ashes seems to follow, warm against the cold.','Отряд немного отдыхает. Всем становится чуть легче. Один уголёк из пепелища будто увязывается следом — тёплый посреди холода.');
       }},
       {label:{en:'Search the campsite',ru:'Обыскать стоянку'},resolve(run){
         const g=8+Math.floor(Math.random()*12);run.gold+=g;
         return M('A few coins were dropped in the dirt. +'+g+' gold.','В пыли завалялось несколько монет. +'+g+' золота.');
+      }},
+    ]},
+  {id:'ashes_ember',chainOnly:true,title:{en:'The Lingering Warmth',ru:'Тепло, что не гаснет'},
+    text:{en:'The ember from the cold campfire hasn’t gone out. It pulses gently in your pack, waiting for something.',
+          ru:'Уголёк с того остывшего костра так и не погас. Он мягко пульсирует в мешке, будто чего-то ждёт.'},
+    choices:[
+      {label:{en:'Let it warm the whole company',ru:'Дать ему согреть весь отряд'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.18));});
+        return M('The ember flares once, gently, and fades. The company feels rested and whole.','Уголёк на миг вспыхивает и гаснет. Отряд чувствует себя отдохнувшим.');
+      }},
+      {label:{en:'Trade it at the next stop',ru:'Обменять его на следующей стоянке'},resolve(run){
+        const g=14+Math.floor(Math.random()*13);run.gold+=g;
+        return M('A fellow traveler pays well for a coal that never truly cools. +'+g+' gold.','Попутчик щедро платит за уголёк, который не остывает по-настоящему. +'+g+' золота.');
       }},
     ]},
   {id:'merchant',title:{en:'Wandering Peddler',ru:'Бродячий торговец'},
@@ -975,9 +989,21 @@ const EVENTS = [
       {label:{en:'Buy an elixir (18 gold)',ru:'Купить эликсир (18 золота)'},resolve(run){
         if(run.gold<18)return M("You don't have enough gold.",'У вас недостаточно золота.');
         run.gold-=18;const h=randAlive(run.party);h.hp=h.maxHp;
-        return M(h.name+' drinks the elixir and is fully restored.',h.name+' выпивает эликсир и полностью восстанавливается.');
+        run.pendingChainEvent='peddler_return';
+        return M(h.name+' drinks the elixir and is fully restored. The peddler nods, as if remembering a fair trade.',h.name+' выпивает эликсир и полностью восстанавливается. Торговец кивает — похоже, честную сделку он запоминает.');
       }},
       {label:{en:'Decline and move on',ru:'Отказаться и уйти'},resolve(){return M('The peddler shrugs and vanishes into the haze.','Торговец пожимает плечами и исчезает в дымке.');}},
+    ]},
+  {id:'peddler_return',chainOnly:true,title:{en:'The Peddler Returns',ru:'Торговец возвращается'},
+    text:{en:'The same hunched peddler catches up with the company again, cart rattling — this time with better wares set aside.',
+          ru:'Та же сутулая фигура снова нагоняет отряд, тележка гремит — на этот раз отложен товар получше.'},
+    choices:[
+      {label:{en:'Buy the good stock (-28 gold)',ru:'Купить хороший товар (-28 золота)'},special:'item',resolve(run){
+        if(run.gold<28)return M("You don't have enough gold, and the peddler moves on.",'У вас недостаточно золота, и торговец уходит.');
+        run.gold-=28;const item=Math.random()<0.3?randomRelic():randomItem();run.pendingItemPickup=item;
+        return M('The peddler hands over the good stock with a wink.','Торговец с хитрым подмигиванием протягивает хороший товар.');
+      }},
+      {label:{en:"Thank them and part ways",ru:'Поблагодарить и разойтись'},resolve(){return M('The peddler tips their hat and vanishes into the haze for good.','Торговец приподнимает шляпу и исчезает в дымке уже насовсем.');}},
     ]},
   {id:'cache',title:{en:'Sealed Cache',ru:'Запертый сундук'},
     text:{en:'A iron-banded cache lies wedged between two rocks, its lock long rusted shut.',
@@ -1023,14 +1049,32 @@ const EVENTS = [
       {label:{en:'Train with the post',ru:'Потренироваться у столба'},resolve(run){
         const h=randAlive(run.party);
         const leveled=grantXpAutoResolve(h,16+Math.floor(Math.random()*10));
-        return leveled>0?M(h.name+' trains hard and reaches level '+h.level+'!',h.name+' усердно тренируется и достигает '+h.level+' уровня!')
-                        :M(h.name+' trains and gains experience.',h.name+' тренируется и получает опыт.');
+        run.pendingChainEvent='training_veteran';run.trainingHeroKey=h.key;
+        return leveled>0?M(h.name+' trains hard and reaches level '+h.level+'! Someone was watching from the treeline.',h.name+' усердно тренируется и достигает '+h.level+' уровня! Кто-то наблюдал из-за деревьев.')
+                        :M(h.name+' trains and gains experience. Someone was watching from the treeline.',h.name+' тренируется и получает опыт. Кто-то наблюдал из-за деревьев.');
       }},
       {label:{en:'Rest instead',ru:'Лучше отдохнуть'},resolve(run){
         run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.12));});
         return M('The company rests by the post. Everyone feels a little better.','Отряд отдыхает у столба. Всем становится чуть легче.');
       }},
       {label:{en:'Move on',ru:'Пройти мимо'},resolve(){return M('Best to keep moving.','Лучше не задерживаться.');}},
+    ]},
+  {id:'training_veteran',chainOnly:true,title:{en:'The Watching Veteran',ru:'Наблюдающий ветеран'},
+    text:{en:'A scarred, hooded veteran steps out from the treeline, having watched the training with a critical eye. "Form’s sloppy," they say. "Want to fix that?"',
+          ru:'Из-за деревьев выходит покрытый шрамами ветеран в капюшоне — он придирчиво наблюдал за тренировкой. «Стойка хромает, — говорит он. — Поправим?»'},
+    choices:[
+      {label:{en:'Accept the spar (-8 HP, more XP)',ru:'Согласиться на спарринг (-8 HP, больше опыта)'},resolve(run){
+        const h=run.party.find(function(x){return x.key===run.trainingHeroKey&&x.alive;})||randAlive(run.party);
+        h.hp=Math.max(1,h.hp-8);
+        const leveled=grantXpAutoResolve(h,26);
+        return leveled>0?M('The spar is brutal but honest. '+h.name+' reaches level '+h.level+'!','Спарринг жёсткий, но честный. '+h.name+' достигает '+h.level+' уровня!')
+                        :M('The spar is brutal but honest. '+h.name+' gains a rush of experience.','Спарринг жёсткий, но честный. '+h.name+' получает всплеск опыта.');
+      }},
+      {label:{en:'Thank them and decline',ru:'Поблагодарить и отказаться'},resolve(run){
+        const h=run.party.find(function(x){return x.key===run.trainingHeroKey&&x.alive;})||randAlive(run.party);
+        h.def+=1;
+        return M('The veteran shrugs and offers one free piece of advice instead. '+h.name+' feels steadier. (+1 DEF this march)','Ветеран пожимает плечами и вместо этого даёт бесплатный совет. '+h.name+' чувствует себя увереннее. (+1 к защите в этом походе)');
+      }},
     ]},
   {id:'spirit',title:{en:'Wandering Spirit',ru:'Блуждающий дух'},
     text:{en:'A pale, half-formed shade drifts closer, offering a pact in a voice like wind through bone.',
@@ -1591,10 +1635,22 @@ function tierForLayer(li){
   return li<t1?1:(li<t2?2:(li<t3?3:4));
 }
 
+/* Scales with how far through the WHOLE march a layer is (li / TOTAL_MAP_LAYERS),
+   not with the raw layer index. The ramp and def-growth constants (0.315 / 0.14)
+   are picked so the boss (li = TOTAL_MAP_LAYERS) ends up at the same difficulty
+   the original 7-layer march's boss had. Scaling off the raw index instead —
+   as an earlier version of this function did — meant every layer added to
+   lengthen the march also added flat extra ramp, so extending the march from
+   8 to 20 steps made the MID-game spike far past where the boss itself used to
+   land, well before the final layers. Playtesting (scripted full auto-battle
+   runs) showed parties dying right at the tier 2→3 jump (layer ~8 of 20) under
+   the old per-layer formula; this keeps that same relative difficulty curve,
+   just stretched to fit the longer march instead of compounding on top of it. */
 function enemyScale(li){
   const asc=1+RUN.ascension*0.14;
-  const ramp=1+Math.max(0,li||0)*0.045;
-  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+Math.max(0,li||0)*0.02};
+  const frac=Math.max(0,Math.min(1,(li||0)/TOTAL_MAP_LAYERS));
+  const ramp=1+frac*0.315;
+  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14};
 }
 function makeEnemyInstance(defKey,li){
   const d=ENEMY_DEFS[defKey];
@@ -1608,7 +1664,7 @@ function makeEnemyInstance(defKey,li){
   };
 }
 function makeBossInstance(){
-  const s=enemyScale(7);
+  const s=enemyScale(TOTAL_MAP_LAYERS);
   const BOSS_DEF=BOSS_DEFS[RUN.bossKey]||BOSS_DEFS.warden;
   return {
     key:'boss',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
@@ -1733,16 +1789,21 @@ function applyAbilityEffect(caster,ability,target){
          (Bram, Doran or Torvin) cashes it in for bonus damage, rewarding pairing the
          ranger with a melee opener. */
       const pinnedMark=(ability.id==='strike'||ability.id==='claw'||ability.id==='shieldbash')?t.status.find(function(s){return s.type==='mark'&&s.tag==='pinned';}):null;
+      /* Combo: Ashra's Ember Flick leaves a foe 'scorched' — Sael's ranged attacks
+         (Quick Shot, Pin Down, Deadeye Shot) cash it in for bonus damage, rewarding
+         pairing the pyromancer's marker with the ranger's precision follow-up. */
+      const scorchedMark=(ability.id==='shot'||ability.id==='pin'||ability.id==='deadeye')?t.status.find(function(s){return s.type==='mark'&&s.tag==='scorched';}):null;
       if(exposedMark){mult+=0.4;t.status=t.status.filter(function(s){return s!==exposedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(blessedMark){mult+=0.25;caster.status=caster.status.filter(function(s){return s!==blessedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(pinnedMark){mult+=0.3;t.status=t.status.filter(function(s){return s!==pinnedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
+      if(scorchedMark){mult+=0.35;t.status=t.status.filter(function(s){return s!==scorchedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
       totalDealt+=r.amount;
       if(r.crit)SFX.crit();else SFX.hit();
-      if(exposedMark||blessedMark||pinnedMark)SFX.buff();
-      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'')+(pinnedMark?' (combo: pinned target, +30%!)':'');
-      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'')+(pinnedMark?' (комбо: пригвождённая цель, +30%!)':'');
+      if(exposedMark||blessedMark||pinnedMark||scorchedMark)SFX.buff();
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'')+(pinnedMark?' (combo: pinned target, +30%!)':'')+(scorchedMark?' (combo: scorched target, +35%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'')+(pinnedMark?' (комбо: пригвождённая цель, +30%!)':'')+(scorchedMark?' (комбо: обожжённая цель, +35%!)':'');
       logs.push(M(
         caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
         caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
@@ -1792,6 +1853,7 @@ function applyAbilityEffect(caster,ability,target){
       if(ability.dot){t.status.push({type:'dot',amount:ability.dot.amount,duration:ability.dot.duration,label:M('burn','ожог')});}
       if(ability.debuff){t.status.push({type:'debuff',stat:ability.debuff.stat,amount:ability.debuff.amount,duration:ability.debuff.duration,label:statAbbr(ability.debuff.stat)});}
       if(ability.id==='pin'&&t.alive){t.status.push({type:'mark',tag:'pinned',duration:2,label:M('pinned','пригвождён')});}
+      if(ability.id==='flick'&&t.alive){t.status.push({type:'mark',tag:'scorched',duration:2,label:M('scorched','обожжён')});}
       if(t.hp<=0&&t.alive){
         if(hasRelic(t,'revive')&&!t.usedPhoenix){
           t.usedPhoenix=true;t.hp=1;
@@ -2502,6 +2564,7 @@ function statusTooltip(s){
   if(s.type==='mark'&&s.tag==='rally')return M("Vow of protection: this hero's next attack deals bonus damage (combo).","Клятва защиты: следующая атака этого героя наносит бонусный урон (комбо).");
   if(s.type==='mark'&&s.tag==='blessed')return M("Blessed: this hero's next attack deals +25% bonus damage (combo).","Благословение: следующая атака этого героя наносит +25% урона (комбо).");
   if(s.type==='mark'&&s.tag==='pinned')return M('Pinned: the next basic strike from Bram, Doran or Torvin against them deals +30% bonus damage (combo).','Пригвождён: следующий базовый удар Брама, Дорана или Торвина по нему наносит +30% урона (комбо).');
+  if(s.type==='mark'&&s.tag==='scorched')return M("Scorched: Sael's next ranged attack against them deals +35% bonus damage (combo).",'Обожжён: следующая дальняя атака Саэль по нему наносит +35% урона (комбо).');
   return '';
 }
 function intentIcon(type){
@@ -3037,8 +3100,8 @@ function showRulesModal(){
       'Сильная способность после использования уходит в откат на несколько ходов (показано на кнопке). У базовых ударов обычно нет отката — используйте их, пока перезаряжаются мощные способности.'
     )},
     {h:M('Combos','Комбо'),t:M(
-      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
-      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
+      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Ashra's Ember Flick leaves a foe \"scorched\" for Sael's ranged attacks to punish in turn. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
+      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Всплеск огня Ашры оставляет врага «обожжённым» — дальние атаки Саэль этим пользуются. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
     )},
     {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
       'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
