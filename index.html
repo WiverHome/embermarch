@@ -894,13 +894,29 @@ const EVENTS = [
     choices:[
       {label:{en:'Search the gear',ru:'Обыскать снаряжение'},resolve(run){
         const item=randomItem();run.pendingItemPickup=item;
+        run.pendingChainEvent='battlefield_haunt';
         return null;
       },special:'item'},
       {label:{en:'Strip what glitters',ru:'Собрать всё блестящее'},resolve(run){
         const g=10+Math.floor(Math.random()*20);run.gold+=g;
-        return M('You find '+g+' gold among the wreckage.','Вы находите '+g+' золота среди обломков.');
+        run.pendingChainEvent='battlefield_haunt';
+        return M('You find '+g+' gold among the wreckage. As you leave, you feel eyes on your back.','Вы находите '+g+' золота среди обломков. Уходя, вы чувствуете взгляд в спину.');
       }},
       {label:{en:'Move on quickly',ru:'Быстро уйти'},resolve(){return M('Best not to linger here.','Лучше здесь не задерживаться.');}},
+    ]},
+  {id:'battlefield_haunt',chainOnly:true,title:{en:'The Fallen Company',ru:'Павший отряд'},
+    text:{en:"The ghosts of the battlefield's dead have followed, drifting at the edge of the firelight — not hostile, just... waiting to be seen.",
+          ru:'Призраки погибших с того поля боя последовали за отрядом и застыли на краю света костра — не враждебные, просто ждут, чтобы их заметили.'},
+    choices:[
+      {label:{en:'Honor their memory',ru:'Почтить их память'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.1));});
+        return M('The ghosts fade, at peace. The company rests easier for it.','Призраки успокаиваются и растворяются. Отряду становится легче от этого.');
+      }},
+      {label:{en:'Search their old campsite',ru:'Обыскать их старую стоянку'},resolve(run){
+        const g=15+Math.floor(Math.random()*15);run.gold+=g;
+        return M('The ghosts watch in silence as you take what they left behind. +'+g+' gold.','Призраки молча наблюдают, как вы забираете оставленное ими. +'+g+' золота.');
+      }},
+      {label:{en:'Ignore them and move on',ru:'Не обращать внимания и уйти'},resolve(){return M('The ghosts linger a moment longer, then are gone.','Призраки задерживаются ещё на мгновение, затем исчезают.');}},
     ]},
   {id:'idol',title:{en:'Cursed Idol',ru:'Проклятый идол'},
     text:{en:'A small black idol watches from a hollow log. It is warm to the touch, and it wants to be carried.',
@@ -1047,13 +1063,28 @@ const EVENTS = [
       {label:{en:'Temper a weapon (-15 gold)',ru:'Закалить оружие (-15 золота)'},resolve(run){
         if(run.gold<15)return M("You don't have enough gold to work the forge.",'У вас недостаточно золота, чтобы разжечь кузницу.');
         run.gold-=15;const h=randAlive(run.party);h.atk+=2;
-        return M(h.name+"'s weapon comes out keener than before. (+2 ATK this march)",h.name+' — оружие становится острее прежнего. (+2 к атаке в этом походе)');
+        run.pendingChainEvent='forge_ember';run.forgeHeroKey=h.key;
+        return M(h.name+"'s weapon comes out keener than before. (+2 ATK this march) As the coals die back down, one ember refuses to go out.",h.name+' — оружие становится острее прежнего. (+2 к атаке в этом походе) Угли гаснут, но один уголёк отказывается тухнуть.');
       }},
       {label:{en:'Melt down the scrap',ru:'Переплавить металлолом'},resolve(run){
         const g=12+Math.floor(Math.random()*11);run.gold+=g;
         return M('You melt down the old fittings for '+g+' gold.','Вы переплавляете старую оснастку и получаете '+g+' золота.');
       }},
       {label:{en:'Leave it cold',ru:'Оставить остывшей'},resolve(){return M('The forge stays silent.','Кузница остаётся безмолвной.');}},
+    ]},
+  {id:'forge_ember',chainOnly:true,title:{en:'The Last Ember',ru:'Последний уголёк'},
+    text:{en:'The stubborn ember from the forge has been glowing in your pack for days, warm through the cloth.',
+          ru:'Упрямый уголёк из кузницы уже несколько дней тлеет в вашем мешке, тёплый даже сквозь ткань.'},
+    choices:[
+      {label:{en:'Work it into the tempered weapon',ru:'Вплавить его в закалённое оружие'},resolve(run){
+        const h=run.party.find(function(x){return x.key===run.forgeHeroKey&&x.alive;})||randAlive(run.party);
+        h.atk+=1;h.def+=1;
+        return M(h.name+"'s weapon drinks in the last ember and settles into its final shape. (+1 ATK / +1 DEF this march)",h.name+' — оружие вбирает последний уголёк и обретает окончательную форму. (+1 к атаке / +1 к защите в этом походе)');
+      }},
+      {label:{en:'Trade it to a passing tinker',ru:'Обменять его у бродячего лудильщика'},resolve(run){
+        const g=18+Math.floor(Math.random()*12);run.gold+=g;
+        return M('A tinker pays well for a coal that never cools. +'+g+' gold.','Лудильщик щедро платит за уголь, который никогда не остывает. +'+g+' золота.');
+      }},
     ]},
   {id:'omen',title:{en:'Dark Omen',ru:'Тёмное предзнаменование'},
     text:{en:'The sky above bruises to a wrong color. Something is watching, and it is willing to bargain.',
@@ -1522,7 +1553,12 @@ function startNewRun(heroKeys,dailySeed){
 
 /* ============================= COMBAT ENGINE ============================= */
 
-function tierForLayer(li){return li<2?1:(li<4?2:(li<6?3:4));}
+/* Tier thresholds line up with LAYER_PLAN's node types: layers 0-1 are tier 1, 2-3 are
+   tier 2, 4 is tier 3, and 5-6 are tier 4. This matters because layer 6 (the last one
+   before the boss) is rest-only in LAYER_PLAN — with the old li<6 cutoff, tier 4 was
+   never actually reachable, so its enemy pool (knight/banshee/wraith/caster/zealot and
+   the Ashlord elite) was dead content and the run's final stretch was undertuned. */
+function tierForLayer(li){return li<2?1:(li<4?2:(li<5?3:4));}
 
 function enemyScale(li){
   const asc=1+RUN.ascension*0.14;
@@ -1662,15 +1698,20 @@ function applyAbilityEffect(caster,ability,target){
       const exposedMark=(ability.id==='backstab'||ability.id==='assassinate')?t.status.find(function(s){return s.type==='mark'&&s.tag==='exposed';}):null;
       /* Combo: Yvana's healing blesses the healed ally — their next hit lands harder. */
       const blessedMark=caster.status.find(function(s){return s.type==='mark'&&s.tag==='blessed';});
+      /* Combo: Sael's Pin Down leaves a foe 'pinned' — a front-liner's basic strike
+         (Bram, Doran or Torvin) cashes it in for bonus damage, rewarding pairing the
+         ranger with a melee opener. */
+      const pinnedMark=(ability.id==='strike'||ability.id==='claw'||ability.id==='shieldbash')?t.status.find(function(s){return s.type==='mark'&&s.tag==='pinned';}):null;
       if(exposedMark){mult+=0.4;t.status=t.status.filter(function(s){return s!==exposedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(blessedMark){mult+=0.25;caster.status=caster.status.filter(function(s){return s!==blessedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
+      if(pinnedMark){mult+=0.3;t.status=t.status.filter(function(s){return s!==pinnedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
       totalDealt+=r.amount;
       if(r.crit)SFX.crit();else SFX.hit();
-      if(exposedMark||blessedMark)SFX.buff();
-      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'');
-      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'');
+      if(exposedMark||blessedMark||pinnedMark)SFX.buff();
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'')+(pinnedMark?' (combo: pinned target, +30%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'')+(pinnedMark?' (комбо: пригвождённая цель, +30%!)':'');
       logs.push(M(
         caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
         caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
@@ -1719,6 +1760,7 @@ function applyAbilityEffect(caster,ability,target){
       }
       if(ability.dot){t.status.push({type:'dot',amount:ability.dot.amount,duration:ability.dot.duration,label:M('burn','ожог')});}
       if(ability.debuff){t.status.push({type:'debuff',stat:ability.debuff.stat,amount:ability.debuff.amount,duration:ability.debuff.duration,label:statAbbr(ability.debuff.stat)});}
+      if(ability.id==='pin'&&t.alive){t.status.push({type:'mark',tag:'pinned',duration:2,label:M('pinned','пригвождён')});}
       if(t.hp<=0&&t.alive){
         if(hasRelic(t,'revive')&&!t.usedPhoenix){
           t.usedPhoenix=true;t.hp=1;
@@ -2354,6 +2396,7 @@ function statusTooltip(s){
   if(s.type==='mark'&&s.tag==='exposed')return M('Exposed: the next Backstab or Assassinate against them deals +40% bonus damage (combo).','Уязвим: следующий Удар в спину или Убийство по нему наносит +40% урона (комбо).');
   if(s.type==='mark'&&s.tag==='rally')return M("Vow of protection: this hero's next attack deals bonus damage (combo).","Клятва защиты: следующая атака этого героя наносит бонусный урон (комбо).");
   if(s.type==='mark'&&s.tag==='blessed')return M("Blessed: this hero's next attack deals +25% bonus damage (combo).","Благословение: следующая атака этого героя наносит +25% урона (комбо).");
+  if(s.type==='mark'&&s.tag==='pinned')return M('Pinned: the next basic strike from Bram, Doran or Torvin against them deals +30% bonus damage (combo).','Пригвождён: следующий базовый удар Брама, Дорана или Торвина по нему наносит +30% урона (комбо).');
   return '';
 }
 function intentIcon(type){
@@ -2889,8 +2932,8 @@ function showRulesModal(){
       'Сильная способность после использования уходит в откат на несколько ходов (показано на кнопке). У базовых ударов обычно нет отката — используйте их, пока перезаряжаются мощные способности.'
     )},
     {h:M('Combos','Комбо'),t:M(
-      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Torvin's Oath of Protection marks the protected ally — their next hit lands with extra force. Watch for the combo status icons.",
-      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Клятва защиты Торвина отмечает защищённого союзника — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
+      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
+      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
     )},
     {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
       'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
