@@ -673,6 +673,15 @@ const CUSTOM_PASSIVES = [
   {id:'ferocity',name:{en:'Ferocity',ru:'Ярость'},desc:{en:'+2 ATK',ru:'+2 к атаке'}},
 ];
 function customPassiveDef(id){return CUSTOM_PASSIVES.find(function(p){return p.id===id;})||CUSTOM_PASSIVES[0];}
+const CUSTOM_COLOR_SWATCHES=[
+  {c:'#c98a3b'},{c:'#5f93ae'},{c:'#8fb08a'},{c:'#a56bc9'},{c:'#d9683f'},
+  {c:'#b0995a'},{c:'#d94f6a'},{c:'#4fb0d9'},{c:'#e0c341'},{c:'#6a6aa0'},
+  {c:'#ff3b3b',unlock:'first_win',name:{en:'Ember Red',ru:'Тлеющий алый'}},
+  {c:'#f4d35e',unlock:'flawless',name:{en:'Sunlit Gold',ru:'Солнечное золото'}},
+  {c:'#7b2cbf',unlock:'ascendant',name:{en:'Void Violet',ru:'Фиолетовая пустота'}},
+  {c:'#e8e8e8',unlock:'giant_slayer',name:{en:'Bone White',ru:'Костяной белый'}},
+];
+function colorSwatchUnlocked(sw){return !sw.unlock||!!(META.achievements&&META.achievements[sw.unlock]);}
 function customHeroToDef(customId){
   const c=(META.customHeroes||[]).find(function(x){return x.id===customId;});
   if(!c)return null;
@@ -853,10 +862,26 @@ const EVENTS = [
     choices:[
       {label:{en:'Carry the idol',ru:'Забрать идола'},resolve(run){
         const h=randAlive(run.party);h.atk+=3;h.def=Math.max(0,h.def-3);
-        return M(h.name+' pockets the idol. Power, and a price. (+3 ATK / -3 DEF this march)',
-                 h.name+' прячет идола в карман. Сила требует цены. (+3 к атаке / -3 к защите в этом походе)');
+        run.pendingChainEvent='idol_toll';
+        return M(h.name+' pockets the idol. Power, and a price. (+3 ATK / -3 DEF this march) It feels like it wants something more from you.',
+                 h.name+' прячет идола в карман. Сила требует цены. (+3 к атаке / -3 к защите в этом походе) Кажется, ему ещё что-то нужно от вас.');
       }},
       {label:{en:'Smash it',ru:'Разбить его'},resolve(){return M('The idol shatters into plain stone. Nothing happens.','Идол рассыпается в обычный камень. Ничего не происходит.');}},
+    ]},
+  {id:'idol_toll',chainOnly:true,title:{en:"The Idol's Hunger",ru:'Голод идола'},
+    text:{en:'The idol in your pack has grown warm again, almost pulsing. It wants to be fed.',
+          ru:'Идол в вашем мешке снова потеплел, почти пульсирует. Он хочет, чтобы его накормили.'},
+    choices:[
+      {label:{en:'Feed it a little blood (-5 HP, one hero)',ru:'Накормить кровью (-5 HP одному герою)'},resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-5);h.atk+=2;
+        return M(h.name+' feeds the idol. It grows quiet — and '+h.name+' feels stronger. (+2 ATK this march)',
+                 h.name+' кормит идола. Он затихает — а '+h.name+' чувствует прилив сил. (+2 к атаке в этом походе)');
+      }},
+      {label:{en:'Bury it and walk away',ru:'Закопать идола и уйти'},resolve(run){
+        const g=20+Math.floor(Math.random()*15);run.gold+=g;
+        return M('You bury the idol deep. Whatever it wanted, it takes its silence with it — but leaves behind a few coins that fell loose. +'+g+' gold.',
+                 'Вы глубоко закапываете идола. Что бы он ни хотел, он уносит это с собой в молчание — но оставляет несколько выпавших монет. +'+g+' золота.');
+      }},
     ]},
   {id:'ashes',title:{en:'Campfire Ashes',ru:'Остывший костёр'},
     text:{en:"Someone's fire, cold for days now. A little warmth might still be found in the embers.",
@@ -890,6 +915,7 @@ const EVENTS = [
         if(Math.random()<0.6){
           const item=Math.random()<0.25?randomRelic():randomItem();
           run.pendingItemPickup=item;
+          run.pendingChainEvent='cache_rival';
           return null;
         }
         const h=randAlive(run.party);const dmg=8;h.hp=Math.max(1,h.hp-dmg);
@@ -900,6 +926,23 @@ const EVENTS = [
         return M('The lock gives way quietly. +'+g+' gold.','Замок тихо поддаётся. +'+g+' золота.');
       }},
       {label:{en:'Leave it be',ru:'Оставить как есть'},resolve(){return M('You leave the cache to the ash.','Вы оставляете сундук пеплу.');}},
+    ]},
+  {id:'cache_rival',chainOnly:true,title:{en:'A Rival Scavenger',ru:'Соперник-мародёр'},
+    text:{en:'Someone else was tracking that cache. They catch up with your company, eyeing what you took.',
+          ru:'Кто-то ещё выслеживал этот сундук. Он нагоняет отряд, разглядывая то, что вы забрали.'},
+    choices:[
+      {label:{en:'Share the spoils (-10 gold)',ru:'Поделиться добычей (-10 золота)'},resolve(run){
+        run.gold=Math.max(0,run.gold-10);
+        return M('The scavenger takes their cut and leaves without trouble.','Мародёр забирает свою долю и уходит без проблем.');
+      }},
+      {label:{en:'Stand your ground',ru:'Не уступать'},resolve(run){
+        if(Math.random()<0.5){
+          const g=15+Math.floor(Math.random()*16);run.gold+=g;
+          return M('The scavenger backs down and drops a purse in the scuffle. +'+g+' gold.','Мародёр отступает, роняя в потасовке кошель. +'+g+' золота.');
+        }
+        const h=randAlive(run.party);const dmg=6;h.hp=Math.max(1,h.hp-dmg);
+        return M('A short scuffle breaks out. '+h.name+' takes '+dmg+' damage before the scavenger flees.',h.name+' получает '+dmg+' урона в короткой стычке, прежде чем мародёр сбегает.');
+      }},
     ]},
   {id:'training',title:{en:'Old Training Post',ru:'Старый учебный столб'},
     text:{en:'A weathered training post stands here, scarred from countless practice strikes.',
@@ -1532,16 +1575,32 @@ function applyAbilityEffect(caster,ability,target){
         logs.push(M(t.name+' dodges the attack!',t.name+' уклоняется от удара!'));
         return;
       }
+      /* Combo: Doran's Pack Tackle leaves a foe 'exposed' — Kest's Backstab/Assassinate
+         cashes it in for bonus damage. A direct hero-to-hero link, not just a status threshold. */
+      const exposedMark=(ability.id==='backstab'||ability.id==='assassinate')?t.status.find(function(s){return s.type==='mark'&&s.tag==='exposed';}):null;
+      let comboTag='';
+      if(exposedMark){mult+=0.4;t.status=t.status.filter(function(s){return s!==exposedMark;});comboTag=M(' (combo!)',' (комбо!)');}
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
       totalDealt+=r.amount;
       if(r.crit)SFX.crit();else SFX.hit();
-      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'');
-      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'');
+      if(comboTag)SFX.buff();
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'');
       logs.push(M(
         caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
         caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
       ));
+      /* Combo: Torvin's Oath of Protection marks the protected ally — their next hit
+         lands with extra force, rewarding pairing the paladin with an aggressive ally. */
+      const rallyMark=caster.status.find(function(s){return s.type==='mark'&&s.tag==='rally';});
+      if(rallyMark){
+        const bonus=Math.max(2,Math.round(statOf(caster,'atk')*0.3));
+        t.hp=Math.max(0,t.hp-bonus);totalDealt+=bonus;
+        caster.status=caster.status.filter(function(s){return s!==rallyMark;});
+        logs.push(M(caster.name+" strikes with the vow's fury, dealing "+bonus+' bonus damage! (combo!)',caster.name+' наносит удар с яростью клятвы — ещё '+bonus+' урона! (комбо!)'));
+        SFX.buff();
+      }
       if(ability.lifesteal&&caster.alive){
         const heal=Math.max(1,Math.round(r.amount*ability.lifesteal));
         caster.hp=Math.min(caster.maxHp,caster.hp+heal);
@@ -1585,7 +1644,13 @@ function applyAbilityEffect(caster,ability,target){
   } else if(ability.type==='buff'){
     const allySide=caster.side==='hero'?RUN.combat.party:RUN.combat.enemies;
     const targets=ability.targets==='all-ally'?anyAlive(allySide):(ability.targets==='single-ally'&&target?[target]:[caster]);
-    targets.forEach(function(t){t.status.push({type:'buff',stat:ability.stat,amount:ability.amount,duration:ability.duration,label:statAbbr(ability.stat)});});
+    targets.forEach(function(t){
+      t.status.push({type:'buff',stat:ability.stat,amount:ability.amount,duration:ability.duration,label:statAbbr(ability.stat)});
+      if(ability.id==='oath'&&t!==caster){
+        t.status.push({type:'mark',tag:'rally',duration:2,label:M('vow','клятва')});
+        logs.push(M(t.name+' feels ready to strike back, emboldened by the vow.',t.name+' чувствует готовность ударить в ответ, воодушевлённый клятвой.'));
+      }
+    });
     logs.push(M(caster.name+' uses '+ability.name+'.',caster.name+' использует «'+ability.name+'».'));
   } else if(ability.type==='debuff'){
     const targets = ability.targets==='all-ally'?anyAlive(caster.side==='hero'?RUN.combat.enemies:RUN.combat.party):[target];
@@ -1601,6 +1666,10 @@ function applyAbilityEffect(caster,ability,target){
     if(target&&target.alive){
       target.status.push({type:'stun',duration:1,label:M('stun','оглушение')});
       logs.push(M(caster.name+' stuns '+target.name+'!',caster.name+' оглушает '+target.name+'!'));
+      if(ability.id==='tackle'){
+        target.status.push({type:'mark',tag:'exposed',duration:2,label:M('exposed','уязвим')});
+        logs.push(M(target.name+" is left wide open — the company can capitalize on it.",target.name+' остаётся без защиты — отряд может этим воспользоваться.'));
+      }
     } else {
       logs.push(M(caster.name+' swings at nothing.',caster.name+' бьёт в пустоту.'));
     }
@@ -2183,6 +2252,8 @@ function statusTooltip(s){
   if(s.type==='dodge')return M('Will dodge the next attack against them.','Уклонится от следующей атаки по себе.');
   if(s.type==='buff')return M(statAbbr(s.stat)+' '+(s.amount>0?'+':'')+s.amount+' for '+s.duration+' more turn(s).',statAbbr(s.stat)+' '+(s.amount>0?'+':'')+s.amount+' ещё '+s.duration+' ход(а/ов).');
   if(s.type==='debuff')return M(statAbbr(s.stat)+' '+s.amount+' for '+s.duration+' more turn(s).',statAbbr(s.stat)+' '+s.amount+' ещё '+s.duration+' ход(а/ов).');
+  if(s.type==='mark'&&s.tag==='exposed')return M('Exposed: the next Backstab or Assassinate against them deals +40% bonus damage (combo).','Уязвим: следующий Удар в спину или Убийство по нему наносит +40% урона (комбо).');
+  if(s.type==='mark'&&s.tag==='rally')return M("Vow of protection: this hero's next attack deals bonus damage (combo).","Клятва защиты: следующая атака этого героя наносит бонусный урон (комбо).");
   return '';
 }
 function intentIcon(type){
@@ -2703,6 +2774,10 @@ function showRulesModal(){
       'Using a strong ability locks it for a number of turns (shown on the button). Basic attacks usually have no cooldown — lean on them while your big abilities recharge.',
       'Сильная способность после использования уходит в откат на несколько ходов (показано на кнопке). У базовых ударов обычно нет отката — используйте их, пока перезаряжаются мощные способности.'
     )},
+    {h:M('Combos','Комбо'),t:M(
+      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Torvin's Oath of Protection marks the protected ally — their next hit lands with extra force. Watch for the combo status icons.",
+      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Клятва защиты Торвина отмечает защищённого союзника — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
+    )},
     {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
       'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
       'У каждого героя есть слоты оружия, брони и аксессуара, а также реликвия с пассивным эффектом. Более редкое снаряжение выпадает за сложные бои. «Строй и снаряжение» на экране карты позволяет переэкипироваться и менять ряды в любой момент.'
@@ -2867,20 +2942,28 @@ function openCreateHeroModal(){
   wrap.appendChild(tplWrap);
 
   wrap.appendChild(el('div','eyebrow',M('Color','Цвет')));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:11px;'>"+M('Locked colors are visual rewards — earn the matching achievement to unlock them.','Заблокированные цвета — визуальные награды, откройте соответствующий трофей.')+"</span>"));
   const colorWrap=el('div','row');
-  colorWrap.style.cssText='gap:8px;';
-  const COLOR_SWATCHES=['#c98a3b','#5f93ae','#8fb08a','#a56bc9','#d9683f','#b0995a','#d94f6a','#4fb0d9','#e0c341','#6a6aa0'];
+  colorWrap.style.cssText='gap:8px;flex-wrap:wrap;margin-top:6px;';
   let selectedColor=null;
   const swatchEls={};
-  COLOR_SWATCHES.forEach(function(c){
-    const sw=el('div','',null);
-    sw.style.cssText='width:26px;height:26px;border-radius:50%;cursor:pointer;background:'+c+';border:2px solid transparent;';
-    sw.addEventListener('click',function(){
-      selectedColor=c;
-      Object.keys(swatchEls).forEach(function(k){swatchEls[k].style.borderColor=(k===c)?'var(--text)':'transparent';});
+  CUSTOM_COLOR_SWATCHES.forEach(function(sw){
+    const unlocked=colorSwatchUnlocked(sw);
+    const el2=el('div','',unlocked?null:'&#128274;');
+    el2.style.cssText='width:26px;height:26px;border-radius:50%;cursor:'+(unlocked?'pointer':'not-allowed')+';background:'+sw.c+';border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:11px;'+(unlocked?'':'opacity:0.35;');
+    if(!unlocked){
+      const ach=ACHIEVEMENTS.find(function(a){return a.id===sw.unlock;});
+      el2.title=(sw.name?L(sw.name)+' — ':'')+M('unlocks with achievement: ','открывается трофеем: ')+(ach?L(ach.name):sw.unlock);
+    } else if(sw.name){
+      el2.title=L(sw.name);
+    }
+    el2.addEventListener('click',function(){
+      if(!unlocked)return;
+      selectedColor=sw.c;
+      Object.keys(swatchEls).forEach(function(k){swatchEls[k].style.borderColor=(k===sw.c)?'var(--text)':'transparent';});
     });
-    swatchEls[c]=sw;
-    colorWrap.appendChild(sw);
+    swatchEls[sw.c]=el2;
+    colorWrap.appendChild(el2);
   });
   wrap.appendChild(colorWrap);
 
