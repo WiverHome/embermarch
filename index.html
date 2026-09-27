@@ -88,9 +88,15 @@ button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep
 button.primary:hover:not(:disabled){background:linear-gradient(135deg,var(--accent),var(--accent-deep));filter:brightness(1.08);transform:translateY(-1px);}
 :root[data-theme="light"] button.primary{color:#fff6e9;}
 button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
-#app{max-width:860px;margin:0 auto;padding-block:20px 40px;zoom:calc(1.18 * var(--text-scale,1));}
+#app{max-width:860px;margin:0 auto;padding:52px 16px 40px;box-sizing:border-box;zoom:calc(1.18 * var(--text-scale,1));}
 #modal-root{zoom:calc(1.18 * var(--text-scale,1));}
-@media (max-width:720px){#app,#modal-root{zoom:calc(1.05 * var(--text-scale,1));}}
+@media (max-width:720px){
+  #app{padding:56px 14px 32px;zoom:calc(1 * var(--text-scale,1));}
+  #modal-root{zoom:calc(1 * var(--text-scale,1));}
+  .title-actions{max-width:100%!important;}
+  .title-foot{font-size:12px;padding:10px 14px;gap:10px 14px;}
+  section h2{word-break:break-word;}
+}
 [hidden]{display:none!important;}
 html.no-anim *,html.no-anim *::before,html.no-anim *::after{transition:none!important;animation:none!important;}
 .settings-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
