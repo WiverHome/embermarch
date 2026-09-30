@@ -368,6 +368,7 @@ html.no-anim .float-text{display:none;}
 .gameover-banner.lose{color:var(--danger);}
 
 .upgrade-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.legacy-subsection{border-top:1px solid var(--border);padding-top:12px;margin-top:4px;}
 .upgrade-row:last-child{border-bottom:none;}
 .stack-dots{display:flex;gap:4px;}
 .stack-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
@@ -496,32 +497,39 @@ html.no-anim .float-text{display:none;}
       <div id="leg-recruits"></div>
     </div>
     <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-ascension-h3" style="font-size:15px;"></h3>
-      <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
-      <div class="asc-row" id="leg-ascension"></div>
-      <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-biome-h3" style="font-size:15px;"></h3>
-      <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
-      <div class="biome-row" id="leg-biome"></div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-modifiers-h3" style="font-size:15px;"></h3>
-      <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
-      <div class="mod-row" id="leg-modifiers"></div>
+      <h3 id="legacy-march-h3" style="font-size:15px;"></h3>
+      <div>
+        <h4 id="legacy-ascension-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
+        <div class="asc-row" id="leg-ascension"></div>
+        <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+      </div>
+      <div class="legacy-subsection">
+        <h4 id="legacy-biome-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
+        <div class="biome-row" id="leg-biome"></div>
+      </div>
+      <div class="legacy-subsection">
+        <h4 id="legacy-modifiers-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
+        <div class="mod-row" id="leg-modifiers"></div>
+      </div>
     </div>
     <div class="card stack" style="margin-top:14px;">
       <h3 id="legacy-stats-h3" style="font-size:15px;"></h3>
       <div id="leg-stats"></div>
+      <div class="legacy-subsection">
+        <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="stack" id="leg-history"></div>
+      </div>
     </div>
     <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-history-h3" style="font-size:15px;"></h3>
-      <div class="stack" id="leg-history"></div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-achievements-h3" style="font-size:15px;"></h3>
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;"></h3>
+        <span id="leg-achievements-summary" style="font-size:12px;color:var(--muted);"></span>
+      </div>
       <div id="leg-achievements"></div>
+      <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
     </div>
     <div class="card stack" style="margin-top:14px;">
       <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
@@ -537,18 +545,18 @@ html.no-anim .float-text{display:none;}
         <span id="settings-textsize-label"></span>
         <div class="seg-btns" id="text-size-btns"></div>
       </div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-save-h3" style="font-size:15px;"></h3>
-      <div class="row">
-        <button id="btn-export-save"></button>
-        <button id="btn-import-save"></button>
+      <div class="legacy-subsection">
+        <h4 id="legacy-save-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+        <div class="row">
+          <button id="btn-export-save"></button>
+          <button id="btn-import-save"></button>
+        </div>
       </div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-account-h3" style="font-size:15px;"></h3>
-      <div id="legacy-account-user" style="font-size:13px;color:var(--muted);"></div>
-      <div class="row"><button id="btn-logout"></button></div>
+      <div class="legacy-subsection">
+        <h4 id="legacy-account-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+        <div id="legacy-account-user" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
+        <div class="row"><button id="btn-logout"></button></div>
+      </div>
     </div>
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
   </section>
@@ -891,7 +899,8 @@ const STATIC_I18N = {
   'legacy-embers-label':{en:'Embers banked',ru:'Накоплено угольков'},
   'legacy-upgrades-h3':{en:'Permanent Upgrades',ru:'Постоянные улучшения'},
   'legacy-recruits-h3':{en:'Recruits',ru:'Наёмники'},
-  'legacy-ascension-h3':{en:'March Ascension',ru:'Сложность похода'},
+  'legacy-march-h3':{en:'March Setup',ru:'Настройка похода'},
+  'legacy-ascension-h3':{en:'Ascension',ru:'Сложность'},
   'legacy-stats-h3':{en:'Statistics',ru:'Статистика'},
   'legacy-history-h3':{en:'Recent Marches',ru:'Недавние походы'},
   'legacy-achievements-h3':{en:'Achievements',ru:'Достижения'},
@@ -3970,6 +3979,11 @@ function renderTitle(){
   show('screen-title');
 }
 
+/* Achievements list can get long once most are unlocked; collapsed by default
+   to just the unlocked ones + a summary count, with a button to reveal the
+   locked ones too. Not persisted — resets to collapsed each visit, which is
+   fine since it's a display preference, not progress. */
+let achievementsExpanded=false;
 function renderLegacy(){
   $('leg-embers').textContent=META.embers;
   const acctEl=$('legacy-account-user');
@@ -4102,7 +4116,14 @@ function renderLegacy(){
   const achBox=$('leg-achievements');
   if(achBox){
     achBox.innerHTML='';
-    ACHIEVEMENTS.forEach(function(a){
+    const unlockedCount=ACHIEVEMENTS.filter(function(a){return META.achievements&&META.achievements[a.id];}).length;
+    const summary=$('leg-achievements-summary');
+    if(summary)summary.textContent=unlockedCount+' / '+ACHIEVEMENTS.length;
+    const visible=achievementsExpanded?ACHIEVEMENTS:ACHIEVEMENTS.filter(function(a){return !!(META.achievements&&META.achievements[a.id]);});
+    if(!visible.length){
+      achBox.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('No achievements unlocked yet.','Пока нет открытых достижений.')+"</span>"));
+    }
+    visible.forEach(function(a){
       const unlocked=!!(META.achievements&&META.achievements[a.id]);
       const isNew=unlocked&&!(META.seenAchievements||[]).includes(a.id);
       const row=el('div','ach-row'+(unlocked?'':' locked'));
@@ -4112,6 +4133,17 @@ function renderLegacy(){
       row.appendChild(info);
       achBox.appendChild(row);
     });
+    const toggleBtn=$('btn-toggle-achievements');
+    if(toggleBtn){
+      const lockedCount=ACHIEVEMENTS.length-unlockedCount;
+      if(lockedCount<=0){
+        toggleBtn.hidden=true;
+      }else{
+        toggleBtn.hidden=false;
+        toggleBtn.textContent=achievementsExpanded?M('Show unlocked only','Показать только открытые'):M('Show '+lockedCount+' locked','Показать заблокированные ('+lockedCount+')');
+        toggleBtn.onclick=function(){achievementsExpanded=!achievementsExpanded;renderLegacy();};
+      }
+    }
     const newHeroes=Object.keys(META.heroesUnlocked).filter(function(k){return META.heroesUnlocked[k];});
     const newAch=ACHIEVEMENTS.filter(function(a){return META.achievements&&META.achievements[a.id];}).map(function(a){return a.id;});
     let sawSomethingNew=newHeroes.some(function(k){return !(META.seenHeroes||[]).includes(k);})||newAch.some(function(k){return !(META.seenAchievements||[]).includes(k);});
@@ -4162,6 +4194,10 @@ function showRulesModal(){
     {h:M('Combos','Комбо'),t:M(
       "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Ashra's Ember Flick leaves a foe \"scorched\" for Sael's ranged attacks to punish in turn. Bram's Cleave leaves every foe it hits \"staggered\" for Doran's Claw Strike to punish. Kest's Backstab or Assassinate leaves a foe \"bleeding\" for Morwen's Withering Touch or Soul Siphon to punish and drain extra HP from. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
       'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Всплеск огня Ашры оставляет врага «обожжённым» — дальние атаки Саэль этим пользуются. Рассечение Брама оставляет всех задетых врагов «сбитыми с ног» — Удар когтем Дорана этим пользуется. Удар в спину или Убийство Кеста оставляет врага «кровоточащим» — Иссушающее касание или Похищение душ Морвены этим пользуется и лечит её сильнее. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
+    )},
+    {h:M('Damage Types','Типы урона'),t:M(
+      'Physical classes (Warrior, Beastmaster, Ranger, Rogue, Paladin) deal damage from Strength (STR); magic classes (Pyromancer, Necromancer, Cleric) deal damage from Intellect (INT) — each hero only grows the one they use. Magic Defense (MDEF) protects against magic attacks, separate from ordinary Defense (DEF) which protects against physical ones — casters usually run light on DEF and build up MDEF instead, mainly through their own gear. A small badge on an enemy\'s portrait in battle (⚔ or ✦) shows which type of damage they\'re weaker against.',
+      'Физические классы (Воин, Зверолов, Лучник, Разбойник, Паладин) наносят урон Силой (СИЛ); магические (Пиромант, Некромант, Жрица) — Интеллектом (ИНТ), и каждый герой качает только свою характеристику. Магическая защита (МЗАЩ) защищает от магических атак отдельно от обычной Защиты (ЗАЩ), которая защищает от физических — у магов обычно мало ЗАЩ, а МЗАЩ они набирают в основном за счёт своего снаряжения. Маленький значок на портрете врага в бою (⚔ или ✦) показывает, к какому типу урона он слабее.'
     )},
     {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
       'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
