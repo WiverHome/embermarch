@@ -448,6 +448,10 @@ html.no-anim .float-text{display:none;}
     <div class="eyebrow" id="title-eyebrow" style="margin-bottom:10px;"></div>
     <h1>EMBERMARCH</h1>
     <div class="tagline" id="title-tagline"></div>
+    <div class="title-foot" id="title-account-bar" style="margin:4px 0 10px;" hidden>
+      <span id="title-account-user"></span>
+      <button id="btn-title-logout" style="margin-left:10px;font-size:11px;padding:3px 10px;"></button>
+    </div>
     <div class="title-actions">
       <button class="primary" id="btn-continue" hidden></button>
       <button class="primary" id="btn-new-run"></button>
@@ -744,6 +748,61 @@ function setSyncStatus(ok){
 
 function authSetError(msg){const e=$('auth-error');if(e)e.textContent=msg||'';}
 
+/* ---- session persistence: only the auth TOKEN is remembered across reloads,
+   never game progress (that always comes fresh from GET /api/progress). ---- */
+const AUTH_STORAGE_KEY='embermarch_auth_token';
+function persistAuthToken(token){
+  try{
+    if(token)localStorage.setItem(AUTH_STORAGE_KEY,token);
+    else localStorage.removeItem(AUTH_STORAGE_KEY);
+  }catch(e){/* storage unavailable — session just won't survive a reload */}
+}
+function decodeJwtUsername(token){
+  try{
+    const parts=token.split('.');
+    if(parts.length<2)return null;
+    let b64=parts[1].replace(/-/g,'+').replace(/_/g,'/');
+    while(b64.length%4)b64+='=';
+    const json=JSON.parse(decodeURIComponent(atob(b64).split('').map(function(c){
+      return '%'+('00'+c.charCodeAt(0).toString(16)).slice(-2);
+    }).join('')));
+    return json.username||null;
+  }catch(e){return null;}
+}
+function applyProgressToMeta(progress){
+  META=Object.assign(defaultMeta(),progress,{
+    upgrades:Object.assign(defaultMeta().upgrades,progress.upgrades),
+    heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,progress.heroesUnlocked),
+    customHeroes:progress.customHeroes||[],
+    achievements:progress.achievements||{},
+    history:progress.history||[],
+    theme:progress.theme==='light'?'light':'dark',
+    settings:Object.assign(defaultMeta().settings,progress.settings),
+    biomeChoice:(progress.biomeChoice==='frost')?'frost':'ashfall',
+    modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers)
+  });
+}
+function attemptSessionRestore(){
+  let stored=null;
+  try{stored=localStorage.getItem(AUTH_STORAGE_KEY);}catch(e){}
+  if(!stored){renderAuthScreen();return;}
+  AUTH_TOKEN=stored;
+  CURRENT_USER=decodeJwtUsername(stored);
+  apiGetProgress().then(function(progress){
+    applyProgressToMeta(progress);
+    applyTheme();applySettings();
+    setSyncStatus(true);
+    renderTitle();
+  }).catch(function(err){
+    AUTH_TOKEN=null;CURRENT_USER=null;
+    persistAuthToken(null);
+    renderAuthScreen();
+    if(err&&err.status===401){
+      authSetError(M('Your session expired — please log in again.','Сессия истекла — войдите снова.'));
+    }
+  });
+}
+
 function renderAuthScreen(){
   $('auth-label-username').textContent=L(STATIC_I18N['auth-label-username']);
   $('auth-label-password').textContent=L(STATIC_I18N['auth-label-password']);
@@ -776,19 +835,10 @@ function onAuthSubmit(e){
   action.then(function(res){
     AUTH_TOKEN=res.token;
     CURRENT_USER=res.username||username;
+    persistAuthToken(AUTH_TOKEN);
     return apiGetProgress();
   }).then(function(progress){
-    META=Object.assign(defaultMeta(),progress,{
-      upgrades:Object.assign(defaultMeta().upgrades,progress.upgrades),
-      heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,progress.heroesUnlocked),
-      customHeroes:progress.customHeroes||[],
-      achievements:progress.achievements||{},
-      history:progress.history||[],
-      theme:progress.theme==='light'?'light':'dark',
-      settings:Object.assign(defaultMeta().settings,progress.settings),
-      biomeChoice:(progress.biomeChoice==='frost')?'frost':'ashfall',
-      modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers)
-    });
+    applyProgressToMeta(progress);
     submitBtn.disabled=false;
     applyTheme();applySettings();
     setSyncStatus(true);
@@ -813,6 +863,7 @@ function doLogout(){
   flushMetaSync().then(function(){
     apiLogoutRequest();
     AUTH_TOKEN=null;CURRENT_USER=null;
+    persistAuthToken(null);
     META=defaultMeta();
     clearRun();
     AUTH_MODE='login';
@@ -840,6 +891,7 @@ const STATIC_I18N = {
   'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
   'legacy-account-h3':{en:'Account',ru:'Аккаунт'},
   'btn-logout':{en:'Log Out',ru:'Выйти из аккаунта'},
+  'btn-title-logout':{en:'Log Out',ru:'Выйти'},
   'auth-eyebrow':{en:'A COMPANY OF THE LAST ROAD',ru:'ОТРЯД ПОСЛЕДНЕЙ ДОРОГИ'},
   'auth-label-username':{en:'Username',ru:'Имя пользователя'},
   'auth-label-password':{en:'Password',ru:'Пароль'},
@@ -3534,6 +3586,11 @@ function renderTitle(){
   if(dailyInfo)dailyInfo.innerHTML=M('A fixed map, the same for everyone today. Ascension 0, +10 embers on a win.','Одинаковая карта для всех сегодня. Сложность 0, +10 угольков за победу.');
   const reminder=$('title-save-reminder');
   if(reminder)reminder.hidden=true; // progress now lives on the server, not the browser
+  const acctBar=$('title-account-bar');
+  if(acctBar){
+    acctBar.hidden=!CURRENT_USER;
+    if(CURRENT_USER)$('title-account-user').textContent=M('Logged in as ','Вы вошли как ')+CURRENT_USER;
+  }
   renderLangSwitch();
   show('screen-title');
 }
@@ -4166,11 +4223,12 @@ function spawnEmberParticles(){
 $('auth-form').addEventListener('submit',onAuthSubmit);
 $('auth-toggle-link').addEventListener('click',onAuthToggle);
 $('btn-logout').addEventListener('click',doLogout);
+$('btn-title-logout').addEventListener('click',doLogout);
 
 applyStaticI18n();
 applyTheme();
 applySettings();
-renderAuthScreen();
+attemptSessionRestore();
 spawnEmberParticles();
 })();
 </script>
