@@ -1,0 +1,22 @@
+[Unit]
+Description=Embermarch accounts + save-progress server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/embermarch-server
+ExecStart=/usr/bin/node /opt/embermarch-server/server.js
+Restart=on-failure
+RestartSec=3
+EnvironmentFile=/opt/embermarch-server/.env
+
+# Basic hardening (safe defaults for a small self-contained Node service)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/embermarch-server/data
+
+[Install]
+WantedBy=multi-user.target

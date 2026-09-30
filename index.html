@@ -163,6 +163,17 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .lang-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
 
 /* ---- title ---- */
+#screen-auth{text-align:center;padding-top:6vh;position:relative;}
+#screen-auth::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:640px;height:420px;max-width:90vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 70%);pointer-events:none;z-index:-1;}
+#screen-auth h1{font-size:clamp(30px,8vw,44px);font-weight:600;letter-spacing:.03em;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 40%,#fff) 0%,var(--gold) 45%,var(--accent-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.auth-box{max-width:340px;margin:18px auto 0;text-align:left;}
+.auth-field{margin-bottom:12px;}
+.auth-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.auth-field input{width:100%;box-sizing:border-box;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:14px;font-family:inherit;}
+.auth-field input:focus{outline:1px solid var(--accent);}
+.auth-error{color:var(--danger);font-size:12px;min-height:16px;margin-top:6px;}
+.auth-toggle{margin-top:14px;font-size:13px;color:var(--muted);}
+.auth-toggle a{color:var(--accent);cursor:pointer;text-decoration:underline;}
 #screen-title{text-align:center;padding-top:4vh;position:relative;}
 #screen-title::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:640px;height:420px;max-width:90vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 70%);pointer-events:none;z-index:-1;}
 #screen-title h1{font-size:clamp(38px,10vw,58px);font-weight:600;letter-spacing:.03em;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 40%,#fff) 0%,var(--gold) 45%,var(--accent-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -388,6 +399,8 @@ html.no-anim .float-text{display:none;}
 
 <div id="ember-particles" aria-hidden="true"></div>
 
+<div id="sync-status" hidden style="position:fixed;bottom:10px;right:10px;z-index:9999;background:var(--surface2);border:1px solid var(--danger);color:var(--danger);font-size:12px;padding:6px 10px;border-radius:8px;max-width:280px;"></div>
+
 <div id="app">
 
   <div id="topbar" hidden>
@@ -401,7 +414,33 @@ html.no-anim .float-text{display:none;}
     </div>
   </div>
 
-  <section id="screen-title">
+  <section id="screen-auth">
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="ru">Русский</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+    <div class="eyebrow" id="auth-eyebrow" style="margin-bottom:10px;"></div>
+    <h1>EMBERMARCH</h1>
+    <div class="auth-box">
+      <form id="auth-form" autocomplete="on">
+        <div class="auth-field">
+          <label id="auth-label-username" for="auth-username"></label>
+          <input id="auth-username" name="username" type="text" autocomplete="username" maxlength="32" required>
+        </div>
+        <div class="auth-field">
+          <label id="auth-label-password" for="auth-password"></label>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" maxlength="72" required>
+        </div>
+        <div class="auth-error" id="auth-error"></div>
+        <button class="primary" type="submit" id="btn-auth-submit" style="width:100%;"></button>
+      </form>
+      <div class="auth-toggle" id="auth-toggle-wrap">
+        <span id="auth-toggle-text"></span> <a id="auth-toggle-link"></a>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-title" hidden>
     <div class="lang-switch">
       <button class="lang-btn" data-lang="ru">Русский</button>
       <button class="lang-btn" data-lang="en">English</button>
@@ -496,6 +535,11 @@ html.no-anim .float-text{display:none;}
         <button id="btn-export-save"></button>
         <button id="btn-import-save"></button>
       </div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-account-h3" style="font-size:15px;"></h3>
+      <div id="legacy-account-user" style="font-size:13px;color:var(--muted);"></div>
+      <div class="row"><button id="btn-logout"></button></div>
     </div>
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
   </section>
@@ -626,6 +670,156 @@ function L(field){
 }
 function M(en,ru){return LANG==='ru'?ru:en;}
 
+/* ============================= ACCOUNTS / SERVER API ============================= */
+/* Base URL of the accounts+progress backend (see /server for the Node.js service and DEPLOY.md).
+   Change this if you deploy the backend somewhere else. */
+const API_BASE='https://embermarch.lapochka.online/api';
+
+let AUTH_TOKEN=null;      // in-memory only — never written to localStorage
+let CURRENT_USER=null;    // in-memory username of the logged-in player
+let AUTH_MODE='login';    // 'login' | 'register', which form the auth screen shows
+let _syncTimer=null;
+let _syncInFlight=false;
+let _syncDirtyWhileInFlight=false;
+
+function apiUrl(path){return API_BASE+path;}
+
+function apiRequest(path,opts){
+  opts=opts||{};
+  const headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
+  if(AUTH_TOKEN)headers['Authorization']='Bearer '+AUTH_TOKEN;
+  return fetch(apiUrl(path),Object.assign({},opts,{headers:headers}))
+    .then(function(res){
+      return res.json().catch(function(){return {};}).then(function(body){
+        if(!res.ok){const e=new Error((body&&body.error)||('HTTP '+res.status));e.status=res.status;e.body=body;throw e;}
+        return body;
+      });
+    });
+}
+
+function apiRegister(username,password){
+  return apiRequest('/register',{method:'POST',body:JSON.stringify({username:username,password:password})});
+}
+function apiLogin(username,password){
+  return apiRequest('/login',{method:'POST',body:JSON.stringify({username:username,password:password})});
+}
+function apiLogoutRequest(){
+  return apiRequest('/logout',{method:'POST'}).catch(function(){});
+}
+function apiGetProgress(){
+  return apiRequest('/progress',{method:'GET'});
+}
+function apiPutProgress(data){
+  return apiRequest('/progress',{method:'PUT',body:JSON.stringify(data)});
+}
+
+/* Debounced sync of META to the server. Called from saveMeta() everywhere the game
+   already persisted progress — coalesced so we don't hit the API on every render. */
+function scheduleMetaSync(){
+  if(!AUTH_TOKEN)return;
+  if(_syncTimer)clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(function(){_syncTimer=null;flushMetaSync();},1500);
+}
+function flushMetaSync(){
+  if(!AUTH_TOKEN)return Promise.resolve();
+  if(_syncInFlight){_syncDirtyWhileInFlight=true;return Promise.resolve();}
+  _syncInFlight=true;
+  const snapshot=JSON.stringify(META);
+  return apiPutProgress(META).then(function(){
+    _syncInFlight=false;
+    setSyncStatus(true);
+    if(_syncDirtyWhileInFlight){_syncDirtyWhileInFlight=false;scheduleMetaSync();}
+  }).catch(function(e){
+    _syncInFlight=false;
+    setSyncStatus(false);
+    console.warn('Embermarch: progress sync failed',e);
+  });
+}
+function setSyncStatus(ok){
+  const badge=$('sync-status');
+  if(!badge)return;
+  if(ok){badge.hidden=true;badge.textContent='';}
+  else{badge.hidden=false;badge.textContent=M('⚠ Progress not saved — check your connection','⚠ Прогресс не сохранён — проверьте соединение');}
+}
+
+function authSetError(msg){const e=$('auth-error');if(e)e.textContent=msg||'';}
+
+function renderAuthScreen(){
+  $('auth-label-username').textContent=L(STATIC_I18N['auth-label-username']);
+  $('auth-label-password').textContent=L(STATIC_I18N['auth-label-password']);
+  $('btn-auth-submit').textContent=AUTH_MODE==='login'?M('Log In','Войти'):M('Register','Зарегистрироваться');
+  $('auth-toggle-text').textContent=AUTH_MODE==='login'?M("Don't have an account yet?",'Ещё нет аккаунта?'):M('Already have an account?','Уже есть аккаунт?');
+  $('auth-toggle-link').textContent=AUTH_MODE==='login'?M('Register','Зарегистрироваться'):M('Log In','Войти');
+  $('auth-password').autocomplete=AUTH_MODE==='login'?'current-password':'new-password';
+  authSetError('');
+  renderLangSwitch();
+  show('screen-auth');
+}
+
+function onAuthToggle(){
+  AUTH_MODE=(AUTH_MODE==='login')?'register':'login';
+  renderAuthScreen();
+}
+
+function onAuthSubmit(e){
+  e.preventDefault();
+  const username=($('auth-username').value||'').trim();
+  const password=$('auth-password').value||'';
+  authSetError('');
+  if(!username||!password){
+    authSetError(M('Please fill in both fields.','Заполните оба поля.'));
+    return;
+  }
+  const submitBtn=$('btn-auth-submit');
+  submitBtn.disabled=true;
+  const action=AUTH_MODE==='login'?apiLogin(username,password):apiRegister(username,password);
+  action.then(function(res){
+    AUTH_TOKEN=res.token;
+    CURRENT_USER=res.username||username;
+    return apiGetProgress();
+  }).then(function(progress){
+    META=Object.assign(defaultMeta(),progress,{
+      upgrades:Object.assign(defaultMeta().upgrades,progress.upgrades),
+      heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,progress.heroesUnlocked),
+      customHeroes:progress.customHeroes||[],
+      achievements:progress.achievements||{},
+      history:progress.history||[],
+      theme:progress.theme==='light'?'light':'dark',
+      settings:Object.assign(defaultMeta().settings,progress.settings),
+      biomeChoice:(progress.biomeChoice==='frost')?'frost':'ashfall',
+      modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers)
+    });
+    submitBtn.disabled=false;
+    applyTheme();applySettings();
+    setSyncStatus(true);
+    renderTitle();
+  }).catch(function(err){
+    submitBtn.disabled=false;
+    if(!err||err.status===undefined){
+      authSetError(M('Could not reach the server. This game requires a network connection to '+API_BASE+' — that may be blocked in this environment (e.g. a sandboxed preview). Try the GitHub Pages version instead.','Не удалось связаться с сервером. Игре нужен доступ к '+API_BASE+' — возможно, он заблокирован в этом окружении (например, в песочнице предпросмотра). Попробуйте версию на GitHub Pages.'));
+    }else if(err&&err.status===401){
+      authSetError(M('Incorrect username or password.','Неверное имя пользователя или пароль.'));
+    }else if(err&&err.status===409){
+      authSetError(M('That username is already taken.','Это имя пользователя уже занято.'));
+    }else if(err&&err.status===429){
+      authSetError(M('Too many attempts. Please wait a moment and try again.','Слишком много попыток. Подождите немного и попробуйте снова.'));
+    }else{
+      authSetError(M('Network error — could not reach the server. Check your connection and try again.','Ошибка сети — не удалось связаться с сервером. Проверьте соединение и попробуйте снова.'));
+    }
+  });
+}
+
+function doLogout(){
+  flushMetaSync().then(function(){
+    apiLogoutRequest();
+    AUTH_TOKEN=null;CURRENT_USER=null;
+    META=defaultMeta();
+    clearRun();
+    AUTH_MODE='login';
+    renderAuthScreen();
+  });
+}
+
 const STATIC_I18N = {
   'title-eyebrow':{en:'A COMPANY OF THE LAST ROAD',ru:'ОТРЯД ПОСЛЕДНЕЙ ДОРОГИ'},
   'title-tagline':{en:'Lead a mercenary company through the burnt marches.<br>Every crossing is different. Not every company returns.',
@@ -644,6 +838,11 @@ const STATIC_I18N = {
   'legacy-achievements-h3':{en:'Achievements',ru:'Достижения'},
   'legacy-settings-h3':{en:'Settings',ru:'Настройки'},
   'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
+  'legacy-account-h3':{en:'Account',ru:'Аккаунт'},
+  'btn-logout':{en:'Log Out',ru:'Выйти из аккаунта'},
+  'auth-eyebrow':{en:'A COMPANY OF THE LAST ROAD',ru:'ОТРЯД ПОСЛЕДНЕЙ ДОРОГИ'},
+  'auth-label-username':{en:'Username',ru:'Имя пользователя'},
+  'auth-label-password':{en:'Password',ru:'Пароль'},
   'btn-daily':{en:'Daily Challenge',ru:'Испытание дня'},
   'btn-open-rules':{en:'How to Play',ru:'Правила игры'},
   'btn-save-reminder-export':{en:'Export code now',ru:'Экспортировать код'},
@@ -709,7 +908,7 @@ function setLang(l){
   if(l===LANG)return;
   LANG=l;saveLang();
   applyStaticI18n();renderLangSwitch();
-  renderTitle();
+  if(!AUTH_TOKEN)renderAuthScreen();else renderTitle();
 }
 
 /* ============================= DATA ============================= */
@@ -1467,7 +1666,7 @@ function defaultMeta(){
     biomeChoice:'ashfall',modifiers:{eliteVanguard:false,earlyStorm:false,brokenWard:false},
     dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0};
 }
-let META = loadMeta();
+let META = defaultMeta(); // populated from the server after login — see onAuthSubmit()
 function loadMeta(){
   try{const raw=localStorage.getItem(META_KEY);if(!raw)return defaultMeta();
     const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark',
@@ -1492,7 +1691,7 @@ function toggleTheme(){
 }
 const ICON_SUN='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>';
 const ICON_MOON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 119.5 4a6.5 6.5 0 0010.5 10.5z"/></svg>';
-function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(META));}catch(e){} }
+function saveMeta(){scheduleMetaSync();}
 function saveRun(){try{localStorage.setItem(RUN_KEY,JSON.stringify(RUN));}catch(e){} }
 function clearRun(){try{localStorage.removeItem(RUN_KEY);}catch(e){} }
 function loadRun(){try{const raw=localStorage.getItem(RUN_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;} }
@@ -1710,9 +1909,9 @@ function rarityLabel(r){
 }
 function rowLabel(row){return row==='front'?M('front','перед'):M('back','тыл');}
 function show(screenId){
-  ['screen-title','screen-legacy','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
+  ['screen-auth','screen-title','screen-legacy','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
     .forEach(function(id){$(id).hidden=(id!==screenId);});
-  $('topbar').hidden=(screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
+  $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
   if(screenId==='screen-map'||screenId==='screen-combat'){
     $(screenId).classList.toggle('biome-frost', !!(RUN&&RUN.biome==='frost'));
   }
@@ -3334,19 +3533,15 @@ function renderTitle(){
   const dailyInfo=$('title-daily-info');
   if(dailyInfo)dailyInfo.innerHTML=M('A fixed map, the same for everyone today. Ascension 0, +10 embers on a win.','Одинаковая карта для всех сегодня. Сложность 0, +10 угольков за победу.');
   const reminder=$('title-save-reminder');
-  if(reminder){
-    const shouldShow = META.embers>0 && (META.lastExportNudgeEmbers===undefined || META.embers-(META.lastExportNudgeEmbers||0)>=40);
-    reminder.hidden=!shouldShow;
-    if(shouldShow){
-      $('title-save-reminder-text').textContent=M('Your progress only lives in this browser. Export a save code so you never lose it.','Ваш прогресс хранится только в этом браузере. Экспортируйте код сохранения, чтобы не потерять его.');
-    }
-  }
+  if(reminder)reminder.hidden=true; // progress now lives on the server, not the browser
   renderLangSwitch();
   show('screen-title');
 }
 
 function renderLegacy(){
   $('leg-embers').textContent=META.embers;
+  const acctEl=$('legacy-account-user');
+  if(acctEl)acctEl.textContent=CURRENT_USER?M('Logged in as ','Вы вошли как ')+CURRENT_USER:'';
   const up=$('leg-upgrades');up.innerHTML='';
   function reqMet(def){
     if(def.requires)return (META.upgrades[def.requires.key]||0)>=def.requires.rank;
@@ -3968,10 +4163,14 @@ function spawnEmberParticles(){
     host.appendChild(s);
   }
 }
+$('auth-form').addEventListener('submit',onAuthSubmit);
+$('auth-toggle-link').addEventListener('click',onAuthToggle);
+$('btn-logout').addEventListener('click',doLogout);
+
 applyStaticI18n();
 applyTheme();
 applySettings();
-renderTitle();
+renderAuthScreen();
 spawnEmberParticles();
 })();
 </script>
