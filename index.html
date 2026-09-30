@@ -252,6 +252,9 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .unit-avatar{width:36px;height:36px;border-radius:8px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:16px;color:#12141a;font-weight:700;position:relative;}
 .intent-badge{position:absolute;bottom:-4px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text);font-family:inherit;font-weight:400;}
 .unit-card.intent-target{box-shadow:0 0 0 2px var(--gold);}
+.res-badge{position:absolute;top:-4px;left:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:inherit;font-weight:400;}
+.res-badge.weak-phys{color:var(--accent);border-color:var(--accent);}
+.res-badge.weak-magic{color:var(--accent2);border-color:var(--accent2);}
 .unit-name{font-size:11.5px;font-weight:600;line-height:1.25;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em;}
 .unit-class{font-size:9.5px;color:var(--accent2);margin-top:1px;}
 .unit-row-tag{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
@@ -1384,7 +1387,7 @@ const RELIC_POOL = [
     passiveDesc:{en:'Heals the wearer for 15% of damage they deal',ru:'Лечит владельца на 15% от нанесённого им урона'}},
   {id:'r2',slot:'relic',name:{en:'Thorned Bangle',ru:'Браслет с шипами'},rarity:'rare',mods:{def:1},passive:'thorns',
     passiveDesc:{en:'Reflects 20% of damage taken back at the attacker',ru:'Отражает 20% полученного урона обратно атакующему'}},
-  {id:'r2b',slot:'relic',name:{en:'Spiked Guard',ru:'Шипастый нагрудник'},rarity:'epic',mods:{def:2},passive:'thorns',
+  {id:'r2b',slot:'relic',name:{en:'Spiked Guard',ru:'Шипастый нагрудник'},rarity:'epic',mods:{def:2,mdef:1},passive:'thorns',
     passiveDesc:{en:'Reflects 20% of damage taken back at the attacker',ru:'Отражает 20% полученного урона обратно атакующему'}},
   {id:'r3',slot:'relic',name:{en:'Lucky Fang',ru:'Счастливый клык'},rarity:'rare',mods:{},passive:'crit_boost',
     passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
@@ -1392,14 +1395,14 @@ const RELIC_POOL = [
     passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
   {id:'r4',slot:'relic',name:{en:'Phoenix Down',ru:'Перо феникса'},rarity:'epic',mods:{},passive:'revive',
     passiveDesc:{en:'The first time the wearer would fall, they survive at 1 HP instead (once per march)',ru:'Когда владелец должен пасть, он впервые вместо этого выживает с 1 HP (раз за поход)'}},
-  {id:'r5',slot:'relic',name:{en:'Frostbrand Ring',ru:'Ледяное клеймо'},rarity:'epic',mods:{},passive:'chill_on_hit',
+  {id:'r5',slot:'relic',name:{en:'Frostbrand Ring',ru:'Ледяное клеймо'},rarity:'epic',mods:{mdef:2},passive:'chill_on_hit',
     passiveDesc:{en:'25% chance on hit to stun the target for 1 turn',ru:'25% шанс при ударе оглушить цель на 1 ход'}},
-  {id:'r5b',slot:'relic',name:{en:'Frostkissed Band',ru:'Морозный перстень'},rarity:'rare',mods:{spd:1},passive:'chill_on_hit',
+  {id:'r5b',slot:'relic',name:{en:'Frostkissed Band',ru:'Морозный перстень'},rarity:'rare',mods:{spd:1,mdef:1},passive:'chill_on_hit',
     passiveDesc:{en:'25% chance on hit to stun the target for 1 turn',ru:'25% шанс при ударе оглушить цель на 1 ход'}},
-  {id:'r6',slot:'relic',name:{en:'Iron Will Talisman',ru:'Талисман железной воли'},rarity:'rare',mods:{},passive:'last_stand',
-    passiveDesc:{en:'+30% DEF while below 25% HP',ru:'+30% к защите, когда HP ниже 25%'}},
-  {id:'r6b',slot:'relic',name:{en:'Ward of Endurance',ru:'Оберег стойкости'},rarity:'rare',mods:{hp:5},passive:'last_stand',
-    passiveDesc:{en:'+30% DEF while below 25% HP',ru:'+30% к защите, когда HP ниже 25%'}},
+  {id:'r6',slot:'relic',name:{en:'Iron Will Talisman',ru:'Талисман железной воли'},rarity:'rare',mods:{mdef:1},passive:'last_stand',
+    passiveDesc:{en:'+30% DEF/MDEF while below 25% HP',ru:'+30% к защите/магической защите, когда HP ниже 25%'}},
+  {id:'r6b',slot:'relic',name:{en:'Ward of Endurance',ru:'Оберег стойкости'},rarity:'rare',mods:{hp:5,mdef:1},passive:'last_stand',
+    passiveDesc:{en:'+30% DEF/MDEF while below 25% HP',ru:'+30% к защите/магической защите, когда HP ниже 25%'}},
 ];
 
 /* ---- rarity gating: early layers mostly common, epic gear only shows up
@@ -1861,6 +1864,20 @@ const EVENTS = [
         return M('A passing trader pays handsomely for it, no questions asked. +'+g+' gold.','Проезжий торговец щедро платит за неё, не задавая вопросов. +'+g+' золота.');
       }},
     ]},
+  {id:'wardstone',title:{en:'Glyph-Warded Stone',ru:'Камень с охранным знаком'},
+    text:{en:'Half-buried in the ash, a smooth stone is etched with old warding glyphs. It hums faintly against anything that feels like magic.',
+          ru:'Наполовину занесённый пеплом гладкий камень покрыт старинными охранными знаками. Он слабо гудит рядом со всем, что похоже на магию.'},
+    choices:[
+      {label:{en:'Bind it into your armor',ru:'Вплести его в доспехи'},resolve(run){
+        const h=randAlive(run.party);h.mdef=(h.mdef||0)+2;
+        return M(h.name+" works the glyphstone into their gear. It settles in, humming quietly. (+2 MDEF this march)",h.name+' вплетает камень-оберег в снаряжение. Он тихо гудит, устроившись на месте. (+2 к магической защите в этом походе)');
+      }},
+      {label:{en:'Sell the glyphstone',ru:'Продать камень-оберег'},resolve(run){
+        const g=16+Math.floor(Math.random()*14);run.gold+=g;
+        return M('A collector of old wards pays well for it, no questions asked. +'+g+' gold.','Коллекционер старинных оберегов щедро платит за него, не задавая вопросов. +'+g+' золота.');
+      }},
+      {label:{en:'Leave it — the glyphs feel like they\'re watching you',ru:'Оставить — кажется, знаки наблюдают за вами'},resolve(){return M('You leave the stone half-buried where it lay.','Вы оставляете камень там же, наполовину в пепле.');}},
+    ]},
 ];
 
 /* ============================= META (persistent) ============================= */
@@ -1870,7 +1887,7 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,caravan:0,vitality_rite:0,bulwark:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
@@ -1915,15 +1932,18 @@ const UPGRADE_DEFS = [
   {key:'whetstone',name:{en:'Whetstone Kit',ru:'Точильный набор'},desc:{en:'+1 to every hero’s primary damage stat (STR/INT) per rank',ru:'+1 к основной характеристике урона (СИЛА/ИНТ) каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'boots',name:{en:'Worn Marching Boots',ru:'Разношенные походные сапоги'},desc:{en:'+1 SPD to every hero per rank',ru:'+1 к скорости каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'aegis',name:{en:'Aegis Plates',ru:'Пластины эгиды'},desc:{en:'+1 DEF to every hero per rank',ru:'+1 к защите каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'wardsigils',name:{en:'Warded Sigils',ru:'Охранные символы'},desc:{en:'+1 MDEF to every hero per rank',ru:'+1 к магической защите каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'caravan',name:{en:'Reinforced Caravan',ru:'Усиленный караван'},desc:{en:'+20 starting gold per rank',ru:'+20 к стартовому золоту за уровень'},max:2,cost:function(r){return 18+r*10;},
     requires:{key:'packs',rank:3}},
   {key:'vitality_rite',name:{en:'Rite of Vitality',ru:'Обряд живучести'},desc:{en:'+8 max HP to every hero per rank',ru:'+8 к макс. здоровью каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
     requires:{key:'bones',rank:3}},
   {key:'bulwark',name:{en:'Rite of the Bulwark',ru:'Обряд бастиона'},desc:{en:'+4 DEF to every hero per rank',ru:'+4 к защите каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
     requires:{key:'aegis',rank:3}},
+  {key:'warding_rite',name:{en:'Rite of Warding',ru:'Обряд ограждения'},desc:{en:'+4 MDEF to every hero per rank',ru:'+4 к магической защите каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'wardsigils',rank:3}},
   {key:'vanguard',name:{en:"Vanguard's Resolve",ru:'Стойкость авангарда'},desc:{en:'Capstone: +2 to every hero’s primary damage stat (STR/INT) and +2 SPD',ru:'Вершина ветки: +2 к основной характеристике урона (СИЛА/ИНТ) и +2 к скорости каждого героя'},max:1,cost:function(){return 45;},
     requires2:[{key:'whetstone',rank:3},{key:'boots',rank:3}]},
-  {key:'legacy_ember',name:{en:"Legacy of the Last Ember",ru:'Наследие последнего уголька'},desc:{en:'Grand capstone: +2 to primary damage stat (STR/INT), +2 DEF, +2 SPD and +10 max HP to every hero',ru:'Высшая вершина: +2 к основной характеристике урона (СИЛА/ИНТ), +2 к защите, +2 к скорости и +10 к макс. здоровью каждого героя'},max:1,cost:function(){return 80;},
+  {key:'legacy_ember',name:{en:"Legacy of the Last Ember",ru:'Наследие последнего уголька'},desc:{en:'Grand capstone: +2 to primary damage stat (STR/INT), +2 DEF, +1 MDEF, +2 SPD and +10 max HP to every hero',ru:'Высшая вершина: +2 к основной характеристике урона (СИЛА/ИНТ), +2 к защите, +1 к магической защите, +2 к скорости и +10 к макс. здоровью каждого героя'},max:1,cost:function(){return 80;},
     requires2:[{key:'vanguard',rank:1},{key:'bulwark',rank:2}]},
   {key:'keen_edge',name:{en:'Keen Edge',ru:'Отточенное лезвие'},desc:{en:'+3% critical hit chance to every hero per rank',ru:'+3% к шансу крит. удара каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'deadly_precision',name:{en:'Deadly Precision',ru:'Смертельная точность'},desc:{en:'+5% critical hit chance to every hero per rank',ru:'+5% к шансу крит. удара каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
@@ -2288,7 +2308,7 @@ function makeHeroInstance(key){
     str:def.baseStr+(dmgType==='str'?powBonus:0),
     int:def.baseInt+(dmgType==='int'?powBonus:0),
     def:def.baseDef+(META.upgrades.aegis||0)+(META.upgrades.bulwark||0)*4+(legacy?2:0),
-    mdef:0,
+    mdef:(META.upgrades.wardsigils||0)+(META.upgrades.warding_rite||0)*4+(legacy?1:0),
     spd:def.baseSpd+(META.upgrades.boots||0)+(vanguard?2:0)+(legacy?2:0),
     critBonus:critBonus,critMultBonus:lethal?0.15:0,
     row:def.defaultRow,
@@ -2302,6 +2322,7 @@ function makeHeroInstance(key){
 const LEVEL_PERKS=[
   {key:'pow',name:{en:'Might',ru:'Мощь'},desc:{en:'+2 to primary damage stat (STR/INT)',ru:'+2 к основной характеристике урона (СИЛА/ИНТ)'},apply:function(h){const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;}},
   {key:'def',name:{en:'Warding',ru:'Стойкость'},desc:{en:'+2 DEF',ru:'+2 к защите'},apply:function(h){h.def+=2;}},
+  {key:'mdef',name:{en:'Arcane Warding',ru:'Магическая стойкость'},desc:{en:'+2 MDEF',ru:'+2 к магической защите'},apply:function(h){h.mdef=(h.mdef||0)+2;}},
   {key:'spd',name:{en:'Swiftness',ru:'Проворство'},desc:{en:'+1 SPD',ru:'+1 к скорости'},apply:function(h){h.spd+=1;}},
   {key:'hp',name:{en:'Vitality',ru:'Живучесть'},desc:{en:'+6 Max HP',ru:'+6 к макс. здоровью'},apply:function(h){h.maxHp+=6;h.hp+=6;}},
 ];
@@ -2542,7 +2563,7 @@ function makeEnemyInstance(defKey,li){
   const ds=enemyDefSplit(d,s);
   return {
     uid:nextUid(),
-    key:defKey,name:L(d.name),icon:d.icon,color:d.color,isHero:false,side:'enemy',
+    key:defKey,name:L(d.name),icon:d.icon,color:d.color,isHero:false,side:'enemy',res:d.res||null,
     maxHp:Math.round(d.hp*s.hp),hp:Math.round(d.hp*s.hp),
     atk:Math.round(d.atk*s.atk),def:ds.def,mdef:ds.mdef,spd:d.spd,row:d.row,elite:!!d.elite,
     abilities:d.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
@@ -2555,7 +2576,7 @@ function makeBossInstance(){
   const ds=enemyDefSplit(BOSS_DEF,s);
   return {
     uid:nextUid(),
-    key:'boss',bossKey:RUN.bossKey||'warden',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
+    key:'boss',bossKey:RUN.bossKey||'warden',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',res:BOSS_DEF.res||null,
     maxHp:Math.round(BOSS_DEF.hp*s.hp),hp:Math.round(BOSS_DEF.hp*s.hp),
     atk:Math.round(BOSS_DEF.atk*s.atk),def:ds.def,mdef:ds.mdef,spd:BOSS_DEF.spd,row:'front',boss:true,
     abilities:BOSS_DEF.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
@@ -3570,6 +3591,16 @@ function unitCard(unit,isTargetable,isAllyTargetable,intentBadge,isIntentTarget)
     const ib=el('span','intent-badge',intentIcon(intentBadge.type));
     ib.title=intentBadge.name;
     av.appendChild(ib);
+  }
+  if(!unit.isHero&&unit.res){
+    /* res:'magic' units were built with high MDEF / low DEF (magic-resistant, armor-light) —
+       so they're vulnerable to physical attacks. res:'phys' units are the reverse: hardy
+       physical armor, thin magic wards, vulnerable to magic. Shown as a small corner badge
+       so players can make an informed call without reading the bestiary. */
+    const weak=unit.res==='magic'?'phys':'magic';
+    const rb=el('span','res-badge weak-'+weak,weak==='phys'?'⚔':'✦');
+    rb.title=weak==='phys'?M('Vulnerable to physical (STR) attacks','Уязвим к физическим атакам (СИЛА)'):M('Vulnerable to magic (INT) attacks','Уязвим к магическим атакам (ИНТ)');
+    av.appendChild(rb);
   }
   card.appendChild(av);
   card.title=unit.isHero?(unit.name+' · '+unit.cls+' · '+M('Lv','Ур.')+' '+(unit.level||1)):unit.name;
