@@ -190,6 +190,7 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 }
 #topbar .partybit{display:flex;gap:8px;}
 .pb-hp{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted);}
+.pb-fallen{color:var(--danger);font-weight:600;}
 .pb-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:13px;color:#12141a;font-weight:700;}
 .pb-dot svg,.hero-avatar svg,.unit-avatar svg,.to-item svg{width:62%;height:62%;display:block;}
 .gold-badge{color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600;}
@@ -208,6 +209,7 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .map-node text.map-node-icon{font-size:15px;letter-spacing:0;pointer-events:none;}
 .map-tier-label{font-family:'Marcellus',serif;font-size:12px;letter-spacing:.08em;fill:var(--muted);text-transform:uppercase;}
 .map-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
+.map-flavor{font-size:12px;font-style:italic;color:var(--accent2);text-align:center;margin-bottom:8px;min-height:15px;}
 .map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
 .node-preview-type{font-family:'Marcellus',serif;font-size:18px;margin-bottom:4px;}
@@ -563,6 +565,7 @@ html.no-anim .float-text{display:none;}
 
   <section id="screen-map" hidden>
     <div class="map-wrap">
+      <div class="map-flavor" id="map-flavor"></div>
       <svg id="map-svg" class="map-svg" viewBox="0 0 400 100"></svg>
       <div class="map-hint" id="map-hint"></div>
       <div class="map-legend">
@@ -624,6 +627,8 @@ html.no-anim .float-text{display:none;}
     <h2 id="shop-h2" style="color:var(--gold);"></h2>
     <div class="eyebrow" style="margin:6px 0 14px;"><span id="shop-gold-label"></span> <span class="gold-badge num" id="shop-gold"></span></div>
     <div class="stack" id="shop-items"></div>
+    <div class="eyebrow" id="shop-craft-label" style="margin:16px 0 8px;"></div>
+    <div class="stack" id="shop-craft"></div>
     <div class="row" style="margin-top:14px;"><button class="primary" id="btn-leave-shop"></button></div>
   </section>
 
@@ -932,6 +937,7 @@ const STATIC_I18N = {
   'btn-skip-reward':{en:'Move On',ru:'Идти дальше'},
   'shop-h2':{en:"Peddler's Cart",ru:'Тележка торговца'},
   'shop-gold-label':{en:'Gold:',ru:'Золото:'},
+  'shop-craft-label':{en:'Forge (spend shards)',ru:'Мастерская (тратит осколки)'},
   'btn-leave-shop':{en:'Leave',ru:'Уйти'},
   'rest-h2':{en:'Ashen Camp',ru:'Пепельный привал'},
   'rest-eyebrow':{en:'One quiet hour before the road resumes',ru:'Один тихий час перед дорогой'},
@@ -1009,28 +1015,28 @@ const HERO_DEFS = {
       {id:'strike',name:{en:'Strike',ru:'Удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
       {id:'shieldwall',name:{en:'Shield Wall',ru:'Стена щитов'},cd:3,reach:'any',targets:'self',type:'buff',stat:'def',amount:6,duration:2,desc:{en:'+6 DEF, 2 turns',ru:'+6 к защите, 2 хода'}},
       {id:'cleave',name:{en:'Cleave',ru:'Рассечение'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.65,desc:{en:'All foes in nearest row',ru:'По всем врагам ближайшего ряда'}},
-      {id:'reckoning',name:{en:'Reckoning',ru:'Расплата'},cd:4,minLevel:4,reach:'melee',targets:'single',type:'damage',mult:2.1,desc:{en:'Ultimate: massive hit on nearest-row foe (Lv4)',ru:'Ульта: мощнейший удар по врагу ближайшего ряда (Ур.4)'}},
+      {id:'reckoning',name:{en:'Reckoning',ru:'Расплата'},cd:5,minLevel:7,reach:'melee',targets:'single',type:'damage',mult:2.1,desc:{en:'Ultimate: massive hit on nearest-row foe (Lv7)',ru:'Ульта: мощнейший удар по врагу ближайшего ряда (Ур.7)'}},
     ]},
   sael:{key:'sael',name:{en:'Sael',ru:'Саэль'},cls:{en:'Ranger',ru:'Лучник'},icon:'S',color:'#5f93ae',baseHp:25,baseAtk:9,baseDef:3,baseSpd:8,defaultRow:'back',cost:0,
     abilities:[
       {id:'shot',name:{en:'Quick Shot',ru:'Быстрый выстрел'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.9,desc:{en:'Any foe',ru:'По любому врагу'}},
       {id:'pin',name:{en:'Pin Down',ru:'Пригвоздить'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.3,debuff:{stat:'spd',amount:-3,duration:2},desc:{en:'Dmg + slows',ru:'Урон + замедление'}},
       {id:'volley',name:{en:'Volley',ru:'Залп'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.5,desc:{en:'All foes',ru:'По всем врагам'}},
-      {id:'deadeye',name:{en:'Deadeye Shot',ru:'Смертельный выстрел'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:2.0,desc:{en:'Ultimate: precise, devastating shot (Lv4)',ru:'Ульта: точный смертельный выстрел (Ур.4)'}},
+      {id:'deadeye',name:{en:'Deadeye Shot',ru:'Смертельный выстрел'},cd:5,minLevel:7,reach:'ranged',targets:'single',type:'damage',mult:2.0,desc:{en:'Ultimate: precise, devastating shot (Lv7)',ru:'Ульта: точный смертельный выстрел (Ур.7)'}},
     ]},
   yvana:{key:'yvana',name:{en:'Yvana',ru:'Ивана'},cls:{en:'Cleric',ru:'Жрица'},icon:'Y',color:'#8fb08a',baseHp:27,baseAtk:5,baseDef:4,baseSpd:6,defaultRow:'back',cost:0,
     abilities:[
       {id:'smite',name:{en:'Smite',ru:'Кара'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85,desc:{en:'Any foe',ru:'По любому врагу'}},
       {id:'mend',name:{en:'Mend',ru:'Исцеление'},cd:0,reach:'any',targets:'single-ally',type:'heal',mult:0.8,flat:5,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
       {id:'wave',name:{en:'Radiant Wave',ru:'Волна света'},cd:3,reach:'any',targets:'all-ally',type:'heal',mult:0.35,flat:4,desc:{en:'Heal company',ru:'Лечит весь отряд'}},
-      {id:'sanctuary',name:{en:'Sanctuary',ru:'Святилище'},cd:4,minLevel:4,reach:'any',targets:'single-ally',type:'heal',mult:1.4,flat:14,desc:{en:'Ultimate: near-full heal on one ally (Lv4)',ru:'Ульта: почти полное исцеление союзника (Ур.4)'}},
+      {id:'sanctuary',name:{en:'Sanctuary',ru:'Святилище'},cd:5,minLevel:7,reach:'any',targets:'single-ally',type:'heal',mult:1.4,flat:14,desc:{en:'Ultimate: near-full heal on one ally (Lv7)',ru:'Ульта: почти полное исцеление союзника (Ур.7)'}},
     ]},
   kest:{key:'kest',name:{en:'Kest',ru:'Кест'},cls:{en:'Rogue',ru:'Разбойник'},icon:'K',color:'#a56bc9',baseHp:26,baseAtk:10,baseDef:3,baseSpd:9,defaultRow:'back',cost:0,
     abilities:[
       {id:'quickstab',name:{en:'Quickstab',ru:'Быстрый укол'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
       {id:'backstab',name:{en:'Backstab',ru:'Удар в спину'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.5,bonusVsBack:0.5,desc:{en:'+50% vs back row',ru:'+50% урона по заднему ряду'}},
       {id:'shadowstep',name:{en:'Shadowstep',ru:'Шаг тени'},cd:3,reach:'any',targets:'self',type:'special',effect:'dodge',desc:{en:'Dodge next hit',ru:'Уклонение от следующего удара'}},
-      {id:'assassinate',name:{en:'Assassinate',ru:'Убийство'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.8,bonusVsBack:0.7,desc:{en:'Ultimate: brutal strike, +70% vs back row (Lv4)',ru:'Ульта: смертельный удар, +70% по заднему ряду (Ур.4)'}},
+      {id:'assassinate',name:{en:'Assassinate',ru:'Убийство'},cd:5,minLevel:7,reach:'ranged',targets:'single',type:'damage',mult:1.8,bonusVsBack:0.7,desc:{en:'Ultimate: brutal strike, +70% vs back row (Lv7)',ru:'Ульта: смертельный удар, +70% по заднему ряду (Ур.7)'}},
       {id:'trip',name:{en:'Trip',ru:'Подножка'},cd:2,reach:'melee',targets:'single',type:'swap_row',desc:{en:'Melee foe; forces them to the opposite row',ru:'Ближний враг перемещается в противоположный ряд'}},
     ]},
   ashra:{key:'ashra',name:{en:'Ashra',ru:'Ашра'},cls:{en:'Pyromancer',ru:'Пиромант'},icon:'A',color:'#d9683f',baseHp:23,baseAtk:9,baseDef:2,baseSpd:7,defaultRow:'back',cost:15,
@@ -1038,14 +1044,14 @@ const HERO_DEFS = {
       {id:'flick',name:{en:'Ember Flick',ru:'Всплеск огня'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.8,dot:{amount:3,duration:2},desc:{en:'Dmg + burn',ru:'Урон + поджог'}},
       {id:'burst',name:{en:'Cinder Burst',ru:'Взрыв углей'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.5,dot:{amount:2,duration:2},desc:{en:'All foes + burn',ru:'По всем врагам + поджог'}},
       {id:'flare',name:{en:'Flare Guard',ru:'Огненная защита'},cd:2,reach:'any',targets:'self',type:'buff',stat:'spd',amount:3,duration:2,desc:{en:'+3 SPD, 2 turns',ru:'+3 к скорости, 2 хода'}},
-      {id:'inferno',name:{en:'Inferno',ru:'Огненный шторм'},cd:4,minLevel:4,reach:'ranged',targets:'all',type:'damage',mult:0.9,dot:{amount:4,duration:3},desc:{en:'Ultimate: all foes take heavy damage + burn (Lv4)',ru:'Ульта: тяжёлый урон и поджог по всем врагам (Ур.4)'}},
+      {id:'inferno',name:{en:'Inferno',ru:'Огненный шторм'},cd:5,minLevel:7,reach:'ranged',targets:'all',type:'damage',mult:0.9,dot:{amount:4,duration:3},desc:{en:'Ultimate: all foes take heavy damage + burn (Lv7)',ru:'Ульта: тяжёлый урон и поджог по всем врагам (Ур.7)'}},
     ]},
   doran:{key:'doran',name:{en:'Doran',ru:'Доран'},cls:{en:'Beastmaster',ru:'Зверолов'},icon:'D',color:'#b0995a',baseHp:33,baseAtk:8,baseDef:5,baseSpd:6,defaultRow:'front',cost:25,
     abilities:[
       {id:'claw',name:{en:'Claw Strike',ru:'Удар когтем'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.05,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
       {id:'rally',name:{en:'Rally Cry',ru:'Боевой клич'},cd:3,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:2,duration:2,desc:{en:'+2 ATK, company',ru:'+2 к атаке всему отряду'}},
       {id:'guard',name:{en:'Guard Stance',ru:'Оборонительная стойка'},cd:2,reach:'any',targets:'self',type:'buff',stat:'def',amount:5,duration:2,desc:{en:'+5 DEF, 2 turns',ru:'+5 к защите, 2 хода'}},
-      {id:'ferocity',name:{en:'Feral Ferocity',ru:'Дикая ярость'},cd:4,minLevel:4,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:5,duration:3,desc:{en:'Ultimate: +5 ATK to the whole company, 3 turns (Lv4)',ru:'Ульта: +5 к атаке всему отряду на 3 хода (Ур.4)'}},
+      {id:'ferocity',name:{en:'Feral Ferocity',ru:'Дикая ярость'},cd:5,minLevel:7,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:5,duration:3,desc:{en:'Ultimate: +5 ATK to the whole company, 3 turns (Lv7)',ru:'Ульта: +5 к атаке всему отряду на 3 хода (Ур.7)'}},
       {id:'tackle',name:{en:'Pack Tackle',ru:'Стая набрасывается'},cd:3,reach:'melee',targets:'single',type:'special',effect:'stun',desc:{en:'Melee foe; stuns them for 1 turn',ru:'Ближний враг оглушается на 1 ход'}},
     ]},
   morwen:{key:'morwen',name:{en:'Morwen',ru:'Морвена'},cls:{en:'Necromancer',ru:'Некромант'},icon:'M',color:'#7a5aa0',baseHp:24,baseAtk:9,baseDef:2,baseSpd:6,defaultRow:'back',cost:30,
@@ -1053,14 +1059,14 @@ const HERO_DEFS = {
       {id:'wither',name:{en:'Withering Touch',ru:'Иссушающее касание'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85,lifesteal:0.3,desc:{en:'Dmg; heals self for 30% of damage dealt',ru:'Урон; лечит себя на 30% от нанесённого урона'}},
       {id:'frailty',name:{en:'Curse of Frailty',ru:'Проклятие немощи'},cd:2,reach:'ranged',targets:'single',type:'debuff',stat:'def',amount:-4,duration:2,desc:{en:'-4 DEF, 2 turns',ru:'-4 к защите, 2 хода'}},
       {id:'siphon',name:{en:'Soul Siphon',ru:'Похищение душ'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.45,lifesteal:0.5,desc:{en:'All foes; heals self for 50% of total damage dealt',ru:'По всем врагам; лечит себя на 50% суммарного урона'}},
-      {id:'embrace',name:{en:"Death's Embrace",ru:'Объятия смерти'},cd:4,minLevel:4,reach:'ranged',targets:'single',type:'damage',mult:1.6,dot:{amount:5,duration:3},desc:{en:'Ultimate: heavy damage + strong curse (Lv4)',ru:'Ульта: тяжёлый урон и мощное проклятие со временем (Ур.4)'}},
+      {id:'embrace',name:{en:"Death's Embrace",ru:'Объятия смерти'},cd:5,minLevel:7,reach:'ranged',targets:'single',type:'damage',mult:1.6,dot:{amount:5,duration:3},desc:{en:'Ultimate: heavy damage + strong curse (Lv7)',ru:'Ульта: тяжёлый урон и мощное проклятие со временем (Ур.7)'}},
     ]},
   torvin:{key:'torvin',name:{en:'Torvin',ru:'Торвин'},cls:{en:'Paladin',ru:'Паладин'},icon:'T',color:'#c9a227',baseHp:38,baseAtk:6,baseDef:9,baseSpd:4,defaultRow:'front',cost:35,
     abilities:[
       {id:'shieldbash',name:{en:'Shield Bash',ru:'Удар щитом'},cd:0,reach:'melee',targets:'single',type:'damage',mult:0.9,desc:{en:'Nearest-row foe',ru:'По врагу ближайшего ряда'}},
       {id:'oath',name:{en:'Oath of Protection',ru:'Клятва защиты'},cd:2,reach:'any',targets:'single-ally',type:'buff',stat:'def',amount:5,duration:2,desc:{en:'+5 DEF to an ally, 2 turns',ru:'+5 к защите союзнику на 2 хода'}},
       {id:'light',name:{en:'Righteous Light',ru:'Праведный свет'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0.4,flat:6,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
-      {id:'battlecry',name:{en:'Battle Cry',ru:'Боевой клич'},cd:4,minLevel:4,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:3,duration:2,desc:{en:'Ultimate: +3 ATK to the whole company, 2 turns (Lv4)',ru:'Ульта: +3 к атаке всему отряду на 2 хода (Ур.4)'}},
+      {id:'battlecry',name:{en:'Battle Cry',ru:'Боевой клич'},cd:5,minLevel:7,reach:'any',targets:'all-ally',type:'buff',stat:'atk',amount:3,duration:2,desc:{en:'Ultimate: +3 ATK to the whole company, 2 turns (Lv7)',ru:'Ульта: +3 к атаке всему отряду на 2 хода (Ур.7)'}},
     ]},
 };
 const HERO_ORDER = ['bram','sael','yvana','kest','ashra','doran','morwen','torvin'];
@@ -1278,33 +1284,161 @@ const MODIFIER_DEFS = [
     desc:{en:'Your company takes 15% more damage, but earns 20% more gold from battles.',ru:'Отряд получает на 15% больше урона, но зарабатывает на 20% больше золота за бои.'}},
 ];
 
+/* Weapon/armor archetypes group the 8 heroes (and any custom hero, via tplKey)
+   by fighting style so gear can be restricted to the classes it makes sense
+   for — a healer doesn't wield a warhammer, a pyromancer doesn't carry a bow.
+   Trinkets and relics stay universal (no classes field = any class). */
+const GEAR_ARCHETYPES = {
+  heavy:['bram','doran','torvin'],     // Warrior, Beastmaster, Paladin — melee front line
+  finesse:['sael','kest'],             // Ranger, Rogue — bows/blades
+  arcane:['ashra','morwen'],           // Pyromancer, Necromancer — staves/tomes
+  holy:['yvana'],                      // Cleric — holy symbols/wands
+};
+const ARMOR_ARCHETYPES = {
+  heavy:['bram','doran','torvin'],
+  light:['sael','kest','ashra','morwen','yvana'],
+};
+
 const ITEM_POOL = [
-  {id:'w1',slot:'weapon',name:{en:'Rusted Shortsword',ru:'Ржавый короткий меч'},rarity:'common',mods:{atk:2}},
-  {id:'w2',slot:'weapon',name:{en:'Ember-forged Blade',ru:'Клинок, кованный в углях'},rarity:'rare',mods:{atk:4,spd:1}},
-  {id:'w3',slot:'weapon',name:{en:"Warden's Cleaver",ru:'Тесак стража'},rarity:'epic',mods:{atk:7,spd:-1}},
-  {id:'a1',slot:'armor',name:{en:'Boiled Leather',ru:'Варёная кожа'},rarity:'common',mods:{def:2,hp:4}},
-  {id:'a2',slot:'armor',name:{en:'Chain Hauberk',ru:'Кольчужный хауберк'},rarity:'rare',mods:{def:4}},
-  {id:'a3',slot:'armor',name:{en:'Bulwark Plate',ru:'Латы бастиона'},rarity:'epic',mods:{def:7,spd:-2}},
+  /* ---- heavy weapons (Warrior / Beastmaster / Paladin) ---- */
+  {id:'w1',slot:'weapon',classes:GEAR_ARCHETYPES.heavy,name:{en:'Rusted Shortsword',ru:'Ржавый короткий меч'},rarity:'common',mods:{atk:2}},
+  {id:'w1b',slot:'weapon',classes:GEAR_ARCHETYPES.heavy,name:{en:'Notched Hatchet',ru:'Щербатый топор'},rarity:'common',mods:{atk:3,spd:-1}},
+  {id:'w2',slot:'weapon',classes:GEAR_ARCHETYPES.heavy,name:{en:'Ember-forged Blade',ru:'Клинок, кованный в углях'},rarity:'rare',mods:{atk:4,spd:1}},
+  {id:'w2b',slot:'weapon',classes:GEAR_ARCHETYPES.heavy,name:{en:"Ashsmith's Hammer",ru:'Молот пепельного кузнеца'},rarity:'rare',mods:{atk:5,def:1,spd:-2}},
+  {id:'w3',slot:'weapon',classes:GEAR_ARCHETYPES.heavy,name:{en:"Warden's Cleaver",ru:'Тесак стража'},rarity:'epic',mods:{atk:7,spd:-1}},
+  /* ---- finesse weapons (Ranger / Rogue) ---- */
+  {id:'w4',slot:'weapon',classes:GEAR_ARCHETYPES.finesse,name:{en:'Hunting Bow',ru:'Охотничий лук'},rarity:'common',mods:{atk:2}},
+  {id:'w4b',slot:'weapon',classes:GEAR_ARCHETYPES.finesse,name:{en:'Notched Daggers',ru:'Зазубренные кинжалы'},rarity:'common',mods:{atk:1,spd:2}},
+  {id:'w5',slot:'weapon',classes:GEAR_ARCHETYPES.finesse,name:{en:"Tracker's Recurve",ru:'Составной лук следопыта'},rarity:'rare',mods:{atk:3,spd:2}},
+  {id:'w5b',slot:'weapon',classes:GEAR_ARCHETYPES.finesse,name:{en:'Half-shade Blades',ru:'Клинки полутени'},rarity:'rare',mods:{atk:4,spd:1}},
+  {id:'w6',slot:'weapon',classes:GEAR_ARCHETYPES.finesse,name:{en:'Last Breath Longbow',ru:'Лук последнего вздоха'},rarity:'epic',mods:{atk:6,spd:2}},
+  /* ---- arcane weapons (Pyromancer / Necromancer) ---- */
+  {id:'w7',slot:'weapon',classes:GEAR_ARCHETYPES.arcane,name:{en:'Cracked Focus',ru:'Треснувший фокус'},rarity:'common',mods:{atk:2,hp:2}},
+  {id:'w7b',slot:'weapon',classes:GEAR_ARCHETYPES.arcane,name:{en:'Ashwood Staff',ru:'Пепельный посох'},rarity:'common',mods:{atk:3}},
+  {id:'w8',slot:'weapon',classes:GEAR_ARCHETYPES.arcane,name:{en:'Smoldering Grimoire',ru:'Тлеющий гримуар'},rarity:'rare',mods:{atk:4,hp:3}},
+  {id:'w8b',slot:'weapon',classes:GEAR_ARCHETYPES.arcane,name:{en:'Withered Bark Staff',ru:'Посох иссохшей коры'},rarity:'rare',mods:{atk:4,def:1}},
+  {id:'w9',slot:'weapon',classes:GEAR_ARCHETYPES.arcane,name:{en:'Scepter of the Dying Star',ru:'Скипетр угасшей звезды'},rarity:'epic',mods:{atk:7,hp:4}},
+  /* ---- holy weapons (Cleric) ---- */
+  {id:'w10',slot:'weapon',classes:GEAR_ARCHETYPES.holy,name:{en:'Plain Holy Symbol',ru:'Простой символ веры'},rarity:'common',mods:{atk:1,hp:4}},
+  {id:'w10b',slot:'weapon',classes:GEAR_ARCHETYPES.holy,name:{en:'Blessed Wand',ru:'Освящённый жезл'},rarity:'common',mods:{atk:2,hp:2}},
+  {id:'w11',slot:'weapon',classes:GEAR_ARCHETYPES.holy,name:{en:'Dawnlight Emblem',ru:'Символ рассветной зари'},rarity:'rare',mods:{atk:3,hp:5}},
+  {id:'w11b',slot:'weapon',classes:GEAR_ARCHETYPES.holy,name:{en:'Ashen Brotherhood Beads',ru:'Чётки пепельного братства'},rarity:'rare',mods:{atk:3,def:1}},
+  {id:'w12',slot:'weapon',classes:GEAR_ARCHETYPES.holy,name:{en:'Scepter of Unshaken Faith',ru:'Скипетр незыблемой веры'},rarity:'epic',mods:{atk:5,hp:8}},
+  /* ---- heavy armor (Warrior / Beastmaster / Paladin) ---- */
+  {id:'a1',slot:'armor',classes:ARMOR_ARCHETYPES.heavy,name:{en:'Boiled Leather',ru:'Варёная кожа'},rarity:'common',mods:{def:2,hp:4}},
+  {id:'a1b',slot:'armor',classes:ARMOR_ARCHETYPES.heavy,name:{en:'Studded Jerkin',ru:'Клёпаная куртка'},rarity:'common',mods:{def:3}},
+  {id:'a2',slot:'armor',classes:ARMOR_ARCHETYPES.heavy,name:{en:'Chain Hauberk',ru:'Кольчужный хауберк'},rarity:'rare',mods:{def:4}},
+  {id:'a2b',slot:'armor',classes:ARMOR_ARCHETYPES.heavy,name:{en:"Militia Plate",ru:'Латы ополченца'},rarity:'rare',mods:{def:3,hp:6}},
+  {id:'a3',slot:'armor',classes:ARMOR_ARCHETYPES.heavy,name:{en:'Bulwark Plate',ru:'Латы бастиона'},rarity:'epic',mods:{def:7,spd:-2}},
+  /* ---- light armor (Ranger / Rogue / Pyromancer / Necromancer / Cleric) ---- */
+  {id:'a4',slot:'armor',classes:ARMOR_ARCHETYPES.light,name:{en:"Traveler's Cloak",ru:'Дорожный плащ'},rarity:'common',mods:{def:1,spd:1}},
+  {id:'a4b',slot:'armor',classes:ARMOR_ARCHETYPES.light,name:{en:'Simple Wrap',ru:'Простая накидка'},rarity:'common',mods:{def:1,hp:3}},
+  {id:'a5',slot:'armor',classes:ARMOR_ARCHETYPES.light,name:{en:'Ashwalker Cloak',ru:'Плащ пепельного странника'},rarity:'rare',mods:{def:2,spd:2}},
+  {id:'a5b',slot:'armor',classes:ARMOR_ARCHETYPES.light,name:{en:'Light Cuirass',ru:'Лёгкая кираса'},rarity:'rare',mods:{def:3,hp:3}},
+  {id:'a6',slot:'armor',classes:ARMOR_ARCHETYPES.light,name:{en:'Ashveil Mantle',ru:'Мантия пепельной вуали'},rarity:'epic',mods:{def:4,spd:2,hp:4}},
+  /* ---- trinkets: universal, no class restriction ---- */
   {id:'t1',slot:'trinket',name:{en:'Lucky Coin',ru:'Счастливая монета'},rarity:'common',mods:{spd:2}},
+  {id:'t1b',slot:'trinket',name:{en:'Tin Band',ru:'Оловянное кольцо'},rarity:'common',mods:{hp:3}},
+  {id:'t1c',slot:'trinket',name:{en:'Worn Compass',ru:'Потёртый компас'},rarity:'common',mods:{atk:1}},
   {id:'t2',slot:'trinket',name:{en:'Vial of Vigor',ru:'Флакон бодрости'},rarity:'rare',mods:{hp:8}},
-  {id:'t3',slot:'trinket',name:{en:"Hunter's Charm",ru:'Амулет охотника'},rarity:'epic',mods:{atk:2,spd:1}},
+  {id:'t2b',slot:'trinket',name:{en:"Hunter's Charm",ru:'Амулет охотника'},rarity:'rare',mods:{atk:2,spd:1}},
+  {id:'t2c',slot:'trinket',name:{en:'Signet of Resolve',ru:'Перстень стойкости'},rarity:'rare',mods:{def:2,hp:2}},
+  {id:'t3',slot:'trinket',name:{en:'Ember-kissed Locket',ru:'Овеянный угольями медальон'},rarity:'epic',mods:{atk:3,spd:2}},
+  {id:'t3b',slot:'trinket',name:{en:"Titan's Knuckle",ru:'Кулак титана'},rarity:'epic',mods:{atk:3,def:2,hp:4}},
 ];
 
+/* Each relic's passive hook is implemented once in the combat engine (see
+   hasRelic() call sites) and its log line reads the equipped relic's own
+   name/passiveDesc, so several relics can safely share one passive — that's
+   how this pool adds variety without new combat mechanics per item. */
 const RELIC_POOL = [
   {id:'r1',slot:'relic',name:{en:'Ember Charm',ru:'Тлеющий талисман'},rarity:'rare',mods:{},passive:'vampiric',
     passiveDesc:{en:'Heals the wearer for 15% of damage they deal',ru:'Лечит владельца на 15% от нанесённого им урона'}},
+  {id:'r1b',slot:'relic',name:{en:'Blood Fetish',ru:'Кровавый фетиш'},rarity:'rare',mods:{atk:1},passive:'vampiric',
+    passiveDesc:{en:'Heals the wearer for 15% of damage they deal',ru:'Лечит владельца на 15% от нанесённого им урона'}},
   {id:'r2',slot:'relic',name:{en:'Thorned Bangle',ru:'Браслет с шипами'},rarity:'rare',mods:{def:1},passive:'thorns',
     passiveDesc:{en:'Reflects 20% of damage taken back at the attacker',ru:'Отражает 20% полученного урона обратно атакующему'}},
+  {id:'r2b',slot:'relic',name:{en:'Spiked Guard',ru:'Шипастый нагрудник'},rarity:'epic',mods:{def:2},passive:'thorns',
+    passiveDesc:{en:'Reflects 20% of damage taken back at the attacker',ru:'Отражает 20% полученного урона обратно атакующему'}},
   {id:'r3',slot:'relic',name:{en:'Lucky Fang',ru:'Счастливый клык'},rarity:'rare',mods:{},passive:'crit_boost',
+    passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
+  {id:'r3b',slot:'relic',name:{en:"Predator's Fang",ru:'Клык хищника'},rarity:'epic',mods:{atk:1},passive:'crit_boost',
     passiveDesc:{en:'+15% critical hit chance',ru:'+15% к шансу критического удара'}},
   {id:'r4',slot:'relic',name:{en:'Phoenix Down',ru:'Перо феникса'},rarity:'epic',mods:{},passive:'revive',
     passiveDesc:{en:'The first time the wearer would fall, they survive at 1 HP instead (once per march)',ru:'Когда владелец должен пасть, он впервые вместо этого выживает с 1 HP (раз за поход)'}},
   {id:'r5',slot:'relic',name:{en:'Frostbrand Ring',ru:'Ледяное клеймо'},rarity:'epic',mods:{},passive:'chill_on_hit',
     passiveDesc:{en:'25% chance on hit to stun the target for 1 turn',ru:'25% шанс при ударе оглушить цель на 1 ход'}},
+  {id:'r5b',slot:'relic',name:{en:'Frostkissed Band',ru:'Морозный перстень'},rarity:'rare',mods:{spd:1},passive:'chill_on_hit',
+    passiveDesc:{en:'25% chance on hit to stun the target for 1 turn',ru:'25% шанс при ударе оглушить цель на 1 ход'}},
   {id:'r6',slot:'relic',name:{en:'Iron Will Talisman',ru:'Талисман железной воли'},rarity:'rare',mods:{},passive:'last_stand',
     passiveDesc:{en:'+30% DEF while below 25% HP',ru:'+30% к защите, когда HP ниже 25%'}},
+  {id:'r6b',slot:'relic',name:{en:'Ward of Endurance',ru:'Оберег стойкости'},rarity:'rare',mods:{hp:5},passive:'last_stand',
+    passiveDesc:{en:'+30% DEF while below 25% HP',ru:'+30% к защите, когда HP ниже 25%'}},
 ];
-function randomRelic(){const base=pick(RELIC_POOL);return Object.assign({},base,{name:L(base.name),passiveDesc:L(base.passiveDesc)});}
+
+/* ---- rarity gating: early layers mostly common, epic gear only shows up
+   once the march gets dangerous (tierForLayer 1..4). Fixes gear that used
+   to drop with completely flat odds, so the best items could appear on the
+   very first fight. ---- */
+const RARITY_WEIGHTS_BY_TIER = {
+  1:{common:80,rare:20,epic:0},
+  2:{common:55,rare:40,epic:5},
+  3:{common:30,rare:45,epic:25},
+  4:{common:15,rare:40,epic:45},
+};
+function rollRarity(tier){
+  const w=RARITY_WEIGHTS_BY_TIER[tier]||RARITY_WEIGHTS_BY_TIER[1];
+  const total=w.common+w.rare+w.epic;
+  let r=Math.random()*total;
+  if(r<w.common)return 'common';
+  r-=w.common;
+  if(r<w.rare)return 'rare';
+  return 'epic';
+}
+function itemsOfRarity(rarity){return ITEM_POOL.filter(function(it){return it.rarity===rarity;});}
+function relicsOfRarity(rarity){
+  const pool=RELIC_POOL.filter(function(r){return r.rarity===rarity;});
+  return pool.length?pool:RELIC_POOL.filter(function(r){return r.rarity==='rare';});
+}
+function randomItem(tier,forceRarity){
+  const rarity=forceRarity||rollRarity(tier||1);
+  const pool=itemsOfRarity(rarity);
+  const base=pick(pool.length?pool:ITEM_POOL);
+  return Object.assign({},base,{name:L(base.name)});
+}
+function randomRelic(tier){
+  /* relics are rare/epic only — roll rarity but floor it at 'rare' */
+  const rolled=rollRarity(tier||1);
+  const rarity=rolled==='common'?'rare':rolled;
+  const base=pick(relicsOfRarity(rarity));
+  return Object.assign({},base,{name:L(base.name),passiveDesc:L(base.passiveDesc)});
+}
+function heroCanUseItem(hero,item){
+  if(!item||!item.classes)return true;
+  return item.classes.indexOf(hero.tplKey||hero.key)>=0;
+}
+/* ---- salvage: break unwanted gear down into shards (+ a little gold), so
+   an item you can't use isn't just a "discard" with nothing to show for it.
+   Relics salvage for more since they're rarer and can't be crafted back. */
+function salvageYield(item){
+  const relic=item.slot==='relic';
+  const table=relic?{rare:{shards:8,gold:12},epic:{shards:15,gold:20}}
+                   :{common:{shards:3,gold:5},rare:{shards:6,gold:10},epic:{shards:12,gold:18}};
+  return table[item.rarity]||{shards:3,gold:5};
+}
+function salvageItem(item){
+  const y=salvageYield(item);
+  RUN.shards=(RUN.shards||0)+y.shards;
+  RUN.gold+=y.gold;
+  return y;
+}
+function randomItemForHero(hero,tier,forceRarity){
+  const rarity=forceRarity||rollRarity(tier||1);
+  const tplKey=hero.tplKey||hero.key;
+  const pool=itemsOfRarity(rarity).filter(function(it){return !it.classes||it.classes.indexOf(tplKey)>=0;});
+  const base=pick(pool.length?pool:itemsOfRarity(rarity));
+  return Object.assign({},base,{name:L(base.name)});
+}
 
 const EVENTS = [
   {id:'shrine',title:{en:'Abandoned Shrine',ru:'Заброшенное святилище'},
@@ -1486,9 +1620,9 @@ const EVENTS = [
     choices:[
       {label:{en:'Buy an elixir (18 gold)',ru:'Купить эликсир (18 золота)'},resolve(run){
         if(run.gold<18)return M("You don't have enough gold.",'У вас недостаточно золота.');
-        run.gold-=18;const h=randAlive(run.party);h.hp=h.maxHp;
+        run.gold-=18;const h=randAlive(run.party);h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.6));
         run.pendingChainEvent='peddler_return';
-        return M(h.name+' drinks the elixir and is fully restored. The peddler nods, as if remembering a fair trade.',h.name+' выпивает эликсир и полностью восстанавливается. Торговец кивает — похоже, честную сделку он запоминает.');
+        return M(h.name+' drinks the elixir and feels much of their strength return. The peddler nods, as if remembering a fair trade.',h.name+' выпивает эликсир и чувствует, как возвращаются силы. Торговец кивает — похоже, честную сделку он запоминает.');
       }},
       {label:{en:'Decline and move on',ru:'Отказаться и уйти'},resolve(){return M('The peddler shrugs and vanishes into the haze.','Торговец пожимает плечами и исчезает в дымке.');}},
     ]},
@@ -1936,7 +2070,6 @@ function playCombatFx(fx){
   });
 }
 function randAlive(list){const a=list.filter(function(h){return h.alive;});return a.length?pick(a):list[0];}
-function randomItem(){const base=pick(ITEM_POOL);return Object.assign({},base,{name:L(base.name)});}
 function statOf(c,key){
   let v=c[key];
   c.status.forEach(function(s){if(s.stat===key)v+=s.amount;});
@@ -1990,11 +2123,15 @@ function buildLayerPlan(){
   const plan=[];
   for(let li=0;li<TOTAL_MAP_LAYERS;li++){
     const hasElite=li>=3;
-    const hasShop=(li+1)%5===0;
+    /* Shops used to only get a chance to appear every 5th layer, with a
+       single low-weight pool entry — that made them rare across a whole
+       march. Now every 3rd layer gets a real shot at one, weighted twice
+       in the pool so it actually shows up most of the time it's eligible. */
+    const hasShop=(li+1)%3===0;
     const nearEnd=li>=TOTAL_MAP_LAYERS-4;
     const pool=['battle','battle','event'];
     if(hasElite)pool.push('elite');
-    if(hasShop)pool.push('shop');
+    if(hasShop){pool.push('shop');pool.push('shop');}
     if(nearEnd)pool.push('rest');
     const count=(li%3===2)?4:3;
     plan.push({count:count,pool:pool});
@@ -2025,6 +2162,14 @@ function generateMap(modifiers){
     const candidates=[];
     layers.forEach(function(l,li){if(li<layers.length-1)l.forEach(function(n){if(n.type!=='rest')candidates.push(n);});});
     if(candidates.length)pick(candidates).type='shop';
+  }
+  /* Guaranteed trader right before the boss: a company should always be able
+     to spend its gold and gear up one last time before the march's final
+     fight, not gamble on the random layout putting a shop there. */
+  const lastLayer=layers[layers.length-1];
+  if(lastLayer&&lastLayer.length&&!lastLayer.some(function(n){return n.type==='shop';})){
+    const candidates=lastLayer.filter(function(n){return n.type!=='rest';});
+    (candidates.length?pick(candidates):lastLayer[0]).type='shop';
   }
   const bossNode={id:'BOSS',layer:layers.length,idx:0,type:'boss',cleared:false,next:[]};
 
@@ -2185,6 +2330,7 @@ function unequipFromHero(hero,slot){
 function hydrateParty(run){
   if(!run||!run.party)return;
   if(!run.inventory)run.inventory=[];
+  if(typeof run.shards!=='number')run.shards=0;
   if(!run.comboCount)run.comboCount=0;
   if(run.biome!=='frost')run.biome='ashfall';
   if(!run.modifiers)run.modifiers={eliteVanguard:false,earlyStorm:false,brokenWard:false};
@@ -2230,10 +2376,11 @@ function startNewRun(heroKeys,dailySeed){
     pendingChainEvent:null,
     inventory:[],
     comboCount:0,
+    shards:0,
   };
   RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
   if(META.upgrades.favor>0){
-    const item=randomItem();applyItemToHero(RUN.party[0],item);
+    const item=randomItemForHero(RUN.party[0],1,'common');applyItemToHero(RUN.party[0],item);
   }
   /* Daily Challenge: keep the seeded RNG active for the whole march (combat, loot,
      events, encounters), not just the map layout, so two players on the same day
@@ -2273,12 +2420,19 @@ function tierForLayer(li){
    runs) showed parties dying right at the tier 2→3 jump (layer ~8 of 20) under
    the old per-layer formula; this keeps that same relative difficulty curve,
    just stretched to fit the longer march instead of compounding on top of it. */
+/* The +frac^3 terms below are new: a convex "late spike" layered on top of the
+   original linear ramp. At low/mid fracs it adds almost nothing (frac^3 is
+   tiny), so the early-to-mid march plays the same as before; by the final
+   stretch — and especially the boss, frac=1 — it adds a real extra jump on
+   top of the old flat ramp. That's the steeper difficulty curve toward the
+   end the "нет превозмогания" feedback asked for, without also making the
+   early layers (now starved of good loot by the rarity gate) any harder. */
 function enemyScale(li){
   const asc=1+RUN.ascension*0.14;
   const storm=RUN.modifiers&&RUN.modifiers.earlyStorm;
   const frac=Math.max(0,Math.min(1,(li||0)/TOTAL_MAP_LAYERS*(storm?1.18:1)));
-  const ramp=1+frac*0.315;
-  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14};
+  const ramp=1+frac*0.315+Math.pow(frac,3)*0.25;
+  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14+Math.pow(frac,3)*0.10};
 }
 function makeEnemyInstance(defKey,li){
   const d=ENEMY_DEFS[defKey];
@@ -2487,16 +2641,19 @@ function applyAbilityEffect(caster,ability,target){
       if(hasRelic(caster,'vampiric')&&caster.alive){
         const heal=Math.max(1,Math.round(r.amount*0.15));
         caster.hp=Math.min(caster.maxHp,caster.hp+heal);
-        logs.push(M(caster.name+"'s Ember Charm heals them for "+heal+'.',caster.name+' исцеляется на '+heal+' благодаря Тлеющему талисману.'));
+        const rn=caster.equip.relic.name;
+        logs.push(M(caster.name+"'s "+rn+' heals them for '+heal+'.',caster.name+' исцеляется на '+heal+' благодаря «'+rn+'».'));
       }
       if(hasRelic(caster,'chill_on_hit')&&t.alive&&Math.random()<0.25){
         t.status.push({type:'stun',duration:1,label:M('stun','оглушение')});
-        logs.push(M(caster.name+"'s Frostbrand Ring freezes "+t.name+' in place!',caster.name+' сковывает '+t.name+' Ледяным клеймом!'));
+        const rn=caster.equip.relic.name;
+        logs.push(M(caster.name+"'s "+rn+' freezes '+t.name+' in place!',caster.name+' сковывает '+t.name+' («'+rn+'»)!'));
       }
       if(hasRelic(t,'thorns')&&caster!==t&&caster.alive){
         const reflect=Math.max(1,Math.round(r.amount*0.2));
         caster.hp=Math.max(0,caster.hp-reflect);
-        logs.push(M(t.name+"'s Thorned Bangle reflects "+reflect+' damage onto '+caster.name+'.',t.name+' отражает '+reflect+' урона Браслетом с шипами обратно '+caster.name+'.'));
+        const rn=t.equip.relic.name;
+        logs.push(M(t.name+"'s "+rn+' reflects '+reflect+' damage onto '+caster.name+'.',t.name+' отражает '+reflect+' урона («'+rn+'») обратно '+caster.name+'.'));
         if(caster.hp<=0&&caster.alive){caster.alive=false;if(caster.isHero)RUN.heroDied=true;logs.push(M(caster.name+' falls.',caster.name+' падает замертво.'));}
       }
       if(ability.dot){t.status.push({type:'dot',amount:ability.dot.amount,duration:ability.dot.duration,label:M('burn','ожог')});}
@@ -2508,7 +2665,8 @@ function applyAbilityEffect(caster,ability,target){
       if(t.hp<=0&&t.alive){
         if(hasRelic(t,'revive')&&!t.usedPhoenix){
           t.usedPhoenix=true;t.hp=1;
-          logs.push(M(t.name+"'s Phoenix Down flares — they cling to life at 1 HP!",t.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
+          const rn=t.equip.relic.name;
+          logs.push(M(t.name+"'s "+rn+' flares — they cling to life at 1 HP!',t.name+' спасён («'+rn+'») — остаётся жить с 1 HP!'));
         } else {
           t.alive=false;if(t.isHero)RUN.heroDied=true;logs.push(M(t.name+' falls.',t.name+' падает замертво.'));SFX.death();
           fx.push({uid:t.uid,dieCls:'fx-die'});
@@ -2582,7 +2740,8 @@ function tickStatus(unit){
       if(unit.hp<=0 && unit.alive){
         if(hasRelic(unit,'revive')&&!unit.usedPhoenix){
           unit.usedPhoenix=true;unit.hp=1;
-          logs.push(M(unit.name+"'s Phoenix Down flares — they cling to life at 1 HP!",unit.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
+          const rn=unit.equip.relic.name;
+          logs.push(M(unit.name+"'s "+rn+' flares — they cling to life at 1 HP!',unit.name+' спасён («'+rn+'») — остаётся жить с 1 HP!'));
         } else {
           unit.alive=false;
           if(unit.isHero&&RUN.combat)RUN.heroDied=true;
@@ -2857,7 +3016,7 @@ function onCombatWin(){
     setTimeout(function(){onVictory();},700);
     return;
   }
-  let baseGold=20+node.layer*7+randInt(0,14);
+  let baseGold=14+node.layer*5+randInt(0,10);
   if(RUN.modifiers&&RUN.modifiers.brokenWard)baseGold=Math.round(baseGold*1.2);
   RUN.gold+=baseGold;
   const cards=buildRewardCards(node.layer);
@@ -2877,16 +3036,16 @@ function onCombatLoss(){
 function buildRewardCards(layer){
   const tier=tierForLayer(layer);
   const cards=[];
-  cards.push({type:'item',item:randomItem()});
+  cards.push({type:'item',item:randomItem(tier)});
   const r=Math.random();
-  if(r<0.4)cards.push({type:'gold',amount:20+tier*10+randInt(0,10)});
+  if(r<0.4)cards.push({type:'gold',amount:14+tier*6+randInt(0,8)});
   else if(r<0.75)cards.push({type:'elixir'});
-  else cards.push({type:'item',item:randomItem()});
+  else cards.push({type:'item',item:randomItem(tier)});
   const r2=Math.random();
-  if(r2<0.34)cards.push({type:'gold',amount:15+tier*8+randInt(0,10)});
+  if(r2<0.34)cards.push({type:'gold',amount:10+tier*5+randInt(0,8)});
   else if(r2<0.67)cards.push({type:'elixir'});
-  else cards.push({type:'item',item:randomItem()});
-  if(Math.random()<0.14)cards.push({type:'item',item:randomRelic()});
+  else cards.push({type:'item',item:randomItem(tier)});
+  if(Math.random()<0.16)cards.push({type:'item',item:randomRelic(tier)});
   return cards;
 }
 
@@ -2954,21 +3113,28 @@ function showEventResult(msg,after){
 
 /* ---- shop ---- */
 function startShop(node){
-  RUN.shopStock = RUN.shopStock||buildShopStock();
+  RUN.shopStock = RUN.shopStock||buildShopStock(node.layer);
   renderShop();
   show('screen-shop');
   renderTopbar();
   RUN._shopNode=node;
 }
-function buildShopStock(){
+/* Shops now carry more stock (4 gear items instead of 2, higher relic odds
+   at deeper tiers) so the gold the march hands out actually has somewhere
+   to go — see CHANGELOG for the economy pass this belongs to. */
+function buildShopStock(layer){
+  const tier=tierForLayer(layer||0);
   const stock=[
-    {kind:'item',item:randomItem(),price:0},
-    {kind:'item',item:randomItem(),price:0},
-    {kind:'elixir',price:22},
-    {kind:'vigor',price:35},
+    {kind:'item',item:randomItem(tier),price:0},
+    {kind:'item',item:randomItem(tier),price:0},
+    {kind:'item',item:randomItem(tier),price:0},
+    {kind:'item',item:randomItem(tier),price:0},
+    {kind:'elixir',price:20},
+    {kind:'vigor',price:32},
   ];
-  if(Math.random()<0.4)stock.push({kind:'item',item:randomRelic(),price:0});
-  return stock.map(function(s){if(s.kind==='item')s.price=({common:24,rare:42,epic:65})[s.item.rarity];return s;});
+  const relicChance=tier>=3?0.6:(tier===2?0.4:0.25);
+  if(Math.random()<relicChance)stock.push({kind:'item',item:randomRelic(tier),price:0});
+  return stock.map(function(s){if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];return s;});
 }
 function goldSuffix(){return M(' gold',' золота');}
 function renderShop(){
@@ -2978,8 +3144,11 @@ function renderShop(){
     if(stock.sold)return;
     const b=el('button','card-choice');
     let label='';
-    if(stock.kind==='item')label='<strong>'+stock.item.name+'</strong> <span class="item-tag rarity-'+stock.item.rarity+'">'+rarityLabel(stock.item.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+itemDescText(stock.item)+'</span>';
-    else if(stock.kind==='elixir')label='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Fully heal one company member.','Полностью восстанавливает здоровье одному бойцу.')+'</span>';
+    if(stock.kind==='item'){
+      const hint=itemClassHint(stock.item);
+      label='<strong>'+stock.item.name+'</strong> <span class="item-tag rarity-'+stock.item.rarity+'">'+rarityLabel(stock.item.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+itemDescText(stock.item)+(hint?' · <span style="color:var(--accent);">'+hint+'</span>':'')+'</span>';
+    }
+    else if(stock.kind==='elixir')label='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Restores 60% of one member\'s HP.','Восстанавливает 60% здоровья одному бойцу.')+'</span>';
     else if(stock.kind==='vigor')label='<strong>'+M('Vial of Deep Vigor','Флакон глубокой бодрости')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('+6 max HP, permanently, to one member.','Даёт одному бойцу +6 к макс. здоровью навсегда.')+'</span>';
     label+='<br><span class="gold-badge" style="font-size:13px;">'+stock.price+goldSuffix()+'</span>';
     b.innerHTML=label;
@@ -2988,12 +3157,49 @@ function renderShop(){
       if(RUN.gold<stock.price)return;
       RUN.gold-=stock.price;stock.sold=true;
       if(stock.kind==='item'){promptEquip(stock.item,function(){renderShop();saveRun();});}
-      else if(stock.kind==='elixir'){promptChooseHero(M('Elixir on whom?','Кому дать эликсир?'),function(h){h.hp=h.maxHp;renderShop();saveRun();});}
+      else if(stock.kind==='elixir'){promptChooseHero(M('Elixir on whom?','Кому дать эликсир?'),function(h){h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.6));renderShop();saveRun();});}
       else if(stock.kind==='vigor'){promptChooseHero(M('Vigor for whom?','Кому дать флакон бодрости?'),function(h){h.maxHp+=6;h.hp+=6;renderShop();saveRun();});}
     });
     box.appendChild(b);
   });
   if(!box.children.length)box.appendChild(el('div','','<span style="color:var(--muted);">'+M('The cart is empty. Nothing left to buy.','Тележка пуста. Больше нечего купить.')+'</span>'));
+  renderShopCraft();
+}
+/* ---- crafting: spend shards (from salvaging unwanted gear) on an item of a
+   chosen slot & rarity. The exact item within that slot/rarity is still
+   random, same as a battle drop, but the player controls what kind of
+   upgrade they're gambling shards on instead of pure chance. */
+const CRAFT_RECIPES=[
+  {slot:'weapon',rarity:'common',cost:10},{slot:'weapon',rarity:'rare',cost:20},{slot:'weapon',rarity:'epic',cost:38},
+  {slot:'armor',rarity:'common',cost:10},{slot:'armor',rarity:'rare',cost:20},{slot:'armor',rarity:'epic',cost:38},
+  {slot:'trinket',rarity:'common',cost:9},{slot:'trinket',rarity:'rare',cost:18},{slot:'trinket',rarity:'epic',cost:34},
+  {slot:'relic',rarity:'rare',cost:26},{slot:'relic',rarity:'epic',cost:45},
+];
+function craftItemFromRecipe(r){
+  if(r.slot==='relic'){
+    const base=pick(relicsOfRarity(r.rarity));
+    return Object.assign({},base,{name:L(base.name),passiveDesc:L(base.passiveDesc)});
+  }
+  const pool=ITEM_POOL.filter(function(it){return it.slot===r.slot&&it.rarity===r.rarity;});
+  const base=pick(pool);
+  return Object.assign({},base,{name:L(base.name)});
+}
+function renderShopCraft(){
+  const box=$('shop-craft');box.innerHTML='';
+  const shardsLine=el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Shards: ','Осколки: ')+'<strong>'+(RUN.shards||0)+'</strong> · '+M('earned by salvaging gear in the backpack (Formation & Gear).','получены разбором снаряжения в рюкзаке (Строй и снаряжение).')+"</span>");
+  box.appendChild(shardsLine);
+  CRAFT_RECIPES.forEach(function(r){
+    const b=el('button','card-choice');
+    b.innerHTML='<strong>'+M('Craft ','Скрафтить ')+slotName(r.slot)+'</strong> <span class="item-tag rarity-'+r.rarity+'">'+rarityLabel(r.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('Random item of this slot &amp; rarity.','Случайный предмет этого слота и редкости.')+'</span><br><span class="gold-badge" style="font-size:13px;">'+r.cost+' '+M('shards','осколков')+'</span>';
+    b.disabled=(RUN.shards||0)<r.cost;
+    b.addEventListener('click',function(){
+      if((RUN.shards||0)<r.cost)return;
+      RUN.shards-=r.cost;
+      const item=craftItemFromRecipe(r);
+      promptEquip(item,function(){renderShop();saveRun();});
+    });
+    box.appendChild(b);
+  });
 }
 function modsToText(mods){
   const parts=[];
@@ -3035,7 +3241,7 @@ function renderTopbar(){
     dot.title=h.name+' · '+h.cls+' · '+M('Lv','Ур.')+' '+(h.level||1);
     b.appendChild(dot);
     b.appendChild(el('div','',M('Lv','Ур.')+(h.level||1)));
-    b.appendChild(el('div','',h.alive?h.hp+'/'+h.maxHp:M('down','пал')));
+    b.appendChild(el('div',h.alive?'':'pb-fallen',h.alive?h.hp+'/'+h.maxHp:M('down','пал')));
     wrap.appendChild(b);
   });
 }
@@ -3065,7 +3271,21 @@ function nodeDescription(type){
     boss:M('The march’s end: a powerful foe blocking the way out of the ash. Defeat it to win the march.','Конец похода: могучий враг преграждает путь из пепла. Победите его, чтобы завершить поход.')
   }[type];
 }
+const MAP_FLAVOR_BY_TIER={
+  1:{en:'The road is quiet, for now.',ru:'Пока дорога спокойна.'},
+  2:{en:'The ash grows thicker; the going gets harder.',ru:'Пепел сгущается — идти становится тяжелее.'},
+  3:{en:'Something shifts at the edge of sight, just past the firelight.',ru:'Что-то шевелится на краю зрения, у самой границы света костра.'},
+  4:{en:"The air itself hums — you're close to whatever rules this place.",ru:'Сам воздух гудит — вы близко к тому, что правит этим краем.'},
+};
+function renderMapFlavor(){
+  const cur=RUN.currentNodeId?findNode(RUN.map,RUN.currentNodeId):null;
+  const li=cur?Math.min(cur.layer+1,TOTAL_MAP_LAYERS-1):0;
+  const tier=tierForLayer(li);
+  const el2=$('map-flavor');
+  if(el2)el2.textContent=L(MAP_FLAVOR_BY_TIER[tier]||MAP_FLAVOR_BY_TIER[1]);
+}
 function renderMap(){
+  renderMapFlavor();
   const map=RUN.map;
   const layers=map.layers;
   const totalLayers=layers.length+1;
@@ -3387,8 +3607,8 @@ function renderRewardScreen(){
       b.innerHTML='<strong>'+M('Extra Gold','Дополнительное золото')+'</strong><br><span style="color:var(--muted);font-size:12px;">+'+card.amount+goldSuffix()+'</span>';
       b.addEventListener('click',function(){RUN.gold+=card.amount;finishRewardNode(pr.node);});
     } else if(card.type==='elixir'){
-      b.innerHTML='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Fully heal one company member.','Полностью восстанавливает здоровье одному бойцу.')+'</span>';
-      b.addEventListener('click',function(){promptChooseHero(M('Heal whom?','Кого исцелить?'),function(h){h.hp=h.maxHp;finishRewardNode(pr.node);});});
+      b.innerHTML='<strong>'+M('Elixir','Эликсир')+'</strong><br><span style="color:var(--muted);font-size:12px;">'+M('Restores 60% of one member\'s HP.','Восстанавливает 60% здоровья одному бойцу.')+'</span>';
+      b.addEventListener('click',function(){promptChooseHero(M('Heal whom?','Кого исцелить?'),function(h){h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.6));finishRewardNode(pr.node);});});
     }
     box.appendChild(b);
   });
@@ -3398,15 +3618,23 @@ function renderRewardScreen(){
 }
 
 /* ---- modals ---- */
+function itemClassHint(item){
+  if(!item||!item.classes)return '';
+  const names=item.classes.map(function(k){const d=HERO_DEFS[k];return d?L(d.cls):k;});
+  return M('Class: ','Класс: ')+names.join(', ');
+}
 function promptEquip(item,after){
   const wrap=el('div','stack');
   wrap.appendChild(el('h3','',M('Equip '+item.name+'?','Экипировать «'+item.name+'»?')));
-  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>"));
+  const hint=itemClassHint(item);
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+(hint?' · <span style="color:var(--accent);">'+hint+'</span>':'')+"</span>"));
   RUN.party.forEach(function(h){
     const cur=h.equip[item.slot];
+    const usable=heroCanUseItem(h,item);
     const b=el('button','card-choice');
-    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))+'</span>';
-    b.addEventListener('click',function(){applyItemToHero(h,item);closeModal();saveRun();after();});
+    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+(usable?(M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))):M("Wrong class for this item","Не подходит этому классу"))+'</span>';
+    if(!usable){b.disabled=true;b.style.opacity='0.45';}
+    else b.addEventListener('click',function(){applyItemToHero(h,item);closeModal();saveRun();after();});
     wrap.appendChild(b);
   });
   const skip=el('button','',M('Put in backpack','Убрать в рюкзак'));
@@ -3429,12 +3657,15 @@ function promptChooseHero(title,cb){
 function promptEquipFromInventory(item,idx){
   const wrap=el('div','stack');
   wrap.appendChild(el('h3','',M('Equip '+item.name+'?','Экипировать «'+item.name+'»?')));
-  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>"));
+  const hint=itemClassHint(item);
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;'>"+slotName(item.slot)+' · '+itemDescText(item)+(hint?' · <span style="color:var(--accent);">'+hint+'</span>':'')+"</span>"));
   RUN.party.forEach(function(h){
     const cur=h.equip[item.slot];
+    const usable=heroCanUseItem(h,item);
     const b=el('button','card-choice');
-    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))+'</span>';
-    b.addEventListener('click',function(){
+    b.innerHTML='<strong>'+h.name+'</strong> <span class="item-tag" style="color:var(--accent2);">'+h.cls+'</span><br><span style="color:var(--muted);font-size:12px;">'+(usable?(M('current '+slotName(item.slot)+': ','сейчас: ')+(cur?cur.name:M('none','нет'))):M("Wrong class for this item","Не подходит этому классу"))+'</span>';
+    if(!usable){b.disabled=true;b.style.opacity='0.45';}
+    else b.addEventListener('click',function(){
       RUN.inventory.splice(idx,1);
       applyItemToHero(h,item);
       saveRun();
@@ -3478,21 +3709,25 @@ function openFormationModal(){
     });
     wrap.appendChild(gearRow);
   });
-  wrap.appendChild(el('div','eyebrow',M('Backpack','Рюкзак')));
+  wrap.appendChild(el('div','eyebrow',M('Backpack','Рюкзак')+' · '+M('Shards: ','Осколки: ')+(RUN.shards||0)));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:11px;'>"+M('Salvage gear you can\'t use for shards — spend them crafting at a shop.','Разбирайте ненужное снаряжение на осколки — тратьте их на крафт в лавке.')+"</span>"));
   const inv=RUN.inventory||[];
   if(!inv.length){
     wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Empty. Unequipped and unused items collected during the march end up here.','Пусто. Снятые и неиспользованные вещи, найденные за поход, попадают сюда.')+"</span>"));
   } else {
     inv.forEach(function(item,idx){
       const row=el('div','row',null);
-      const info=el('div','',"<strong>"+item.name+"</strong> <span class='item-tag rarity-"+item.rarity+"'>"+rarityLabel(item.rarity)+"</span><br><span style='color:var(--muted);font-size:11px;'>"+slotName(item.slot)+' · '+itemDescText(item)+"</span>");
+      const hint=itemClassHint(item);
+      const info=el('div','',"<strong>"+item.name+"</strong> <span class='item-tag rarity-"+item.rarity+"'>"+rarityLabel(item.rarity)+"</span><br><span style='color:var(--muted);font-size:11px;'>"+slotName(item.slot)+' · '+itemDescText(item)+(hint?' · '+hint:'')+"</span>");
       info.style.flex='1';
       row.appendChild(info);
       const eq=el('button','',M('Equip','Экипировать'));
       eq.addEventListener('click',function(){closeModal();promptEquipFromInventory(item,idx);});
       row.appendChild(eq);
-      const del=el('button','',M('Discard','Выбросить'));
-      del.addEventListener('click',function(){RUN.inventory.splice(idx,1);saveRun();closeModal();openFormationModal();});
+      const y=salvageYield(item);
+      const del=el('button','',M('Salvage (+'+y.shards+')','Разобрать (+'+y.shards+')'));
+      del.title=M('Breaks the item down for '+y.shards+' shards and '+y.gold+' gold.','Даёт '+y.shards+' осколков и '+y.gold+' золота.');
+      del.addEventListener('click',function(){RUN.inventory.splice(idx,1);salvageItem(item);saveRun();closeModal();openFormationModal();});
       row.appendChild(del);
       wrap.appendChild(row);
     });
