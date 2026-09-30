@@ -532,6 +532,14 @@ html.no-anim .float-text{display:none;}
       <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
     </div>
     <div class="card stack" style="margin-top:14px;">
+      <div class="row" style="justify-content:space-between;align-items:center;">
+        <h3 id="legacy-bestiary-h3" style="font-size:15px;margin:0;"></h3>
+        <span id="leg-bestiary-summary" style="font-size:12px;color:var(--muted);"></span>
+      </div>
+      <div class="eyebrow" id="legacy-bestiary-eyebrow"></div>
+      <button id="btn-open-bestiary" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
       <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
       <div class="settings-row">
         <span id="settings-animations-label"></span>
@@ -567,9 +575,11 @@ html.no-anim .float-text{display:none;}
       <button id="btn-back-title-top" style="flex-shrink:0;"></button>
     </div>
     <div class="eyebrow" id="hero-select-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="row" id="hero-presets-bar" style="flex-wrap:wrap;margin-bottom:12px;"></div>
     <div class="stack" id="hero-pick-list"></div>
     <div class="row" style="margin-top:16px;">
       <button class="primary" id="btn-confirm-heroes" disabled></button>
+      <button id="btn-save-hero-preset" disabled></button>
       <button id="btn-back-title"></button>
     </div>
   </section>
@@ -664,6 +674,7 @@ html.no-anim .float-text{display:none;}
       <div class="spread"><span id="go-embers-label"></span><span class="gold-badge num" id="go-embers"></span></div>
     </div>
     <div class="stack" id="go-achievements"></div>
+    <button id="btn-go-endless" hidden></button>
     <button class="primary" id="btn-go-continue"></button>
   </section>
 
@@ -795,7 +806,8 @@ function applyProgressToMeta(progress){
     theme:progress.theme==='light'?'light':'dark',
     settings:Object.assign(defaultMeta().settings,progress.settings),
     biomeChoice:(progress.biomeChoice==='frost')?'frost':'ashfall',
-    modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers)
+    modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers),
+    bestiary:progress.bestiary||{},gearPresets:progress.gearPresets||[]
   });
 }
 function attemptSessionRestore(){
@@ -960,6 +972,11 @@ const STATIC_I18N = {
   'go-layers-label':{en:'Layers reached',ru:'Пройдено уровней'},
   'go-embers-label':{en:'Embers earned',ru:'Получено угольков'},
   'btn-go-continue':{en:'Return to Camp',ru:'Вернуться в лагерь'},
+  'legacy-bestiary-h3':{en:'Bestiary',ru:'Бестиарий'},
+  'legacy-bestiary-eyebrow':{en:'Foes and bosses you\'ve met on the march, with their weak point.',ru:'Враги и боссы, встреченные в походе, вместе с их слабым местом.'},
+  'btn-open-bestiary':{en:'Open Bestiary',ru:'Открыть бестиарий'},
+  'btn-save-hero-preset':{en:'Save as Preset',ru:'Сохранить как пресет'},
+  'btn-go-endless':{en:'Press on — Endless March',ru:'Идти дальше — Бесконечный поход'},
 };
 function applyStaticI18n(){
   Object.keys(STATIC_I18N).forEach(function(id){
@@ -1294,6 +1311,79 @@ const BIOME_DEFS = {
     bosses:['rimesovereign']},
 };
 function getBiome(key){return BIOME_DEFS[key]||BIOME_DEFS.ashfall;}
+
+/* ============================= BESTIARY ============================= */
+/* Records which foes the player has actually met in combat (win or lose — meeting
+   them is what teaches the player their stats/weakness, not beating them), so the
+   Legacy screen can show a compendium instead of forcing a re-fight to check a
+   forgotten weakness. Keyed 'enemy:<ENEMY_DEFS key>' / 'boss:<BOSS_DEFS key>'. */
+function recordBestiary(list){
+  META.bestiary=META.bestiary||{};
+  let changed=false;
+  (list||[]).forEach(function(u){
+    const dkey=u.boss?('boss:'+u.bossKey):('enemy:'+u.key);
+    if(!META.bestiary[dkey]){META.bestiary[dkey]=true;changed=true;}
+  });
+  if(changed)saveMeta();
+}
+/* Same vulnerability rule as the in-combat corner badge (see renderCombat) — kept as
+   a shared helper so the bestiary and the battle badge can never drift apart. */
+function bestiaryWeaknessInfo(def){
+  if(!def||!def.res)return null;
+  const weak=def.res==='magic'?'phys':'magic';
+  return {icon:weak==='phys'?'⚔':'✦',
+    label:weak==='phys'?M('Weak to physical (STR) attacks','Слаб к физическим атакам (СИЛА)'):M('Weak to magic (INT) attacks','Слаб к магическим атакам (ИНТ)')};
+}
+/* All enemy keys a biome can throw at the party, across every tier and elites/minions,
+   deduped — used to group the bestiary by march instead of dumping one flat list. */
+function biomeEnemyKeys(biome){
+  const set={};
+  [1,2,3,4].forEach(function(t){
+    (biome.pools[t]||[]).forEach(function(k){set[k]=true;});
+    (biome.eliteMinions[t]||[]).forEach(function(k){set[k]=true;});
+    if(biome.eliteKeys[t])set[biome.eliteKeys[t]]=true;
+  });
+  return Object.keys(set);
+}
+function bestiaryRow(wrap,key,def,isBoss){
+  const dkey=(isBoss?'boss:':'enemy:')+key;
+  const known=!!(META.bestiary&&META.bestiary[dkey]);
+  const row=el('div','row',null);
+  row.style.cssText='align-items:center;';
+  const av=el('div','hero-avatar',known?def.icon:'?');
+  av.style.cssText='background:'+(known?def.color:'var(--surface2)')+';flex-shrink:0;';
+  row.appendChild(av);
+  const info=el('div','',null);
+  info.style.flex='1';
+  if(known){
+    const weak=bestiaryWeaknessInfo(def);
+    const tag=isBoss?" <span class='item-tag' style='color:var(--danger);'>"+M('Boss','Босс')+"</span>":(def.elite?" <span class='item-tag' style='color:var(--accent2);'>"+M('Elite','Элита')+"</span>":'');
+    info.innerHTML='<strong>'+L(def.name)+'</strong>'+tag+
+      "<br><span style='color:var(--muted);font-size:11px;'>"+statAbbr('hp')+' '+def.hp+' &middot; '+statAbbr('atk')+' '+def.atk+' &middot; '+statAbbr('def')+' '+def.def+' &middot; '+statAbbr('spd')+' '+def.spd+"</span>"+
+      (weak?"<br><span style='font-size:11px;color:var(--accent);'>"+weak.icon+' '+weak.label+"</span>":'');
+  } else {
+    info.innerHTML="<strong style='color:var(--muted);'>"+M('Undiscovered — meet it in combat first.','Не изучен — сначала встретьте его в бою.')+"</strong>";
+  }
+  row.appendChild(info);
+  wrap.appendChild(row);
+}
+function openBestiaryModal(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Bestiary','Бестиарий')));
+  const total=Object.keys(ENEMY_DEFS).length+Object.keys(BOSS_DEFS).length;
+  const known=Object.keys(META.bestiary||{}).length;
+  wrap.appendChild(el('div','eyebrow',known+' / '+total+' '+M('discovered','изучено')));
+  Object.keys(BIOME_DEFS).forEach(function(bk){
+    const biome=BIOME_DEFS[bk];
+    wrap.appendChild(el('div','eyebrow',L(biome.name)));
+    biomeEnemyKeys(biome).forEach(function(k){bestiaryRow(wrap,k,ENEMY_DEFS[k],false);});
+    (biome.bosses||[]).forEach(function(bossKey){bestiaryRow(wrap,bossKey,BOSS_DEFS[bossKey],true);});
+  });
+  const close=el('button','primary',M('Close','Закрыть'));
+  close.addEventListener('click',closeModal);
+  wrap.appendChild(close);
+  openModal(wrap);
+}
 
 /* Roguelike-trial-style difficulty modifiers, toggled independently of and stacking on
    top of Ascension. Persisted per-player in META.modifiers, copied onto RUN.modifiers
@@ -1902,7 +1992,15 @@ function defaultMeta(){
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
     settings:{animations:true,textScale:1,sound:true},
     biomeChoice:'ashfall',modifiers:{eliteVanguard:false,earlyStorm:false,brokenWard:false},
-    dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0};
+    dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0,
+    /* Bestiary: dict keyed 'enemy:<key>' / 'boss:<key>' -> true once that foe has been
+       met in combat at least once (see recordBestiary(), called from startCombat()). */
+    bestiary:{},
+    /* Saved company line-ups (hero-select screen) — a named list of up to 3 hero keys
+       the player can re-apply in one click instead of picking heroes by hand each time. */
+    gearPresets:[],
+    /* Best depth reached in the Endless March (post-boss survival mode) — see onDefeat(). */
+    bestEndlessDepth:0};
 }
 let META = defaultMeta(); // populated from the server after login — see onAuthSubmit()
 function loadMeta(){
@@ -1910,7 +2008,8 @@ function loadMeta(){
     const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark',
       settings:Object.assign(defaultMeta().settings,m.settings),
       biomeChoice:(m.biomeChoice==='frost')?'frost':'ashfall',
-      modifiers:Object.assign(defaultMeta().modifiers,m.modifiers)});
+      modifiers:Object.assign(defaultMeta().modifiers,m.modifiers),
+      bestiary:m.bestiary||{},gearPresets:m.gearPresets||[]});
   }catch(e){return defaultMeta();}
 }
 function applySettings(){
@@ -1992,6 +2091,12 @@ const ACHIEVEMENTS = [
     check:function(win){return (RUN.comboCount||0)>=3;}},
   {id:'individualist',name:{en:'Individualist',ru:'Индивидуалист'},desc:{en:'Win a march with a custom hero in the company.',ru:'Победить в походе, имея в отряде кастомного героя.'},reward:20,
     check:function(win){return win&&RUN.party.some(function(h){return h.custom;});}},
+  {id:'arcane_company',name:{en:'Arcane Company',ru:'Чистая аркана'},desc:{en:'Win a march with a company of only Intellect-based heroes (Pyromancer, Necromancer, Cleric, or a custom hero of that kind).',ru:'Победить в походе, набрав в отряд только магов — бьющих Интеллектом (Пиромант, Некромант, Жрица или свой герой этого типа).'},reward:25,
+    check:function(win){return win&&RUN.party.every(function(h){return dmgTypeOf(h)==='int';});}},
+  {id:'steel_company',name:{en:'Steel Company',ru:'Стальной отряд'},desc:{en:'Win a march with a company of only Strength-based heroes.',ru:'Победить в походе, набрав в отряд только бойцов, бьющих Силой.'},reward:25,
+    check:function(win){return win&&RUN.party.every(function(h){return dmgTypeOf(h)==='str';});}},
+  {id:'into_eternity',name:{en:'Into Eternity',ru:'В вечность'},desc:{en:'Reach depth 10 in the Endless March.',ru:'Достичь глубины 10 в Бесконечном походе.'},reward:35,
+    check:function(win){return (META.bestEndlessDepth||0)>=10;}},
 ];
 function evaluateAchievements(win){
   META.achievements=META.achievements||{};
@@ -2397,6 +2502,12 @@ function resolvePendingLevelUps(){
 }
 function finishRewardNode(node){
   resolvePendingLevelUps();
+  if(node.endless){
+    RUN.endlessDepth=(RUN.endlessDepth||0)+1;
+    saveRun();
+    nextEndlessEncounter();
+    return;
+  }
   completeCurrentNode(node);
   goToMap();
 }
@@ -2495,6 +2606,8 @@ function startNewRun(heroKeys,dailySeed){
     inventory:[],
     comboCount:0,
     shards:0,
+    endless:false,
+    endlessDepth:0,
   };
   RUN.availableNodeIds=RUN.map.layers[0].map(function(n){return n.id;});
   if(META.upgrades.favor>0){
@@ -2552,6 +2665,16 @@ function enemyScale(li){
   const ramp=1+frac*0.315+Math.pow(frac,3)*0.25;
   return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14+Math.pow(frac,3)*0.10};
 }
+/* Same curve as enemyScale(), but without the frac<=1 clamp — used only past the
+   final boss, in the Endless March (see buildEndlessEncounter()), where li keeps
+   growing past TOTAL_MAP_LAYERS on purpose so the fights keep getting harder
+   instead of plateauing at boss-tier forever. */
+function enemyScaleEndless(li){
+  const asc=1+RUN.ascension*0.14;
+  const frac=Math.max(0,(li||0)/TOTAL_MAP_LAYERS);
+  const ramp=1+frac*0.315+Math.pow(frac,3)*0.25;
+  return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14+Math.pow(frac,3)*0.10};
+}
 /* Enemies don't get a full STR/INT split (that's a player-class thing per the
    request) — but they do get a magic-defense split, cheaply, by deriving MDEF
    from the same base DEF number rather than hand-tuning every monster:
@@ -2566,9 +2689,9 @@ function enemyDefSplit(d,s){
   const magicMult=d.res==='magic'?1.35:(d.res==='phys'?0.6:1);
   return {def:Math.round(d.def*s.def*physMult),mdef:Math.round(d.def*s.def*magicMult)};
 }
-function makeEnemyInstance(defKey,li){
+function makeEnemyInstance(defKey,li,uncapped){
   const d=ENEMY_DEFS[defKey];
-  const s=enemyScale(li);
+  const s=uncapped?enemyScaleEndless(li):enemyScale(li);
   const ds=enemyDefSplit(d,s);
   return {
     uid:nextUid(),
@@ -2605,8 +2728,28 @@ function disambiguateNames(list){
   });
   return list;
 }
+/* Endless March encounters: always tier-4 pressure, growing steadily past the
+   boss via enemyScaleEndless(). Every 4th depth throws an elite (with its usual
+   minions) instead of a plain skirmish, so the climb still has rhythm to it. */
+function buildEndlessEncounter(depth){
+  const li=TOTAL_MAP_LAYERS+depth;
+  const biome=getBiome(RUN&&RUN.biome);
+  const pool=biome.pools[4];
+  if(depth>0&&depth%4===0){
+    const list=[makeEnemyInstance(biome.eliteKeys[4],li,true)];
+    const minions=biome.eliteMinions[4];
+    if(Math.random()<0.85)list.push(makeEnemyInstance(pick(minions),li,true));
+    if(Math.random()<0.4)list.push(makeEnemyInstance(pick(minions),li,true));
+    return disambiguateNames(list);
+  }
+  const count=randInt(2,3)+(Math.random()<0.4?1:0);
+  const list=[];
+  for(let i=0;i<count;i++)list.push(makeEnemyInstance(pick(pool),li,true));
+  return disambiguateNames(list);
+}
 function buildEncounter(node){
   const li=node.layer;
+  if(node.endless)return buildEndlessEncounter(node.endlessDepth||0);
   const tier=tierForLayer(li);
   if(node.type==='boss')return disambiguateNames([makeBossInstance()]);
   const biome=getBiome(RUN&&RUN.biome);
@@ -2911,6 +3054,7 @@ function startCombat(node){
     over:false,
     autoBattle:false,
   };
+  recordBestiary(RUN.combat.enemies);
   RUN.party.forEach(function(h){h.abilities.forEach(function(a){a.cdLeft=0;});h.status=[];});
   logCombat(M(
     'The company braces as '+RUN.combat.enemies.map(function(e){return e.name;}).join(', ')+' close in.',
@@ -3366,9 +3510,13 @@ function startRest(node){
 
 function renderTopbar(){
   if(!RUN)return;
-  const cur = RUN.currentNodeId?findNode(RUN.map,RUN.currentNodeId):null;
-  const layerNum = cur? (cur.layer+2) : 1;
-  $('tb-layer').textContent=M('Layer ','Уровень ')+Math.min(layerNum,TOTAL_STEPS)+' / '+TOTAL_STEPS+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
+  if(RUN.endless){
+    $('tb-layer').textContent=M('Endless — depth ','Бесконечный — глубина ')+(RUN.endlessDepth||0)+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
+  } else {
+    const cur = RUN.currentNodeId?findNode(RUN.map,RUN.currentNodeId):null;
+    const layerNum = cur? (cur.layer+2) : 1;
+    $('tb-layer').textContent=M('Layer ','Уровень ')+Math.min(layerNum,TOTAL_STEPS)+' / '+TOTAL_STEPS+(RUN.ascension?('  ·  '+M('Asc ','Слож. ')+RUN.ascension):'');
+  }
   $('tb-gold').textContent=RUN.gold+M('g',M(' зол.',' зол.'));
   const wrap=$('tb-party');wrap.innerHTML='';
   RUN.party.forEach(function(h){
@@ -3831,6 +3979,17 @@ function openFormationModal(){
   const wrap=el('div','stack');
   wrap.appendChild(el('h3','',M('Formation & Gear','Строй и снаряжение')));
   wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Melee attacks hit the nearest row — the front row if anyone stands there, otherwise the back row. Ranged attacks reach anyone.','Атаки ближнего боя бьют по ближайшему ряду — переднему, если там кто-то есть, иначе по заднему. Дальние атаки достают любого.')+"</span>"));
+  /* Party defense summary: everything a player needs to judge the company's overall
+     durability at a glance, without opening each hero's card individually. */
+  const sumHp=RUN.party.reduce(function(s,h){return s+(h.hp||0);},0);
+  const sumMaxHp=RUN.party.reduce(function(s,h){return s+(h.maxHp||0);},0);
+  const sumDef=RUN.party.reduce(function(s,h){return s+(h.def||0);},0);
+  const sumMdef=RUN.party.reduce(function(s,h){return s+(h.mdef||0);},0);
+  const summary=el('div','card',
+    "<span style='color:var(--muted);font-size:11px;'>"+M('Company totals','Суммарно по отряду')+"</span><br>"+
+    statAbbr('hp')+' '+sumHp+'/'+sumMaxHp+' &middot; '+statAbbr('def')+' '+sumDef+' &middot; '+statAbbr('mdef')+' '+sumMdef);
+  summary.style.cssText='padding:8px 10px;margin:6px 0 10px;';
+  wrap.appendChild(summary);
   RUN.party.forEach(function(h){
     const row=el('div','row',null);
     const dt=dmgTypeOf(h);
@@ -3927,26 +4086,62 @@ function onVictory(){
   $('go-layers').textContent=TOTAL_STEPS+' / '+TOTAL_STEPS;
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
+  /* Endless March: offered only right after beating the final boss — the run's party,
+     gold and gear are still in memory (clearRun() above only drops the localStorage
+     checkpoint), so pressing on just keeps using them for one more scaled fight at a
+     time instead of ending the session here. */
+  $('btn-go-endless').hidden=false;
   show('screen-gameover');
   SFX.victory();
 }
+/* Starts (or resumes, after a reload) the Endless March: an unbroken chain of
+   scaled battle encounters past the final boss, ending only when the company
+   falls. See buildEndlessEncounter()/nextEndlessEncounter()/finishRewardNode(). */
+function startEndlessMode(){
+  if(!RUN||!RUN.party||!RUN.party.length)return;
+  RUN.endless=true;
+  RUN.endlessDepth=0;
+  RUN.combat=null;
+  RUN.pendingReward=null;
+  saveRun();
+  nextEndlessEncounter();
+}
+function nextEndlessEncounter(){
+  const depth=RUN.endlessDepth||0;
+  const node={id:'endless-'+depth,type:'battle',layer:TOTAL_MAP_LAYERS+depth,endless:true,endlessDepth:depth,cleared:false,next:[]};
+  startCombat(node);
+}
 function onDefeat(){
-  const embers=computeEmbers(false);
+  $('btn-go-endless').hidden=true;
+  const endlessRun=!!(RUN&&RUN.endless);
+  const depth=(RUN&&RUN.endlessDepth)||0;
+  const embers=computeEmbers(false)+(endlessRun?depth*3:0);
   META.embers+=embers;
   META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
+  if(endlessRun)META.bestEndlessDepth=Math.max(META.bestEndlessDepth||0,depth);
   if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};META.embers+=5;restoreRandom();}
   const unlocked=evaluateAchievements(false);
   checkHeroUnlocks();
   recordRunHistory(false,embers);
   saveMeta();
   clearRun();
-  $('go-banner').textContent=M('The Company Falls','Отряд погиб');
-  $('go-banner').className='gameover-banner lose';
-  $('go-text').textContent=M(
-    'The ash takes what remains. Somewhere behind, the next company is already being mustered.',
-    'Пепел забирает всё, что осталось. Где-то позади уже собирают следующий отряд.'
-  );
-  $('go-layers').textContent=(RUN.layersCleared)+' / '+TOTAL_STEPS;
+  if(endlessRun){
+    $('go-banner').textContent=M('The Endless March Ends','Бесконечный поход завершён');
+    $('go-banner').className='gameover-banner lose';
+    $('go-text').textContent=M(
+      'The company falls '+depth+' fight'+(depth===1?'':'s')+' beyond the March. Best depth so far: '+(META.bestEndlessDepth||0)+'.',
+      'Отряд пал, пройдя '+depth+' боёв сверх похода. Лучшая глубина: '+(META.bestEndlessDepth||0)+'.'
+    );
+    $('go-layers').textContent=(TOTAL_STEPS+depth)+' / ∞';
+  } else {
+    $('go-banner').textContent=M('The Company Falls','Отряд погиб');
+    $('go-banner').className='gameover-banner lose';
+    $('go-text').textContent=M(
+      'The ash takes what remains. Somewhere behind, the next company is already being mustered.',
+      'Пепел забирает всё, что осталось. Где-то позади уже собирают следующий отряд.'
+    );
+    $('go-layers').textContent=(RUN.layersCleared)+' / '+TOTAL_STEPS;
+  }
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
   show('screen-gameover');
@@ -4151,6 +4346,14 @@ function renderLegacy(){
       META.seenHeroes=newHeroes;META.seenAchievements=newAch;saveMeta();
     }
   }
+  const bestiarySummary=$('leg-bestiary-summary');
+  if(bestiarySummary){
+    const total=Object.keys(ENEMY_DEFS).length+Object.keys(BOSS_DEFS).length;
+    const known=Object.keys(META.bestiary||{}).length;
+    bestiarySummary.textContent=known+' / '+total;
+  }
+  const bestiaryBtn=$('btn-open-bestiary');
+  if(bestiaryBtn)bestiaryBtn.onclick=openBestiaryModal;
   const animBtn=$('btn-toggle-animations');
   if(animBtn){
     const on=META.settings.animations!==false;
@@ -4261,7 +4464,7 @@ function importSave(){
     if(raw.indexOf('EMBERMARCH1:')===0)raw=raw.slice('EMBERMARCH1:'.length);
     try{
       const parsed=JSON.parse(decodeURIComponent(escape(atob(raw))));
-      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:(parsed.biomeChoice==='frost')?'frost':'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers)});
+      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:(parsed.biomeChoice==='frost')?'frost':'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers),bestiary:parsed.bestiary||{},gearPresets:parsed.gearPresets||[]});
       saveMeta();applyTheme();applySettings();closeModal();renderLegacy();
     }catch(e){
       err.textContent=M('That code could not be read. Check for typos and try again.','Не удалось прочитать код. Проверьте на опечатки и попробуйте снова.');
@@ -4275,8 +4478,18 @@ function importSave(){
 }
 
 let heroSelectState=[];
+function heroUnlockedForSelect(key){
+  if(META.heroesUnlocked&&Object.prototype.hasOwnProperty.call(META.heroesUnlocked,key))return !!META.heroesUnlocked[key];
+  return (META.customHeroes||[]).some(function(c){return c.id===key;});
+}
+function updateHeroSelectButtons(){
+  $('btn-confirm-heroes').disabled=heroSelectState.length!==3;
+  const saveBtn=$('btn-save-hero-preset');
+  if(saveBtn)saveBtn.disabled=heroSelectState.length!==3;
+}
 function renderHeroPickCard(list,key,def,unlocked,isCustom){
   const card=el('div','hero-pick'+(unlocked?'':' locked'));
+  if(unlocked&&heroSelectState.indexOf(key)>=0)card.classList.add('selected');
   const av=el('div','hero-avatar',def.custom?customPortraitSVG(def):(HERO_ICON_SVG[def.tplKey||key]||def.icon));av.style.background=def.color;
   card.appendChild(av);
   const info=el('div','hero-info');
@@ -4306,13 +4519,14 @@ function renderHeroPickCard(list,key,def,unlocked,isCustom){
       if(idx>=0)heroSelectState.splice(idx,1);
       else if(heroSelectState.length<3)heroSelectState.push(key);
       card.classList.toggle('selected',heroSelectState.indexOf(key)>=0);
-      $('btn-confirm-heroes').disabled=heroSelectState.length!==3;
+      updateHeroSelectButtons();
     });
   }
   list.appendChild(card);
 }
-function renderHeroSelect(){
-  heroSelectState=[];
+/* Builds the card grid from the current heroSelectState (marking already-selected
+   cards), without resetting the selection — so a saved preset can repopulate it. */
+function renderHeroPickList(){
   const list=$('hero-pick-list');list.innerHTML='';
   HERO_ORDER.forEach(function(key){
     renderHeroPickCard(list,key,HERO_DEFS[key],META.heroesUnlocked[key],false);
@@ -4326,7 +4540,78 @@ function renderHeroSelect(){
     addCard.addEventListener('click',openCreateHeroModal);
     list.appendChild(addCard);
   }
-  $('btn-confirm-heroes').disabled=true;
+  updateHeroSelectButtons();
+}
+/* Saved company line-ups (META.gearPresets) shown as clickable chips above the
+   hero grid — re-applies a saved 3-hero selection in one click instead of picking
+   heroes by hand every march. */
+function renderHeroPresetsBar(){
+  const bar=$('hero-presets-bar');if(!bar)return;
+  bar.innerHTML='';
+  bar.style.flexWrap='wrap';
+  const presets=META.gearPresets||[];
+  if(!presets.length){
+    bar.appendChild(el('div','',"<span style='color:var(--muted);font-size:11px;'>"+M('No saved companies yet — pick three heroes below, then “Save as Preset”.','Сохранённых составов пока нет — выберите троих героев ниже и нажмите «Сохранить как пресет».')+"</span>"));
+    return;
+  }
+  presets.forEach(function(p,idx){
+    const applicable=p.heroKeys.length===3&&p.heroKeys.every(heroUnlockedForSelect);
+    const chip=el('div','',null);
+    chip.style.cssText='border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-size:12px;display:flex;align-items:center;gap:6px;background:var(--surface2);cursor:'+(applicable?'pointer':'default')+';'+(applicable?'':'opacity:0.5;');
+    const names=p.heroKeys.map(function(k){const d=HERO_DEFS[k]||customHeroToDef(k);return d?L(d.name):k;}).join(', ');
+    const label=el('div','',"<strong>"+p.name+"</strong><br><span style='color:var(--muted);'>"+names+"</span>");
+    chip.title=applicable?M('Click to select this company','Нажмите, чтобы выбрать этот состав'):M('Missing an unlocked hero','Не хватает открытого героя');
+    chip.appendChild(label);
+    if(applicable)chip.addEventListener('click',function(){applyHeroPreset(p);});
+    const del=document.createElement('button');del.textContent='×';del.title=M('Delete preset','Удалить пресет');
+    del.style.cssText='padding:1px 6px;font-size:11px;flex-shrink:0;';
+    del.addEventListener('click',function(e){
+      e.stopPropagation();
+      META.gearPresets.splice(idx,1);
+      saveMeta();
+      renderHeroPresetsBar();
+    });
+    chip.appendChild(del);
+    bar.appendChild(chip);
+  });
+}
+function applyHeroPreset(p){
+  heroSelectState=p.heroKeys.filter(heroUnlockedForSelect).slice(0,3);
+  renderHeroPickList();
+}
+function openSavePresetModal(){
+  if(heroSelectState.length!==3)return;
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Save Company Preset','Сохранить состав отряда')));
+  const names=heroSelectState.map(function(k){const d=HERO_DEFS[k]||customHeroToDef(k);return d?L(d.name):k;}).join(', ');
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+names+"</span>"));
+  const nameInput=document.createElement('input');
+  nameInput.type='text';nameInput.maxLength=20;nameInput.placeholder=M('Preset name','Название пресета');
+  nameInput.style.cssText='width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;box-sizing:border-box;';
+  wrap.appendChild(nameInput);
+  const err=el('div','',"");err.style.cssText='color:var(--danger);font-size:12px;min-height:14px;';
+  wrap.appendChild(err);
+  const save=el('button','primary',M('Save','Сохранить'));
+  save.addEventListener('click',function(){
+    const name=nameInput.value.trim();
+    if(!name){err.textContent=M('Enter a name.','Введите название.');return;}
+    META.gearPresets=META.gearPresets||[];
+    if(META.gearPresets.length>=8){err.textContent=M('Preset limit reached (8). Delete one first.','Достигнут лимит пресетов (8). Сначала удалите один.');return;}
+    META.gearPresets.push({id:'preset_'+Date.now(),name:name.slice(0,20),heroKeys:heroSelectState.slice()});
+    saveMeta();
+    closeModal();
+    renderHeroPresetsBar();
+  });
+  wrap.appendChild(save);
+  const cancel=el('button','',M('Cancel','Отмена'));
+  cancel.addEventListener('click',closeModal);
+  wrap.appendChild(cancel);
+  openModal(wrap);
+}
+function renderHeroSelect(){
+  heroSelectState=[];
+  renderHeroPickList();
+  renderHeroPresetsBar();
   show('screen-hero-select');
 }
 
@@ -4533,6 +4818,7 @@ $('btn-confirm-heroes').addEventListener('click',function(){
     startNewRun(heroSelectState.slice(),seed);
   }
 });
+$('btn-save-hero-preset').addEventListener('click',openSavePresetModal);
 $('btn-formation').addEventListener('click',openFormationModal);
 $('btn-auto-battle').addEventListener('click',function(){
   if(!RUN.combat)return;
@@ -4571,6 +4857,7 @@ $('btn-rest-train').addEventListener('click',function(){
   promptChooseHero(M('Train whom?','Кого тренировать?'),function(h){const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+3;h.def+=1;completeCurrentNode(RUN._restNode);goToMap();});
 });
 $('btn-go-continue').addEventListener('click',renderTitle);
+$('btn-go-endless').addEventListener('click',startEndlessMode);
 $('btn-theme-toggle').addEventListener('click',toggleTheme);
 $('btn-toggle-animations').addEventListener('click',function(){
   META.settings.animations = META.settings.animations===false;
