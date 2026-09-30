@@ -57,7 +57,11 @@
 *{box-sizing:border-box;}
 html{height:100%;}
 body{
-  background:var(--bg);
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, var(--title-glow), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 100% 100%, var(--title-glow), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
   color:var(--text);
   font-family:'Work Sans',system-ui,sans-serif;
   padding-inline:16px;
@@ -65,6 +69,17 @@ body{
   margin:0;
   overflow-x:hidden;
 }
+#ember-particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.ember-spark{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:var(--accent);opacity:0;box-shadow:0 0 6px 1px var(--accent);animation:ember-rise linear infinite;}
+@keyframes ember-rise{
+  0%{transform:translateY(0) translateX(0);opacity:0;}
+  8%{opacity:.75;}
+  92%{opacity:.25;}
+  100%{transform:translateY(-104vh) translateX(var(--drift,12px));opacity:0;}
+}
+html.no-anim #ember-particles{display:none;}
+#app{position:relative;z-index:1;}
+#modal-root{position:relative;z-index:21;}
 h1,h2,h3,.display{
   font-family:'Cormorant Garamond','Marcellus',serif;
   font-weight:600;
@@ -169,6 +184,12 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .gold-badge{color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600;}
 
 /* ---- map ---- */
+#screen-map{position:relative;}
+#screen-map::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:520px;height:260px;max-width:100vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 72%);pointer-events:none;z-index:-1;}
+#screen-shop{position:relative;}
+#screen-shop::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--gold) 16%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
+#screen-rest{position:relative;}
+#screen-rest::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--good) 14%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
 .map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;position:relative;}
 .map-svg{display:block;height:320px;width:auto;max-width:none;}
 .map-node{cursor:pointer;}
@@ -230,8 +251,58 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .status-icon.buff{color:var(--good);}
 .status-icon.debuff{color:var(--danger);}
 
-.enemy-zone{background:var(--danger-soft);border:1px solid #4a2f2e;border-radius:12px;padding:12px;}
-.ally-zone{background:var(--good-soft);border:1px solid #2c4636;border-radius:12px;padding:12px;}
+/* ---- combat feedback fx ---- */
+@keyframes fx-shake{
+  10%,90%{transform:translateX(-1px);}
+  20%,80%{transform:translateX(2px);}
+  30%,50%,70%{transform:translateX(-4px);}
+  40%,60%{transform:translateX(4px);}
+}
+@keyframes fx-shake-hard{
+  10%,90%{transform:translateX(-2px) rotate(-0.5deg);}
+  20%,80%{transform:translateX(4px) rotate(0.5deg);}
+  30%,50%,70%{transform:translateX(-7px) rotate(-1deg);}
+  40%,60%{transform:translateX(7px) rotate(1deg);}
+}
+@keyframes fx-flash{
+  0%,100%{filter:none;}
+  30%{filter:brightness(1.9) saturate(1.4);}
+}
+@keyframes fx-heal-glow{
+  0%,100%{box-shadow:0 0 0 2px transparent;}
+  40%{box-shadow:0 0 0 3px var(--good),0 0 14px -2px var(--good);}
+}
+@keyframes fx-die{
+  0%{opacity:1;transform:scale(1) rotate(0);}
+  60%{opacity:.5;transform:scale(.94) rotate(-2deg);}
+  100%{opacity:.35;transform:scale(.9) rotate(-4deg);}
+}
+@keyframes float-up{
+  0%{opacity:0;transform:translate(-50%,4px) scale(.85);}
+  15%{opacity:1;transform:translate(-50%,-2px) scale(1.08);}
+  30%{transform:translate(-50%,-6px) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-34px) scale(1);}
+}
+.unit-card.fx-hit{animation:fx-shake .32s ease;}
+.unit-card.fx-crit{animation:fx-shake-hard .42s ease,fx-flash .42s ease;}
+.unit-card.fx-heal{animation:fx-heal-glow .7s ease;}
+.unit-card.fx-die{animation:fx-die .5s ease forwards;}
+html.no-anim .unit-card.fx-hit,html.no-anim .unit-card.fx-crit,html.no-anim .unit-card.fx-heal,html.no-anim .unit-card.fx-die{animation:none!important;}
+.float-text{
+  position:absolute;top:34%;left:50%;pointer-events:none;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap;z-index:5;
+  animation:float-up .9s ease-out forwards;
+}
+.float-text.dmg{color:var(--danger);}
+.float-text.crit{color:#ff5a4a;font-size:19px;}
+.float-text.heal{color:var(--good);}
+.float-text.combo{color:var(--gold);font-size:12px;top:16%;}
+.float-text.dodge{color:var(--accent2);font-size:12px;}
+html.no-anim .float-text{display:none;}
+
+.enemy-zone{background:radial-gradient(ellipse 100% 60% at 50% 0%, color-mix(in srgb,var(--danger) 10%,transparent), transparent 75%),var(--danger-soft);border:1px solid #4a2f2e;border-radius:12px;padding:12px;}
+.ally-zone{background:radial-gradient(ellipse 100% 60% at 50% 100%, color-mix(in srgb,var(--good) 10%,transparent), transparent 75%),var(--good-soft);border:1px solid #2c4636;border-radius:12px;padding:12px;}
 .zone-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
 
 #combat-log{
@@ -299,6 +370,8 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 
 <button id="btn-theme-toggle" title="Тема" aria-label="Переключить тему" style="position:fixed;top:14px;left:14px;z-index:50;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);"></button>
+
+<div id="ember-particles" aria-hidden="true"></div>
 
 <div id="app">
 
@@ -622,8 +695,31 @@ const HERO_ICON_SVG = {
   morwen:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 3 1.5 4.6 2.2 6.4.3.8.3 1.6.3 2.6h9c0-1 0-1.8.3-2.6C17.5 13.6 19 12 19 9a7 7 0 00-7-7z" fill="#12141a"/><circle cx="9.3" cy="9" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="9" r="1.3" fill="#e9e4d6"/><path d="M9.5 19h5M10 21.5h4" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
   torvin:'<svg viewBox="0 0 24 24"><path d="M12 2.5l7 3v5c0 5-3 8.6-7 10.5-4-1.9-7-5.5-7-10.5v-5l7-3z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 7v9M8.5 11.5h7" stroke="#12141a" stroke-width="1.8" stroke-linecap="round"/></svg>',
 };
+function heroIconInner(key){
+  const full=HERO_ICON_SVG[key];
+  if(!full)return '';
+  const m=full.match(/^<svg[^>]*>([\s\S]*)<\/svg>$/);
+  return m?m[1]:'';
+}
+/* Custom heroes get a composite portrait instead of a bare letter/emblem: the base
+   class's silhouette (shrunk and shifted), with the player's chosen emblem shown as
+   a small badge in the corner — a real portrait instead of a flat icon-in-circle. */
+function customPortraitSVG(unit){
+  const inner=heroIconInner(unit.tplKey);
+  const badge=(unit.icon||'★');
+  if(!inner)return badge;
+  return '<svg viewBox="0 0 24 24">'
+    +'<g transform="translate(-1.2,-1.2) scale(0.86)">'+inner+'</g>'
+    +'<circle cx="18.3" cy="18.3" r="5.4" fill="#12141a" opacity="0.9"/>'
+    +'<circle cx="18.3" cy="18.3" r="5.4" fill="none" stroke="#e9e4d6" stroke-width="0.6" opacity="0.5"/>'
+    +'<text x="18.3" y="20.6" font-size="6.4" text-anchor="middle" fill="#e9e4d6" font-family="Marcellus,serif">'+badge+'</text>'
+    +'</svg>';
+}
 function avatarContent(unit){
+  if(unit&&unit.isHero&&unit.custom&&unit.tplKey&&HERO_ICON_SVG[unit.tplKey])return customPortraitSVG(unit);
   if(unit&&unit.isHero&&!unit.custom&&HERO_ICON_SVG[unit.tplKey||unit.key])return HERO_ICON_SVG[unit.tplKey||unit.key];
+  if(unit&&!unit.isHero&&unit.key==='boss'&&typeof BOSS_ICON_SVG!=='undefined'&&BOSS_ICON_SVG[unit.bossKey])return BOSS_ICON_SVG[unit.bossKey];
+  if(unit&&!unit.isHero&&typeof ENEMY_ICON_SVG!=='undefined'&&ENEMY_ICON_SVG[unit.key])return ENEMY_ICON_SVG[unit.key];
   return unit&&unit.icon?unit.icon:'';
 }
 
@@ -746,6 +842,29 @@ function getHeroDef(key){
   return HERO_DEFS[key]||customHeroToDef(key);
 }
 
+/* Enemy and boss portraits, same minimalist style as HERO_ICON_SVG (dark silhouette
+   on the unit's own color circle) — replaces the old single-letter icons. */
+const ENEMY_ICON_SVG = {
+  grunt:'<svg viewBox="0 0 24 24"><path d="M5 19L17 3c1 3-1 6-3 8l-7 9-2-1z" fill="#12141a"/></svg>',
+  archer:'<svg viewBox="0 0 24 24"><path d="M6 3c6 3 6 15 0 18" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M6 12h13M16 8l3 4-3 4" fill="none" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  hound:'<svg viewBox="0 0 24 24"><path d="M12 4l3 3 4-1-2 4 2 4-4 3-3 4-3-4-4-3 2-4-2-4 4 1 3-3z" fill="#12141a"/><circle cx="9.5" cy="11" r="1" fill="#e9e4d6"/><circle cx="14.5" cy="11" r="1" fill="#e9e4d6"/></svg>',
+  shaman:'<svg viewBox="0 0 24 24"><path d="M12 21V9" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="6" r="3.4" fill="#12141a"/><circle cx="10.7" cy="5.6" r="0.7" fill="#e9e4d6"/><circle cx="13.3" cy="5.6" r="0.7" fill="#e9e4d6"/></svg>',
+  revenant:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="13" rx="7.5" ry="8" fill="#12141a"/><circle cx="9" cy="11" r="1.1" fill="#e9e4d6"/><circle cx="15" cy="11" r="1.1" fill="#e9e4d6"/></svg>',
+  wraith:'<svg viewBox="0 0 24 24"><path d="M12 2a6 6 0 016 6v7l-2-2-2 2-2-2-2 2-2-2-2 2V8a6 6 0 016-6z" fill="#12141a"/></svg>',
+  caster:'<svg viewBox="0 0 24 24"><path d="M12 3l7 17H5L12 3z" fill="#12141a"/><circle cx="12" cy="13" r="2" fill="#e9e4d6"/></svg>',
+  hand:'<svg viewBox="0 0 24 24"><path d="M6 21V11a2 2 0 014 0v-3a2 2 0 014 0v2a2 2 0 014 0v2a2 2 0 014 0v9H6z" fill="#12141a"/></svg>',
+  knight:'<svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 017 7v5l-2 6H7l-2-6V10a7 7 0 017-7z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 10v8M8.5 14h7" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  banshee:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="11" rx="6" ry="7.5" fill="#12141a"/><ellipse cx="12" cy="14.5" rx="2.2" ry="3" fill="#e9e4d6"/></svg>',
+  ashlord:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#12141a"/><circle cx="9.3" cy="11" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="11" r="1.3" fill="#e9e4d6"/><path d="M6 6l2 3M18 6l-2 3M9 4l1 3M15 4l-1 3M12 3v3" stroke="#12141a" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  stalker:'<svg viewBox="0 0 24 24"><path d="M4 18c2-6 5-9 8-9s5 2 6 5c1-3 3-1 2 1-1 1-3 1-4 0-1 3-4 5-7 5-2 0-4-1-5-2z" fill="#12141a"/><circle cx="9" cy="10" r="0.9" fill="#e9e4d6"/></svg>',
+  zealot:'<svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 015 5v3l3 9H4l3-9V8a5 5 0 015-5z" fill="#12141a"/><path d="M9 21l3-5 3 5" stroke="#e9e4d6" stroke-width="1" fill="none"/></svg>',
+};
+const BOSS_ICON_SVG = {
+  warden:'<svg viewBox="0 0 24 24"><path d="M12 2c-2 2-4 2.5-4 6 0 2 1 3 1 5-2 .5-3 2-3 4a6 6 0 0012 0c0-2-1-3.5-3-4 0-2 1-3 1-5 0-3.5-2-4-4-6z" fill="#12141a"/><circle cx="9.5" cy="14" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="14" r="1.1" fill="#e9e4d6"/></svg>',
+  colossus:'<svg viewBox="0 0 24 24"><path d="M2 20L9 6l3 4 3-6 7 16H2z" fill="#12141a"/><path d="M9 6l2 5-3 2M12 10l1 4-2 1" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
+  vessel:'<svg viewBox="0 0 24 24"><path d="M9 3h6l1 3-1 2c2 2 3 5 3 8a6 6 0 01-12 0c0-3 1-6 3-8l-1-2 1-3z" fill="#12141a"/><path d="M9 12l2 2-1 3 2 2" stroke="#e9e4d6" stroke-width="0.9" fill="none"/></svg>',
+};
+
 const ENEMY_DEFS = {
   grunt:{name:{en:'Ashling Grunt',ru:'Пепельный головорез'},icon:'G',color:'#8a6a55',hp:19,atk:6,def:3,spd:4,row:'front',
     abilities:[{id:'gash',name:{en:'Gash',ru:'Рубящий удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0}]},
@@ -860,11 +979,25 @@ const EVENTS = [
     choices:[
       {label:{en:'Let it settle over you',ru:'Позволить ему осесть на вас'},resolve(run){
         run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.12));});
-        return M('The chime fades into a warm hush. The whole company feels mended.','Звон стихает в тёплой тишине. Весь отряд чувствует облегчение.');
+        run.pendingChainEvent='shrine_gift';
+        return M('The chime fades into a warm hush. The whole company feels mended. Something in the ash still lingers, grateful.','Звон стихает в тёплой тишине. Весь отряд чувствует облегчение. Но что-то в пепле всё ещё остаётся рядом, будто благодарное.');
       }},
       {label:{en:'Banish it',ru:'Изгнать его'},resolve(run){
         const g=18+Math.floor(Math.random()*12);run.gold+=g;
         return M('You scatter the last of the ward with a sharp word. It leaves behind '+g+' gold, as if in apology.','Вы резким словом разгоняете остатки оберега. Он оставляет '+g+' золота, будто в извинение.');
+      }},
+    ]},
+  {id:'shrine_gift',chainOnly:true,title:{en:'The Ward Made Whole',ru:'Полный оберег'},
+    text:{en:'The warmth you welcomed has knit itself back into a small, complete ward, offered up like a thank-you before it fades for good.',
+          ru:'Тепло, которое вы приняли, срослось в маленький, целый оберег — будто в благодарность, прежде чем исчезнуть навсегда.'},
+    choices:[
+      {label:{en:'Bind it into your armor',ru:'Вплести его в доспехи'},resolve(run){
+        const h=randAlive(run.party);h.def+=2;
+        return M(h.name+" binds the ward into their armor. It settles in, solid. (+2 DEF this march)",h.name+' вплетает оберег в доспехи. Он прочно оседает. (+2 к защите в этом походе)');
+      }},
+      {label:{en:'Let it dissolve for its worth',ru:'Позволить ему раствориться за плату'},resolve(run){
+        const g=22+Math.floor(Math.random()*14);run.gold+=g;
+        return M('The ward dissolves into a handful of old coin, +'+g+' gold, and is gone for good.','Оберег рассыпается горстью старых монет, +'+g+' золота, и исчезает навсегда.');
       }},
     ]},
   {id:'traveler',title:{en:'Wounded Traveler',ru:'Раненый путник'},
@@ -920,13 +1053,27 @@ const EVENTS = [
     choices:[
       {label:{en:'Honor their memory',ru:'Почтить их память'},resolve(run){
         run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.1));});
-        return M('The ghosts fade, at peace. The company rests easier for it.','Призраки успокаиваются и растворяются. Отряду становится легче от этого.');
+        run.pendingChainEvent='battlefield_blessing';
+        return M('The ghosts fade, at peace. The company rests easier for it. One shade lingers a moment longer than the rest.','Призраки успокаиваются и растворяются. Отряду становится легче от этого. Одна тень задерживается дольше остальных.');
       }},
       {label:{en:'Search their old campsite',ru:'Обыскать их старую стоянку'},resolve(run){
         const g=15+Math.floor(Math.random()*15);run.gold+=g;
         return M('The ghosts watch in silence as you take what they left behind. +'+g+' gold.','Призраки молча наблюдают, как вы забираете оставленное ими. +'+g+' золота.');
       }},
       {label:{en:'Ignore them and move on',ru:'Не обращать внимания и уйти'},resolve(){return M('The ghosts linger a moment longer, then are gone.','Призраки задерживаются ещё на мгновение, затем исчезают.');}},
+    ]},
+  {id:'battlefield_blessing',chainOnly:true,title:{en:"Their Final Gift",ru:'Их последний дар'},
+    text:{en:'The lingering shade holds out something forged in the old company\'s colors — a last piece of craft, offered rather than left to rust.',
+          ru:'Задержавшаяся тень протягивает вещь, выкованную в цветах старого отряда — последнее изделие, отданное, а не брошенное ржаветь.'},
+    choices:[
+      {label:{en:'Accept the offering',ru:'Принять дар'},special:'item',resolve(run){
+        const item=randomItem();run.pendingItemPickup=item;
+        return M('You accept the gift. The shade nods once and is finally gone.','Вы принимаете дар. Тень кивает в последний раз и исчезает.');
+      }},
+      {label:{en:'Promise to remember their name',ru:'Пообещать помнить их имя'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.08));});
+        return M('The shade seems satisfied with that alone. The company feels lighter for the promise kept.','Тени этого оказывается достаточно. Отряду становится легче от сдержанного обещания.');
+      }},
     ]},
   {id:'idol',title:{en:'Cursed Idol',ru:'Проклятый идол'},
     text:{en:'A small black idol watches from a hollow log. It is warm to the touch, and it wants to be carried.',
@@ -1165,7 +1312,7 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,caravan:0,vitality_rite:0,vanguard:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,caravan:0,vitality_rite:0,bulwark:0,vanguard:0,legacy_ember:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
@@ -1206,12 +1353,17 @@ const UPGRADE_DEFS = [
   {key:'favor',name:{en:"Quartermaster's Favor",ru:'Милость интенданта'},desc:{en:'Start each march with a free common item',ru:'Начинать каждый поход с бесплатным обычным предметом'},max:1,cost:function(){return 10;}},
   {key:'whetstone',name:{en:'Whetstone Kit',ru:'Точильный набор'},desc:{en:'+1 ATK to every hero per rank',ru:'+1 к атаке каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'boots',name:{en:'Worn Marching Boots',ru:'Разношенные походные сапоги'},desc:{en:'+1 SPD to every hero per rank',ru:'+1 к скорости каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'aegis',name:{en:'Aegis Plates',ru:'Пластины эгиды'},desc:{en:'+1 DEF to every hero per rank',ru:'+1 к защите каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
   {key:'caravan',name:{en:'Reinforced Caravan',ru:'Усиленный караван'},desc:{en:'+20 starting gold per rank',ru:'+20 к стартовому золоту за уровень'},max:2,cost:function(r){return 18+r*10;},
     requires:{key:'packs',rank:3}},
   {key:'vitality_rite',name:{en:'Rite of Vitality',ru:'Обряд живучести'},desc:{en:'+8 max HP to every hero per rank',ru:'+8 к макс. здоровью каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
     requires:{key:'bones',rank:3}},
+  {key:'bulwark',name:{en:'Rite of the Bulwark',ru:'Обряд бастиона'},desc:{en:'+4 DEF to every hero per rank',ru:'+4 к защите каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'aegis',rank:3}},
   {key:'vanguard',name:{en:"Vanguard's Resolve",ru:'Стойкость авангарда'},desc:{en:'Capstone: +2 ATK and +2 SPD to every hero',ru:'Вершина ветки: +2 к атаке и +2 к скорости каждого героя'},max:1,cost:function(){return 45;},
     requires2:[{key:'whetstone',rank:3},{key:'boots',rank:3}]},
+  {key:'legacy_ember',name:{en:"Legacy of the Last Ember",ru:'Наследие последнего уголька'},desc:{en:'Grand capstone: +2 ATK, +2 DEF, +2 SPD and +10 max HP to every hero',ru:'Высшая вершина: +2 к атаке, +2 к защите, +2 к скорости и +10 к макс. здоровью каждого героя'},max:1,cost:function(){return 80;},
+    requires2:[{key:'vanguard',rank:1},{key:'bulwark',rank:2}]},
 ];
 
 const ACHIEVEMENTS = [
@@ -1267,11 +1419,17 @@ function computeRunStats(){
   const lossLayers=hist.filter(function(h){return !h.win;}).map(function(h){return h.layer;});
   const avgLossLayer=lossLayers.length?(lossLayers.reduce(function(a,b){return a+b;},0)/lossLayers.length).toFixed(1):null;
   const heroCounts={};
-  hist.forEach(function(h){(h.heroKeys||[]).forEach(function(k){heroCounts[k]=(heroCounts[k]||0)+1;});});
+  let heroRunsCounted=0;
+  hist.forEach(function(h){
+    if(h.heroKeys&&h.heroKeys.length){
+      heroRunsCounted++;
+      h.heroKeys.forEach(function(k){heroCounts[k]=(heroCounts[k]||0)+1;});
+    }
+  });
   let favKey=null,favCount=0;
   Object.keys(heroCounts).forEach(function(k){if(heroCounts[k]>favCount){favCount=heroCounts[k];favKey=k;}});
   const customRuns=hist.filter(function(h){return h.hadCustom;}).length;
-  return {total:total,wins:wins,winRate:winRate,avgLossLayer:avgLossLayer,favKey:favKey,favCount:favCount,customRuns:customRuns};
+  return {total:total,wins:wins,winRate:winRate,avgLossLayer:avgLossLayer,favKey:favKey,favCount:favCount,customRuns:customRuns,heroRunsCounted:heroRunsCounted};
 }
 
 /* ============================= UTIL ============================= */
@@ -1341,6 +1499,34 @@ const SFX={
   victory:function(){[392,523,659,784].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.22,{type:'triangle',vol:0.12});},i*110);});},
   defeat:function(){[330,262,220].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.3,{type:'sawtooth',vol:0.1});},i*140);});},
 };
+/* ---- combat visual feedback: floating numbers + card shake/flash/glow ---- */
+function spawnFloatText(uid,text,cls){
+  if(!uid||(META.settings&&META.settings.animations===false))return;
+  const card=document.querySelector('.unit-card[data-uid="'+uid+'"]');
+  if(!card)return;
+  const t=document.createElement('div');
+  t.className='float-text '+(cls||'');
+  t.textContent=text;
+  card.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},950);
+}
+function playUnitFx(uid,cls){
+  if(!uid||(META.settings&&META.settings.animations===false))return;
+  const card=document.querySelector('.unit-card[data-uid="'+uid+'"]');
+  if(!card)return;
+  card.classList.remove(cls);
+  void card.offsetWidth;
+  card.classList.add(cls);
+  if(cls!=='fx-die')setTimeout(function(){card.classList.remove(cls);},700);
+}
+function playCombatFx(fx){
+  if(!fx||!fx.length)return;
+  fx.forEach(function(f){
+    if(f.shakeCls)playUnitFx(f.uid,f.shakeCls);
+    if(f.text)spawnFloatText(f.uid,f.text,f.textCls);
+    if(f.dieCls)setTimeout(function(){playUnitFx(f.uid,f.dieCls);},260);
+  });
+}
 function randAlive(list){const a=list.filter(function(h){return h.alive;});return a.length?pick(a):list[0];}
 function randomItem(){const base=pick(ITEM_POOL);return Object.assign({},base,{name:L(base.name)});}
 function statOf(c,key){
@@ -1462,14 +1648,20 @@ function findNode(map,id){
 /* ============================= RUN STATE ============================= */
 
 let RUN=null;
+let UID_COUNTER=0;
+function nextUid(){UID_COUNTER++;return 'u'+UID_COUNTER;}
 
 function makeHeroInstance(key){
   const def=getHeroDef(key);
-  const maxHp=def.baseHp+META.upgrades.bones*5+(META.upgrades.vitality_rite||0)*8;
+  const legacy=(META.upgrades.legacy_ember||0)>0;
+  const maxHp=def.baseHp+META.upgrades.bones*5+(META.upgrades.vitality_rite||0)*8+(legacy?10:0);
   const vanguard=(META.upgrades.vanguard||0)>0;
   return {
+    uid:nextUid(),
     key:key,tplKey:def.tplKey||key,name:L(def.name),cls:L(def.cls),icon:def.icon,color:def.color,isHero:true,side:'hero',custom:!!def.custom,
-    maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0)+(vanguard?2:0),def:def.baseDef,spd:def.baseSpd+(META.upgrades.boots||0)+(vanguard?2:0),
+    maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0)+(vanguard?2:0)+(legacy?2:0),
+    def:def.baseDef+(META.upgrades.aegis||0)+(META.upgrades.bulwark||0)*4+(legacy?2:0),
+    spd:def.baseSpd+(META.upgrades.boots||0)+(vanguard?2:0)+(legacy?2:0),
     row:def.defaultRow,
     abilities:def.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),desc:L(a.desc),cdLeft:0});}),
     equip:{weapon:null,armor:null,trinket:null,relic:null},
@@ -1656,6 +1848,7 @@ function makeEnemyInstance(defKey,li){
   const d=ENEMY_DEFS[defKey];
   const s=enemyScale(li);
   return {
+    uid:nextUid(),
     key:defKey,name:L(d.name),icon:d.icon,color:d.color,isHero:false,side:'enemy',
     maxHp:Math.round(d.hp*s.hp),hp:Math.round(d.hp*s.hp),
     atk:Math.round(d.atk*s.atk),def:Math.round(d.def*s.def),spd:d.spd,row:d.row,elite:!!d.elite,
@@ -1667,7 +1860,8 @@ function makeBossInstance(){
   const s=enemyScale(TOTAL_MAP_LAYERS);
   const BOSS_DEF=BOSS_DEFS[RUN.bossKey]||BOSS_DEFS.warden;
   return {
-    key:'boss',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
+    uid:nextUid(),
+    key:'boss',bossKey:RUN.bossKey||'warden',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',
     maxHp:Math.round(BOSS_DEF.hp*s.hp),hp:Math.round(BOSS_DEF.hp*s.hp),
     atk:Math.round(BOSS_DEF.atk*s.atk),def:Math.round(BOSS_DEF.def*s.def),spd:BOSS_DEF.spd,row:'front',boss:true,
     abilities:BOSS_DEF.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
@@ -1759,10 +1953,12 @@ function abilityHasTargets(ability,caster){
 
 function applyAbilityEffect(caster,ability,target){
   const logs=[];
+  const fx=[];
   if(ability.type==='damage'){
     const targets = ability.targets==='row'?targetsForRow(ability,caster):(ability.targets==='all'?anyAlive(caster.side==='hero'?RUN.combat.enemies:RUN.combat.party):[target]);
     if(!targets||!targets.length){
       logs.push(M(caster.name+"'s "+ability.name+' finds no one in range.',caster.name+' использует «'+ability.name+'», но там некого атаковать.'));
+      logs.fx=fx;
       return logs;
     }
     let totalDealt=0;
@@ -1778,6 +1974,7 @@ function applyAbilityEffect(caster,ability,target){
       if(dodged){
         t.status=t.status.filter(function(s){return s.type!=='dodge';});
         logs.push(M(t.name+' dodges the attack!',t.name+' уклоняется от удара!'));
+        fx.push({uid:t.uid,text:M('Dodge!','Уклон!'),textCls:'dodge'});
         return;
       }
       /* Combo: Doran's Pack Tackle leaves a foe 'exposed' — Kest's Backstab/Assassinate
@@ -1793,17 +1990,29 @@ function applyAbilityEffect(caster,ability,target){
          (Quick Shot, Pin Down, Deadeye Shot) cash it in for bonus damage, rewarding
          pairing the pyromancer's marker with the ranger's precision follow-up. */
       const scorchedMark=(ability.id==='shot'||ability.id==='pin'||ability.id==='deadeye')?t.status.find(function(s){return s.type==='mark'&&s.tag==='scorched';}):null;
+      /* Combo: Bram's Cleave leaves everyone it hits 'staggered' — Doran's Claw Strike
+         cashes it in for bonus damage, rewarding opening a fight with the warrior's
+         sweep before the beastmaster follows up. */
+      const staggeredMark=(ability.id==='claw')?t.status.find(function(s){return s.type==='mark'&&s.tag==='staggered';}):null;
+      /* Combo: Kest's Backstab/Assassinate leaves a foe 'bleeding' — Morwen's Withering
+         Touch or Soul Siphon cashes it in for bonus damage and extra lifesteal, rewarding
+         pairing the rogue's opener with the necromancer's drain. */
+      const bleedingMark=(ability.id==='wither'||ability.id==='siphon')?t.status.find(function(s){return s.type==='mark'&&s.tag==='bleeding';}):null;
       if(exposedMark){mult+=0.4;t.status=t.status.filter(function(s){return s!==exposedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(blessedMark){mult+=0.25;caster.status=caster.status.filter(function(s){return s!==blessedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(pinnedMark){mult+=0.3;t.status=t.status.filter(function(s){return s!==pinnedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       if(scorchedMark){mult+=0.35;t.status=t.status.filter(function(s){return s!==scorchedMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
+      if(staggeredMark){mult+=0.25;t.status=t.status.filter(function(s){return s!==staggeredMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
+      if(bleedingMark){mult+=0.25;t.status=t.status.filter(function(s){return s!==bleedingMark;});RUN.comboCount=(RUN.comboCount||0)+1;}
       const r=dmgCalc(caster,t,mult);
       t.hp=Math.max(0,t.hp-r.amount);
       totalDealt+=r.amount;
       if(r.crit)SFX.crit();else SFX.hit();
-      if(exposedMark||blessedMark||pinnedMark||scorchedMark)SFX.buff();
-      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'')+(pinnedMark?' (combo: pinned target, +30%!)':'')+(scorchedMark?' (combo: scorched target, +35%!)':'');
-      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'')+(pinnedMark?' (комбо: пригвождённая цель, +30%!)':'')+(scorchedMark?' (комбо: обожжённая цель, +35%!)':'');
+      if(exposedMark||blessedMark||pinnedMark||scorchedMark||staggeredMark||bleedingMark)SFX.buff();
+      fx.push({uid:t.uid,shakeCls:r.crit?'fx-crit':'fx-hit',text:'-'+r.amount,textCls:r.crit?'crit':'dmg'});
+      if(exposedMark||blessedMark||pinnedMark||scorchedMark||staggeredMark||bleedingMark)fx.push({uid:t.uid,text:M('Combo!','Комбо!'),textCls:'combo'});
+      const tagEn=(r.crit?' (crit!)':'')+(burning?' (burning target, +25%!)':'')+(stunned?' (stunned target, +20%!)':'')+(exposedMark?' (combo: exposed target, +40%!)':'')+(blessedMark?' (combo: blessed strike, +25%!)':'')+(pinnedMark?' (combo: pinned target, +30%!)':'')+(scorchedMark?' (combo: scorched target, +35%!)':'')+(staggeredMark?' (combo: staggered target, +25%!)':'')+(bleedingMark?' (combo: bleeding target, +25%!)':'');
+      const tagRu=(r.crit?' (крит!)':'')+(burning?' (горящая цель, +25%!)':'')+(stunned?' (оглушённая цель, +20%!)':'')+(exposedMark?' (комбо: уязвимая цель, +40%!)':'')+(blessedMark?' (комбо: благословенный удар, +25%!)':'')+(pinnedMark?' (комбо: пригвождённая цель, +30%!)':'')+(scorchedMark?' (комбо: обожжённая цель, +35%!)':'')+(staggeredMark?' (комбо: оглушённая ударом цель, +25%!)':'')+(bleedingMark?' (комбо: кровоточащая цель, +25%!)':'');
       logs.push(M(
         caster.name+"'s "+ability.name+' hits '+t.name+' for '+r.amount+tagEn+'.',
         caster.name+' использует «'+ability.name+'» и наносит '+t.name+' '+r.amount+' урона'+tagRu+'.'
@@ -1831,9 +2040,11 @@ function applyAbilityEffect(caster,ability,target){
         }
       }
       if(ability.lifesteal&&caster.alive){
-        const heal=Math.max(1,Math.round(r.amount*ability.lifesteal));
+        let lifestealPct=ability.lifesteal;
+        if(bleedingMark)lifestealPct+=0.2;
+        const heal=Math.max(1,Math.round(r.amount*lifestealPct));
         caster.hp=Math.min(caster.maxHp,caster.hp+heal);
-        logs.push(M(caster.name+' drains '+heal+' HP from the wound.',caster.name+' поглощает '+heal+' HP из раны.'));
+        logs.push(M(caster.name+' drains '+heal+' HP from the wound.'+(bleedingMark?' (combo: bleeding wound!)':''),caster.name+' поглощает '+heal+' HP из раны.'+(bleedingMark?' (комбо: кровоточащая рана!)':'')));
       }
       if(hasRelic(caster,'vampiric')&&caster.alive){
         const heal=Math.max(1,Math.round(r.amount*0.15));
@@ -1854,12 +2065,15 @@ function applyAbilityEffect(caster,ability,target){
       if(ability.debuff){t.status.push({type:'debuff',stat:ability.debuff.stat,amount:ability.debuff.amount,duration:ability.debuff.duration,label:statAbbr(ability.debuff.stat)});}
       if(ability.id==='pin'&&t.alive){t.status.push({type:'mark',tag:'pinned',duration:2,label:M('pinned','пригвождён')});}
       if(ability.id==='flick'&&t.alive){t.status.push({type:'mark',tag:'scorched',duration:2,label:M('scorched','обожжён')});}
+      if(ability.id==='cleave'&&t.alive){t.status.push({type:'mark',tag:'staggered',duration:1,label:M('staggered','сбит с ног')});}
+      if((ability.id==='backstab'||ability.id==='assassinate')&&t.alive){t.status.push({type:'mark',tag:'bleeding',duration:2,label:M('bleeding','кровотечение')});}
       if(t.hp<=0&&t.alive){
         if(hasRelic(t,'revive')&&!t.usedPhoenix){
           t.usedPhoenix=true;t.hp=1;
           logs.push(M(t.name+"'s Phoenix Down flares — they cling to life at 1 HP!",t.name+' спасён Пером феникса — остаётся жить с 1 HP!'));
         } else {
           t.alive=false;if(t.isHero)RUN.heroDied=true;logs.push(M(t.name+' falls.',t.name+' падает замертво.'));SFX.death();
+          fx.push({uid:t.uid,dieCls:'fx-die'});
         }
       }
     });
@@ -1871,6 +2085,7 @@ function applyAbilityEffect(caster,ability,target){
       t.hp=Math.min(t.maxHp,t.hp+amt);
       logs.push(M(caster.name+' mends '+t.name+' for '+amt+'.',caster.name+' лечит '+t.name+' на '+amt+'.'));
       SFX.heal();
+      fx.push({uid:t.uid,shakeCls:'fx-heal',text:'+'+amt,textCls:'heal'});
       if((ability.id==='mend'||ability.id==='sanctuary')&&t!==caster){
         t.status.push({type:'mark',tag:'blessed',duration:2,label:M('blessed','благословение')});
       }
@@ -1915,6 +2130,7 @@ function applyAbilityEffect(caster,ability,target){
       logs.push(M(caster.name+' finds no one to shove.',caster.name+' не находит, кого толкнуть.'));
     }
   }
+  logs.fx=fx;
   return logs;
 }
 
@@ -2120,6 +2336,7 @@ function enemyAct(unit){
   RUN.combat.enemyIntent=null;
   RUN.combat.phase='advance';
   renderCombat();
+  playCombatFx(logs.fx);
   setTimeout(advanceTurn,450);
 }
 
@@ -2185,6 +2402,7 @@ function resolveHeroAbility(ability,target){
   RUN.combat.qi++;
   RUN.combat.phase='advance';
   renderCombat();
+  playCombatFx(logs.fx);
   setTimeout(advanceTurn,250);
 }
 function heroChooseTarget(target){
@@ -2565,6 +2783,8 @@ function statusTooltip(s){
   if(s.type==='mark'&&s.tag==='blessed')return M("Blessed: this hero's next attack deals +25% bonus damage (combo).","Благословение: следующая атака этого героя наносит +25% урона (комбо).");
   if(s.type==='mark'&&s.tag==='pinned')return M('Pinned: the next basic strike from Bram, Doran or Torvin against them deals +30% bonus damage (combo).','Пригвождён: следующий базовый удар Брама, Дорана или Торвина по нему наносит +30% урона (комбо).');
   if(s.type==='mark'&&s.tag==='scorched')return M("Scorched: Sael's next ranged attack against them deals +35% bonus damage (combo).",'Обожжён: следующая дальняя атака Саэль по нему наносит +35% урона (комбо).');
+  if(s.type==='mark'&&s.tag==='staggered')return M("Staggered: Doran's next Claw Strike against them deals +25% bonus damage (combo).",'Сбит с ног: следующий Удар когтем Дорана по нему наносит +25% урона (комбо).');
+  if(s.type==='mark'&&s.tag==='bleeding')return M("Bleeding: Morwen's next Withering Touch or Soul Siphon against them deals +25% bonus damage and extra lifesteal (combo).",'Кровотечение: следующее Иссушающее касание или Похищение душ Морвены по нему наносит +25% урона и лечит её сильнее (комбо).');
   return '';
 }
 function intentIcon(type){
@@ -2572,6 +2792,7 @@ function intentIcon(type){
 }
 function unitCard(unit,isTargetable,isAllyTargetable,intentBadge,isIntentTarget){
   const card=el('div','unit-card'+(unit.alive?'':' dead'));
+  if(unit.uid)card.dataset.uid=unit.uid;
   if(RUN.combat.activeUnit===unit)card.classList.add('active-turn');
   if(isTargetable)card.classList.add('targetable');
   if(isAllyTargetable)card.classList.add('ally-targetable');
@@ -3017,7 +3238,7 @@ function renderLegacy(){
       const lines=[
         M('Marches completed: <strong>'+st.total+'</strong> ('+st.wins+' won, '+st.winRate+'%)','Завершено походов: <strong>'+st.total+'</strong> (побед: '+st.wins+', '+st.winRate+'%)'),
         st.avgLossLayer?M('Average layer on defeat: <strong>'+st.avgLossLayer+' / '+TOTAL_STEPS+'</strong>','Средний слой при поражении: <strong>'+st.avgLossLayer+' / '+TOTAL_STEPS+'</strong>'):null,
-        favDef?M('Most-used hero: <strong>'+favName+'</strong> ('+st.favCount+' marches)','Чаще всего в отряде: <strong>'+favName+'</strong> ('+st.favCount+' походов)'):null,
+        favDef?M('Most-used hero: <strong>'+favName+'</strong> ('+st.favCount+' of '+st.heroRunsCounted+' tracked marches)','Чаще всего в отряде: <strong>'+favName+'</strong> ('+st.favCount+' из '+st.heroRunsCounted+' походов с данными)'):null,
         st.customRuns?M('Marches with a custom hero: <strong>'+st.customRuns+'</strong>','Походов с кастомным героем: <strong>'+st.customRuns+'</strong>'):null,
       ].filter(Boolean);
       statsBox.innerHTML=lines.map(function(l){return "<div style='font-size:12px;margin-bottom:4px;'>"+l+"</div>";}).join('');
@@ -3034,7 +3255,7 @@ function renderLegacy(){
         const row=el('div','upgrade-row');
         const outcome=h.win?M('Victory','Победа'):M('Defeat','Поражение');
         const color=h.win?'var(--good)':'var(--danger)';
-        row.innerHTML="<div style='flex:1;'><strong style='color:"+color+"'>"+outcome+"</strong> · "+M('layer','уровень')+' '+h.layer+'/8'+(h.ascension?(' · '+M('Asc ','Слож. ')+h.ascension):'')+"<br><span style='color:var(--muted);font-size:11px;'>+"+h.embers+M(' embers',' угольков')+"</span></div>";
+        row.innerHTML="<div style='flex:1;'><strong style='color:"+color+"'>"+outcome+"</strong> · "+M('layer','уровень')+' '+h.layer+'/'+TOTAL_STEPS+(h.ascension?(' · '+M('Asc ','Слож. ')+h.ascension):'')+"<br><span style='color:var(--muted);font-size:11px;'>+"+h.embers+M(' embers',' угольков')+"</span></div>";
         histBox.appendChild(row);
       });
     }
@@ -3100,8 +3321,8 @@ function showRulesModal(){
       'Сильная способность после использования уходит в откат на несколько ходов (показано на кнопке). У базовых ударов обычно нет отката — используйте их, пока перезаряжаются мощные способности.'
     )},
     {h:M('Combos','Комбо'),t:M(
-      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Ashra's Ember Flick leaves a foe \"scorched\" for Sael's ranged attacks to punish in turn. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
-      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Всплеск огня Ашры оставляет врага «обожжённым» — дальние атаки Саэль этим пользуются. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
+      "Some abilities set up others directly: Doran's Pack Tackle leaves a foe \"exposed\" for Kest's Backstab or Assassinate to finish off for bonus damage. Sael's Pin Down leaves a foe \"pinned\" for Bram, Doran or Torvin's basic strike to punish. Ashra's Ember Flick leaves a foe \"scorched\" for Sael's ranged attacks to punish in turn. Bram's Cleave leaves every foe it hits \"staggered\" for Doran's Claw Strike to punish. Kest's Backstab or Assassinate leaves a foe \"bleeding\" for Morwen's Withering Touch or Soul Siphon to punish and drain extra HP from. Torvin's Oath of Protection and Yvana's healing mark the ally they helped — their next hit lands with extra force. Watch for the combo status icons.",
+      'Некоторые способности напрямую подготавливают другие: Оглушение Дорана (Стая набрасывается) оставляет врага «уязвимым» — Удар в спину или Убийство Кеста добивают его с бонусным уроном. Пригвоздить Саэль оставляет врага «пригвождённым» — базовый удар Брама, Дорана или Торвина этим пользуется. Всплеск огня Ашры оставляет врага «обожжённым» — дальние атаки Саэль этим пользуются. Рассечение Брама оставляет всех задетых врагов «сбитыми с ног» — Удар когтем Дорана этим пользуется. Удар в спину или Убийство Кеста оставляет врага «кровоточащим» — Иссушающее касание или Похищение душ Морвены этим пользуется и лечит её сильнее. Клятва защиты Торвина и лечение Иваны отмечают союзника, которому помогли — его следующий удар наносит больше урона. Следите за значками комбо-статусов.'
     )},
     {h:M('Gear & Relics','Снаряжение и реликвии'),t:M(
       'Each hero has a weapon, armor and trinket slot, plus one shared relic per hero with a passive effect. Better gear drops from harder fights. Check "Formation & Gear" on the map screen to re-equip or reorder your rows anytime.',
@@ -3181,7 +3402,7 @@ function importSave(){
 let heroSelectState=[];
 function renderHeroPickCard(list,key,def,unlocked,isCustom){
   const card=el('div','hero-pick'+(unlocked?'':' locked'));
-  const av=el('div','hero-avatar',def.custom?def.icon:(HERO_ICON_SVG[def.tplKey||key]||def.icon));av.style.background=def.color;
+  const av=el('div','hero-avatar',def.custom?customPortraitSVG(def):(HERO_ICON_SVG[def.tplKey||key]||def.icon));av.style.background=def.color;
   card.appendChild(av);
   const info=el('div','hero-info');
   info.appendChild(el('div','name',L(def.name)+(unlocked?'':M(' (locked)',' (заблокировано)'))));
@@ -3518,9 +3739,27 @@ window.addEventListener('beforeunload',function(e){
     return '';
   }
 });
+function spawnEmberParticles(){
+  const host=$('ember-particles');
+  if(!host)return;
+  host.innerHTML='';
+  const n=14;
+  for(let i=0;i<n;i++){
+    const s=el('div','ember-spark');
+    const dur=(10+Math.random()*12).toFixed(1)+'s';
+    const delay=(-Math.random()*20).toFixed(1)+'s';
+    const drift=Math.round((Math.random()*60-30))+'px';
+    s.style.left=(Math.random()*100).toFixed(1)+'%';
+    s.style.setProperty('--drift',drift);
+    s.style.animationDuration=dur;
+    s.style.animationDelay=delay;
+    host.appendChild(s);
+  }
+}
 applyStaticI18n();
 applyTheme();
 applySettings();
 renderTitle();
+spawnEmberParticles();
 })();
 </script>
