@@ -362,6 +362,21 @@ html.no-anim .float-text{display:none;}
 .asc-pip.locked{opacity:.35;}
 .asc-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
 
+.biome-row{display:flex;gap:8px;flex-wrap:wrap;}
+.biome-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
+.biome-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+.mod-row{display:flex;gap:8px;flex-wrap:wrap;}
+.mod-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
+.mod-pip.selected{border-color:var(--accent2);background:var(--accent2-soft);color:var(--accent2);}
+
+/* Frost biome tint: scoped to the map/combat screens only via a class toggled in show(),
+   so the title/legacy/menu screens keep the warm ashfall palette. */
+#screen-map.biome-frost,#screen-combat.biome-frost{
+  --accent:#7ec8e3;
+  --accent-deep:#4a92b0;
+  --accent-soft:#16323c;
+}
+
 @media (max-width:480px){
   .unit-card{width:98px;}
   .ability-btn{min-width:100%;}
@@ -437,6 +452,16 @@ html.no-anim .float-text{display:none;}
       <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
       <div class="asc-row" id="leg-ascension"></div>
       <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-biome-h3" style="font-size:15px;"></h3>
+      <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
+      <div class="biome-row" id="leg-biome"></div>
+    </div>
+    <div class="card stack" style="margin-top:14px;">
+      <h3 id="legacy-modifiers-h3" style="font-size:15px;"></h3>
+      <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
+      <div class="mod-row" id="leg-modifiers"></div>
     </div>
     <div class="card stack" style="margin-top:14px;">
       <h3 id="legacy-stats-h3" style="font-size:15px;"></h3>
@@ -629,6 +654,10 @@ const STATIC_I18N = {
   'btn-export-save':{en:'Export Save Code','ru':'Экспорт кода сохранения'},
   'btn-import-save':{en:'Import Save Code',ru:'Импорт кода сохранения'},
   'legacy-ascension-eyebrow':{en:'Higher ascension hardens every foe, but pays more embers',ru:'Чем выше сложность, тем сильнее враги — но и угольков больше'},
+  'legacy-biome-h3':{en:'March',ru:'Поход'},
+  'legacy-biome-eyebrow':{en:'Choose which land the company crosses next',ru:'Выберите, через какие земли пройдёт отряд'},
+  'legacy-modifiers-h3':{en:'Difficulty Modifiers',ru:'Модификаторы сложности'},
+  'legacy-modifiers-eyebrow':{en:'Optional trials to stack on top of Ascension. Toggle any combination.',ru:'Необязательные испытания вдобавок к сложности похода. Включайте в любом сочетании.'},
   'btn-legacy-back':{en:'Back',ru:'Назад'},
   'btn-legacy-back-top':{en:'← Back',ru:'← Назад'},
   'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
@@ -858,11 +887,20 @@ const ENEMY_ICON_SVG = {
   ashlord:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#12141a"/><circle cx="9.3" cy="11" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="11" r="1.3" fill="#e9e4d6"/><path d="M6 6l2 3M18 6l-2 3M9 4l1 3M15 4l-1 3M12 3v3" stroke="#12141a" stroke-width="1.4" stroke-linecap="round"/></svg>',
   stalker:'<svg viewBox="0 0 24 24"><path d="M4 18c2-6 5-9 8-9s5 2 6 5c1-3 3-1 2 1-1 1-3 1-4 0-1 3-4 5-7 5-2 0-4-1-5-2z" fill="#12141a"/><circle cx="9" cy="10" r="0.9" fill="#e9e4d6"/></svg>',
   zealot:'<svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 015 5v3l3 9H4l3-9V8a5 5 0 015-5z" fill="#12141a"/><path d="M9 21l3-5 3 5" stroke="#e9e4d6" stroke-width="1" fill="none"/></svg>',
+  /* Frozen Reach biome roster, same minimalist dark-silhouette style. */
+  frostling:'<svg viewBox="0 0 24 24"><path d="M12 2l3 6-1 4 3 5-2 5H9l-2-5 3-5-1-4z" fill="#12141a"/></svg>',
+  icearcher:'<svg viewBox="0 0 24 24"><path d="M7 3c5 3 5 15 0 18" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M7 12h12M15 8l4 4-4 4" fill="none" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/><circle cx="18" cy="6" r="1.2" fill="#12141a"/></svg>',
+  rimewolf:'<svg viewBox="0 0 24 24"><path d="M12 4l2 3 4-1-1 4 3 3-4 2-2 4-2-4-4-2 3-3-1-4 4 1z" fill="#12141a"/><circle cx="9.5" cy="11" r="1" fill="#e9e4d6"/><circle cx="14.5" cy="11" r="1" fill="#e9e4d6"/></svg>',
+  frostwitch:'<svg viewBox="0 0 24 24"><path d="M12 21V9" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/><path d="M12 9l-2-3M12 9l2-3" stroke="#12141a" stroke-width="1.4" stroke-linecap="round"/><circle cx="12" cy="6" r="3.2" fill="#12141a"/></svg>',
+  glacierknight:'<svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 5-3 8-7 9-4-1-7-4-7-9V7l7-4z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 3v18M8 9l4 3 4-3" stroke="#12141a" stroke-width="1.2" fill="none"/></svg>',
+  wailingblizzard:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 3-2 4-2 7l-1 4H8l-1-4c0-3-2-4-2-7a7 7 0 017-7z" fill="#12141a"/><path d="M9 8l1 3-1 2M15 8l-1 3 1 2" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
+  permafrostwarden:'<svg viewBox="0 0 24 24"><path d="M12 2l4 4-1 5 3 4-2 7H8l-2-7 3-4-1-5z" fill="#12141a"/><path d="M9 12l3 2 3-2" stroke="#e9e4d6" stroke-width="1" fill="none"/></svg>',
 };
 const BOSS_ICON_SVG = {
   warden:'<svg viewBox="0 0 24 24"><path d="M12 2c-2 2-4 2.5-4 6 0 2 1 3 1 5-2 .5-3 2-3 4a6 6 0 0012 0c0-2-1-3.5-3-4 0-2 1-3 1-5 0-3.5-2-4-4-6z" fill="#12141a"/><circle cx="9.5" cy="14" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="14" r="1.1" fill="#e9e4d6"/></svg>',
   colossus:'<svg viewBox="0 0 24 24"><path d="M2 20L9 6l3 4 3-6 7 16H2z" fill="#12141a"/><path d="M9 6l2 5-3 2M12 10l1 4-2 1" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
   vessel:'<svg viewBox="0 0 24 24"><path d="M9 3h6l1 3-1 2c2 2 3 5 3 8a6 6 0 01-12 0c0-3 1-6 3-8l-1-2 1-3z" fill="#12141a"/><path d="M9 12l2 2-1 3 2 2" stroke="#e9e4d6" stroke-width="0.9" fill="none"/></svg>',
+  rimesovereign:'<svg viewBox="0 0 24 24"><path d="M12 2l3 5-1 4 4 3-2 8H10l-2-8 4-3-1-4z" fill="#12141a"/><circle cx="9.5" cy="15" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="15" r="1.1" fill="#e9e4d6"/><path d="M6 6l2 2M18 6l-2 2M12 2v3" stroke="#12141a" stroke-width="1.2" stroke-linecap="round"/></svg>',
 };
 
 const ENEMY_DEFS = {
@@ -907,6 +945,35 @@ const ENEMY_DEFS = {
     abilities:[{id:'zealbolt',name:{en:'Zeal Bolt',ru:'Заряд рвения'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85},
                {id:'fanaticmend',name:{en:'Fanatic Mending',ru:'Фанатичное исцеление'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0,flat:14},
                {id:'bloodrite',name:{en:'Blood Rite',ru:'Кровавый ритуал'},cd:3,reach:'any',targets:'single-ally',type:'buff',stat:'atk',amount:4,duration:2}]},
+  /* Frozen Reach biome roster — the frost counterpart to the Ashfall March roster above.
+     Uses the same generic ability engine (dot/buff/debuff), just reflavored as chill/frostbite
+     instead of ash/burning, so no new combat mechanics are needed. */
+  frostling:{name:{en:'Rime Ghoul',ru:'Инистый упырь'},icon:'F',color:'#4f7488',hp:20,atk:6,def:3,spd:4,row:'front',
+    abilities:[{id:'frostgash',name:{en:'Frost Claw',ru:'Ледяной коготь'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'chillstrike',name:{en:'Chilling Strike',ru:'Морозящий удар'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.15,dot:{amount:2,duration:2}}]},
+  icearcher:{name:{en:'Icicle Archer',ru:'Ледяной лучник'},icon:'R',color:'#7fa8bd',hp:15,atk:7,def:1,spd:6,row:'back',
+    abilities:[{id:'icebolt',name:{en:'Icicle Shot',ru:'Выстрел сосулькой'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.9},
+               {id:'frostshot',name:{en:'Frostbound Shot',ru:'Морозный выстрел'},cd:2,reach:'ranged',targets:'single',type:'debuff',stat:'spd',amount:-3,duration:2}]},
+  rimewolf:{name:{en:'Rime Wolf',ru:'Иневый волк'},icon:'H',color:'#3d5a6b',hp:18,atk:8,def:2,spd:10,row:'front',
+    abilities:[{id:'nip',name:{en:'Frost Bite',ru:'Морозный укус'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'rend2',name:{en:'Rime Rend',ru:'Ледяной разрыв'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.2,dot:{amount:2,duration:2}}]},
+  frostwitch:{name:{en:'Frost Witch',ru:'Морозная ведьма'},icon:'W',color:'#5a7a8a',hp:18,atk:5,def:2,spd:5,row:'back',
+    abilities:[{id:'rimebolt',name:{en:'Rime Bolt',ru:'Ледяной заряд'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.8},
+               {id:'winterscurse',name:{en:"Winter's Curse",ru:'Проклятие зимы'},cd:3,reach:'ranged',targets:'single',type:'debuff',stat:'atk',amount:-3,duration:2},
+               {id:'frostmend',name:{en:'Frost Mend',ru:'Ледяное исцеление'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0,flat:9}]},
+  glacierknight:{name:{en:'Glacier Knight',ru:'Ледниковый рыцарь'},icon:'K',color:'#37454f',hp:36,atk:13,def:11,spd:6,row:'front',
+    abilities:[{id:'iceslash',name:{en:'Glacial Slash',ru:'Ледниковый удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.15},
+               {id:'shatterguard',name:{en:'Shatter Guard',ru:'Раскол щита'},cd:2,reach:'melee',targets:'single',type:'debuff',stat:'def',amount:-5,duration:2}]},
+  wailingblizzard:{name:{en:'Blizzard Wraith',ru:'Дух метели'},icon:'Y',color:'#6a86a8',hp:27,atk:12,def:4,spd:9,row:'back',
+    abilities:[{id:'howlingwind',name:{en:'Howling Wind',ru:'Воющий ветер'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:1.1},
+               {id:'blizzardsong',name:{en:'Blizzard Song',ru:'Песнь метели'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.6,dot:{amount:2,duration:2}}]},
+  permafrostwarden:{name:{en:'Permafrost Warden',ru:'Страж вечной мерзлоты'},icon:'X',color:'#2f4552',hp:44,atk:9,def:6,spd:4,row:'front',elite:true,
+    abilities:[{id:'iceslam',name:{en:'Ice Slam',ru:'Ледяной удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.1},
+               {id:'frostquake',name:{en:'Frostquake',ru:'Ледяное сотрясение'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.0}]},
+  glaciertyrant:{name:{en:'Glacier Tyrant',ru:'Ледниковый тиран'},icon:'Ω',color:'#22323c',hp:64,atk:15,def:9,spd:5,row:'front',elite:true,
+    abilities:[{id:'tyrantslam',name:{en:'Tyrant Slam',ru:'Удар тирана'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.2},
+               {id:'icewave',name:{en:'Ice Wave',ru:'Ледяная волна'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.9,dot:{amount:3,duration:2}},
+               {id:'frostroar',name:{en:'Frost Roar',ru:'Морозный рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'spd',amount:-3,duration:2}]},
 };
 
 const BOSS_DEFS = {
@@ -925,7 +992,40 @@ const BOSS_DEFS = {
                {id:'drain',name:{en:'Drain Essence',ru:'Высасывание сути'},cd:2,reach:'any',targets:'single',type:'damage',mult:1.1,lifesteal:0.6},
                {id:'wither',name:{en:'Wither',ru:'Увядание'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2},
                {id:'collapse',name:{en:'Hollow Collapse',ru:'Пустотный обвал'},cd:3,reach:'any',targets:'all',type:'damage',mult:0.8,dot:{amount:4,duration:2},requiresEnrage:true,desc:{en:'Enrage only: withering blast on the whole company',ru:'Только в ярости: увядающий взрыв по всему отряду'}}]},
+  rimesovereign:{key:'rimesovereign',name:{en:'The Rime Sovereign',ru:'Ледяной государь'},icon:'❄',color:'#1e2f38',hp:100,atk:13,def:9,spd:7,row:'front',boss:true,
+    abilities:[{id:'frostclaw',name:{en:'Frost Claw',ru:'Ледяной коготь'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'glacialsmash',name:{en:'Glacial Smash',ru:'Ледниковый удар'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
+               {id:'wintersgrasp',name:{en:"Winter's Grasp",ru:'Хватка зимы'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'spd',amount:-3,duration:2},
+               {id:'blizzard',name:{en:'Eternal Blizzard',ru:'Вечная метель'},cd:3,reach:'any',targets:'all',type:'damage',mult:1.6,requiresEnrage:true,desc:{en:'Enrage only: a howling blizzard engulfs the whole company',ru:'Только в ярости: воющая метель накрывает весь отряд'}}]},
 };
+
+/* Biomes parametrize which enemy/elite pools and which bosses a march can draw from.
+   buildEncounter() and startNewRun() key off RUN.biome (default 'ashfall' for old saves). */
+const BIOME_DEFS = {
+  ashfall:{key:'ashfall',name:{en:'Ashfall March',ru:'Пепельный поход'},tint:null,
+    pools:{1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman','stalker'],4:['knight','banshee','wraith','caster','zealot']},
+    eliteKeys:{1:'revenant',2:'revenant',3:'hand',4:'ashlord'},
+    eliteMinions:{1:['grunt'],2:['grunt','archer','hound'],3:['wraith','caster','stalker'],4:['knight','banshee','zealot']},
+    bosses:['warden','colossus','vessel']},
+  frost:{key:'frost',name:{en:'Frozen Reach',ru:'Морозный рубеж'},tint:'frost',
+    pools:{1:['frostling','icearcher'],2:['frostling','icearcher','rimewolf','frostwitch'],3:['rimewolf','frostwitch','glacierknight','wailingblizzard'],4:['glacierknight','wailingblizzard','frostwitch','rimewolf']},
+    eliteKeys:{1:'permafrostwarden',2:'permafrostwarden',3:'glaciertyrant',4:'glaciertyrant'},
+    eliteMinions:{1:['frostling'],2:['frostling','icearcher','rimewolf'],3:['rimewolf','frostwitch','glacierknight'],4:['glacierknight','wailingblizzard','frostwitch']},
+    bosses:['rimesovereign']},
+};
+function getBiome(key){return BIOME_DEFS[key]||BIOME_DEFS.ashfall;}
+
+/* Roguelike-trial-style difficulty modifiers, toggled independently of and stacking on
+   top of Ascension. Persisted per-player in META.modifiers, copied onto RUN.modifiers
+   in startNewRun() (see there for the Daily Challenge exception). */
+const MODIFIER_DEFS = [
+  {key:'eliteVanguard',name:{en:'Elite Vanguard',ru:'Авангард элиты'},
+    desc:{en:'Noticeably more elite fights along the march.',ru:'Заметно больше боёв с элитными противниками за поход.'}},
+  {key:'earlyStorm',name:{en:'Early Storm',ru:'Ранняя буря'},
+    desc:{en:'Tougher enemy tiers and stat scaling arrive sooner in the march.',ru:'Более сильные враги и их характеристики нарастают раньше по ходу похода.'}},
+  {key:'brokenWard',name:{en:'Broken Ward',ru:'Разбитый оберег'},
+    desc:{en:'Your company takes 15% more damage, but earns 20% more gold from battles.',ru:'Отряд получает на 15% больше урона, но зарабатывает на 20% больше золота за бои.'}},
+];
 
 const ITEM_POOL = [
   {id:'w1',slot:'weapon',name:{en:'Rusted Shortsword',ru:'Ржавый короткий меч'},rarity:'common',mods:{atk:2}},
@@ -1303,6 +1403,53 @@ const EVENTS = [
       }},
       {label:{en:'Look away',ru:'Отвести взгляд'},resolve(){return M('You refuse to meet its gaze. It passes.','Вы не смотрите на него. Оно проходит мимо.');}},
     ]},
+  {id:'lost_scout',title:{en:'The Lost Scout',ru:'Пропавший разведчик'},
+    text:{en:'A company scout lies half-buried in drift and ash, alive but too spent to walk, clutching a torn map to their chest.',
+          ru:'Разведчик отряда лежит наполовину занесённый снегом и пеплом, живой, но слишком обессиленный, чтобы идти, прижимая к груди рваную карту.'},
+    choices:[
+      {label:{en:'Carry them along',ru:'Взять с собой'},resolve(run){
+        const h=randAlive(run.party);
+        run.party.forEach(function(x){if(x.alive)x.hp=Math.max(1,x.hp-2);});
+        run.pendingChainEvent='scout_debt';
+        return M(h.name+" shoulders the scout's weight. The march slows a little (-2 HP to the company), but the scout mutters they know a way to repay this.",
+                 h.name+' взваливает разведчика на плечи. Поход замедляется (-2 HP всему отряду), но разведчик бормочет, что знает, как отплатить за это.');
+      }},
+      {label:{en:'Take the map and move on',ru:'Забрать карту и уйти'},resolve(run){
+        const g=14+Math.floor(Math.random()*12);run.gold+=g;
+        return M('You take the torn map for its markings, worth '+g+' gold to the right buyer, and leave the scout to their fate.',
+                 'Вы забираете рваную карту с пометками — она стоит '+g+' золота нужному покупателю, — и оставляете разведчика его судьбе.');
+      }},
+      {label:{en:'Walk on',ru:'Пройти мимо'},resolve(){return M('You leave the scout where they lie.','Вы оставляете разведчика лежать там, где он есть.');}},
+    ]},
+  {id:'scout_debt',chainOnly:true,title:{en:"The Scout's Debt",ru:'Долг разведчика'},
+    text:{en:'Recovered enough to speak, the scout traces old patrol routes from memory, offering to guide the company through the terrain ahead.',
+          ru:'Придя в себя настолько, чтобы говорить, разведчик по памяти вычерчивает старые маршруты патрулей, предлагая провести отряд через земли впереди.'},
+    choices:[
+      {label:{en:'Follow their route',ru:'Пойти по их маршруту'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.15));});
+        run.pendingChainEvent='scout_boon';
+        return M('The scout leads you around the worst of the terrain. The whole company rests easier for it. Before parting ways, they press something into your hands.',
+                 'Разведчик проводит вас в обход самых тяжёлых участков. Всему отряду становится легче. Перед расставанием он вкладывает вам в руки что-то на память.');
+      }},
+      {label:{en:'Send them off with supplies (-12 gold)',ru:'Отправить его с припасами (-12 золота)'},resolve(run){
+        if(run.gold<12)return M("You have too little to spare. The scout thanks you anyway and limps off alone.",'У вас слишком мало, чтобы делиться. Разведчик всё равно благодарит вас и уходит один, прихрамывая.');
+        run.gold-=12;
+        return M('You send the scout off with what supplies you can spare. They leave grateful, and lighter for it.','Вы отправляете разведчика с припасами, которыми можете поделиться. Он уходит благодарным, и вам самим становится легче.');
+      }},
+    ]},
+  {id:'scout_boon',chainOnly:true,title:{en:"A Debt Repaid",ru:'Возвращённый долг'},
+    text:{en:'What the scout pressed into your hands turns out to be a keepsake from their old company — something worth far more than its weight.',
+          ru:'То, что разведчик вложил вам в руки, оказывается памятной вещью из его прежнего отряда — она стоит куда больше, чем кажется на первый взгляд.'},
+    choices:[
+      {label:{en:'Keep the keepsake',ru:'Оставить памятную вещь'},special:'item',resolve(run){
+        const item=randomRelic();run.pendingItemPickup=item;
+        return M('You tuck the keepsake away. It hums with old purpose.','Вы прячете вещицу. Она словно хранит в себе давнюю цель.');
+      }},
+      {label:{en:'Sell it to a passing trader',ru:'Продать её проезжему торговцу'},resolve(run){
+        const g=24+Math.floor(Math.random()*16);run.gold+=g;
+        return M('A passing trader pays handsomely for it, no questions asked. +'+g+' gold.','Проезжий торговец щедро платит за неё, не задавая вопросов. +'+g+' золота.');
+      }},
+    ]},
 ];
 
 /* ============================= META (persistent) ============================= */
@@ -1312,18 +1459,21 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,caravan:0,vitality_rite:0,bulwark:0,vanguard:0,legacy_ember:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,caravan:0,vitality_rite:0,bulwark:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
     settings:{animations:true,textScale:1,sound:true},
+    biomeChoice:'ashfall',modifiers:{eliteVanguard:false,earlyStorm:false,brokenWard:false},
     dailyLastDate:null,dailyLastResult:null,dailyWinsCount:0,lastExportNudgeEmbers:0};
 }
 let META = loadMeta();
 function loadMeta(){
   try{const raw=localStorage.getItem(META_KEY);if(!raw)return defaultMeta();
     const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark',
-      settings:Object.assign(defaultMeta().settings,m.settings)});
+      settings:Object.assign(defaultMeta().settings,m.settings),
+      biomeChoice:(m.biomeChoice==='frost')?'frost':'ashfall',
+      modifiers:Object.assign(defaultMeta().modifiers,m.modifiers)});
   }catch(e){return defaultMeta();}
 }
 function applySettings(){
@@ -1364,6 +1514,11 @@ const UPGRADE_DEFS = [
     requires2:[{key:'whetstone',rank:3},{key:'boots',rank:3}]},
   {key:'legacy_ember',name:{en:"Legacy of the Last Ember",ru:'Наследие последнего уголька'},desc:{en:'Grand capstone: +2 ATK, +2 DEF, +2 SPD and +10 max HP to every hero',ru:'Высшая вершина: +2 к атаке, +2 к защите, +2 к скорости и +10 к макс. здоровью каждого героя'},max:1,cost:function(){return 80;},
     requires2:[{key:'vanguard',rank:1},{key:'bulwark',rank:2}]},
+  {key:'keen_edge',name:{en:'Keen Edge',ru:'Отточенное лезвие'},desc:{en:'+3% critical hit chance to every hero per rank',ru:'+3% к шансу крит. удара каждого героя за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'deadly_precision',name:{en:'Deadly Precision',ru:'Смертельная точность'},desc:{en:'+5% critical hit chance to every hero per rank',ru:'+5% к шансу крит. удара каждого героя за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'keen_edge',rank:3}},
+  {key:'lethal_calling',name:{en:'Lethal Calling',ru:'Зов смерти'},desc:{en:'Capstone: +8% critical hit chance and +15% critical damage to every hero',ru:'Вершина ветки: +8% к шансу крит. удара и +15% к урону от крита каждого героя'},max:1,cost:function(){return 45;},
+    requires:{key:'deadly_precision',rank:2}},
 ];
 
 const ACHIEVEMENTS = [
@@ -1385,6 +1540,8 @@ const ACHIEVEMENTS = [
     check:function(win){return win&&RUN.bossKey==='warden';}},
   {id:'vessel_broken',name:{en:'Vessel Broken',ru:'Сосуд разбит'},desc:{en:'Defeat the Withered Vessel.',ru:'Победить Иссохший сосуд.'},reward:20,
     check:function(win){return win&&RUN.bossKey==='vessel';}},
+  {id:'sovereign_broken',name:{en:'The Sovereign Falls',ru:'Государь повержен'},desc:{en:'Defeat the Rime Sovereign in the Frozen Reach.',ru:'Победить Ледяного государя в Морозном рубеже.'},reward:20,
+    check:function(win){return win&&RUN.bossKey==='rimesovereign';}},
   {id:'full_roster',name:{en:'Full Company',ru:'Полный отряд'},desc:{en:'Unlock every hero.',ru:'Открыть всех героев.'},reward:40,
     check:function(win){return Object.keys(META.heroesUnlocked).every(function(k){return META.heroesUnlocked[k];});}},
   {id:'hoarder',name:{en:'Ember Hoarder',ru:'Скопидом'},desc:{en:'Accumulate 300 embers over time.',ru:'Накопить 300 угольков за всё время.'},reward:15,
@@ -1556,6 +1713,9 @@ function show(screenId){
   ['screen-title','screen-legacy','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
     .forEach(function(id){$(id).hidden=(id!==screenId);});
   $('topbar').hidden=(screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
+  if(screenId==='screen-map'||screenId==='screen-combat'){
+    $(screenId).classList.toggle('biome-frost', !!(RUN&&RUN.biome==='frost'));
+  }
 }
 function closeModal(){$('modal-root').innerHTML='';}
 function openModal(node){const back=el('div','modal-backdrop');const box=el('div','modal-box');box.appendChild(node);back.appendChild(box);back.addEventListener('click',function(e){if(e.target===back)closeModal();});$('modal-root').innerHTML='';$('modal-root').appendChild(back);}
@@ -1592,13 +1752,20 @@ function buildLayerPlan(){
 }
 const LAYER_PLAN = buildLayerPlan();
 
-function generateMap(){
+function generateMap(modifiers){
+  const eliteVanguard=!!(modifiers&&modifiers.eliteVanguard);
   const layers=[];
   LAYER_PLAN.forEach(function(def,li){
     const nodes=[];
     for(let i=0;i<def.count;i++){
       const type=pick(def.pool);
       nodes.push({id:'L'+li+'N'+i,layer:li,idx:i,type:type,cleared:false,next:[]});
+    }
+    /* Elite Vanguard modifier: turn a plain battle into an elite fight on layers that
+       already allow elites (li>=3, see buildLayerPlan), for noticeably more elite fights. */
+    if(eliteVanguard&&li>=3){
+      const battleNodes=nodes.filter(function(n){return n.type==='battle';});
+      if(battleNodes.length&&Math.random()<0.6)pick(battleNodes).type='elite';
     }
     layers.push(nodes);
   });
@@ -1656,12 +1823,15 @@ function makeHeroInstance(key){
   const legacy=(META.upgrades.legacy_ember||0)>0;
   const maxHp=def.baseHp+META.upgrades.bones*5+(META.upgrades.vitality_rite||0)*8+(legacy?10:0);
   const vanguard=(META.upgrades.vanguard||0)>0;
+  const lethal=(META.upgrades.lethal_calling||0)>0;
+  const critBonus=(META.upgrades.keen_edge||0)*0.03+(META.upgrades.deadly_precision||0)*0.05+(lethal?0.08:0);
   return {
     uid:nextUid(),
     key:key,tplKey:def.tplKey||key,name:L(def.name),cls:L(def.cls),icon:def.icon,color:def.color,isHero:true,side:'hero',custom:!!def.custom,
     maxHp:maxHp,hp:maxHp,atk:def.baseAtk+(META.upgrades.whetstone||0)+(vanguard?2:0)+(legacy?2:0),
     def:def.baseDef+(META.upgrades.aegis||0)+(META.upgrades.bulwark||0)*4+(legacy?2:0),
     spd:def.baseSpd+(META.upgrades.boots||0)+(vanguard?2:0)+(legacy?2:0),
+    critBonus:critBonus,critMultBonus:lethal?0.15:0,
     row:def.defaultRow,
     abilities:def.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),desc:L(a.desc),cdLeft:0});}),
     equip:{weapon:null,armor:null,trinket:null,relic:null},
@@ -1765,8 +1935,12 @@ function hydrateParty(run){
   if(!run||!run.party)return;
   if(!run.inventory)run.inventory=[];
   if(!run.comboCount)run.comboCount=0;
+  if(run.biome!=='frost')run.biome='ashfall';
+  if(!run.modifiers)run.modifiers={eliteVanguard:false,earlyStorm:false,brokenWard:false};
   run.party.forEach(function(h){
     normalizeLeveling(h);
+    if(typeof h.critBonus!=='number')h.critBonus=0;
+    if(typeof h.critMultBonus!=='number')h.critMultBonus=0;
     if(h.equip&&h.equip.relic===undefined)h.equip.relic=null;
     const def=getHeroDef(h.key);
     if(!def)return;
@@ -1782,9 +1956,15 @@ function hydrateParty(run){
 function startNewRun(heroKeys,dailySeed){
   if(dailySeed)applyDailySeed(dailySeed);
   const startGold=25+META.upgrades.packs*15+(META.upgrades.caravan||0)*20;
+  /* Daily Challenge always runs the default Ashfall March with no modifiers, so every
+     player on a given day faces the exact same seeded encounters. */
+  const biomeKey=dailySeed?'ashfall':((META.biomeChoice==='frost')?'frost':'ashfall');
+  const modifiers=dailySeed?{eliteVanguard:false,earlyStorm:false,brokenWard:false}:Object.assign({},META.modifiers);
   RUN={
     ascension:dailySeed?0:META.ascensionChoice,
-    map:generateMap(),
+    biome:biomeKey,
+    modifiers:modifiers,
+    map:generateMap(modifiers),
     availableNodeIds:null,
     currentNodeId:null,
     party:heroKeys.map(makeHeroInstance),
@@ -1794,7 +1974,7 @@ function startNewRun(heroKeys,dailySeed){
     pendingReward:null,
     pendingItemPickup:null,
     heroDied:false,
-    bossKey:pick(Object.keys(BOSS_DEFS)),
+    bossKey:pick(getBiome(biomeKey).bosses),
     daily:dailySeed||null,
     pendingChainEvent:null,
     inventory:[],
@@ -1823,7 +2003,11 @@ function startNewRun(heroKeys,dailySeed){
    real battle/elite nodes in LAYER_PLAN (buildLayerPlan never makes a whole layer
    rest-only), so no tier is ever unreachable the way tier 4 once was. */
 function tierForLayer(li){
-  const t1=Math.round(TOTAL_MAP_LAYERS*0.16),t2=Math.round(TOTAL_MAP_LAYERS*0.42),t3=Math.round(TOTAL_MAP_LAYERS*0.74);
+  /* Early Storm modifier: pull the tier thresholds in so harder enemy pools show up
+     sooner in the march, without touching TOTAL_MAP_LAYERS or the boss's position. */
+  const storm=RUN&&RUN.modifiers&&RUN.modifiers.earlyStorm;
+  const mul=storm?0.78:1;
+  const t1=Math.round(TOTAL_MAP_LAYERS*0.16*mul),t2=Math.round(TOTAL_MAP_LAYERS*0.42*mul),t3=Math.round(TOTAL_MAP_LAYERS*0.74*mul);
   return li<t1?1:(li<t2?2:(li<t3?3:4));
 }
 
@@ -1840,7 +2024,8 @@ function tierForLayer(li){
    just stretched to fit the longer march instead of compounding on top of it. */
 function enemyScale(li){
   const asc=1+RUN.ascension*0.14;
-  const frac=Math.max(0,Math.min(1,(li||0)/TOTAL_MAP_LAYERS));
+  const storm=RUN.modifiers&&RUN.modifiers.earlyStorm;
+  const frac=Math.max(0,Math.min(1,(li||0)/TOTAL_MAP_LAYERS*(storm?1.18:1)));
   const ramp=1+frac*0.315;
   return {atk:asc*ramp,hp:asc*ramp,def:1+RUN.ascension*0.07+frac*0.14};
 }
@@ -1885,17 +2070,17 @@ function buildEncounter(node){
   const li=node.layer;
   const tier=tierForLayer(li);
   if(node.type==='boss')return disambiguateNames([makeBossInstance()]);
+  const biome=getBiome(RUN&&RUN.biome);
   if(node.type==='elite'){
-    const eliteKey=tier<=1?'revenant':(tier===2?'revenant':(tier===3?'hand':'ashlord'));
-    const minions={1:['grunt'],2:['grunt','archer','hound'],3:['wraith','caster','stalker'],4:['knight','banshee','zealot']}[tier];
+    const eliteKey=biome.eliteKeys[tier];
+    const minions=biome.eliteMinions[tier];
     const list=[makeEnemyInstance(eliteKey,li)];
     const minionChance=tier>=4?0.9:(tier===3?0.8:0.7);
     if(Math.random()<minionChance)list.push(makeEnemyInstance(pick(minions),li));
     if(tier>=4&&Math.random()<0.35)list.push(makeEnemyInstance(pick(minions),li));
     return disambiguateNames(list);
   }
-  const pools={1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman','stalker'],4:['knight','banshee','wraith','caster','zealot']};
-  const pool=pools[tier];
+  const pool=biome.pools[tier];
   const count=randInt(2,3)+(tier>=3&&Math.random()<0.35?1:0);
   const list=[];
   for(let i=0;i<count;i++)list.push(makeEnemyInstance(pick(pool),li));
@@ -1911,9 +2096,11 @@ function dmgCalc(actor,target,mult){
   if(hasRelic(target,'last_stand')&&target.hp/target.maxHp<0.25)def=Math.round(def*1.3);
   let base=Math.max(1,Math.round(atk*mult - def*0.5));
   base=Math.round(base*(0.88+Math.random()*0.24));
+  /* Broken Ward modifier: heroes take 15% extra damage (paid off by its gold bonus in onCombatWin). */
+  if(target.isHero&&RUN&&RUN.modifiers&&RUN.modifiers.brokenWard)base=Math.round(base*1.15);
   let crit=false;
-  let critChance=0.12+(hasRelic(actor,'crit_boost')?0.15:0);
-  if(Math.random()<critChance){base=Math.round(base*1.5);crit=true;}
+  let critChance=0.12+(hasRelic(actor,'crit_boost')?0.15:0)+(actor.critBonus||0);
+  if(Math.random()<critChance){base=Math.round(base*(1.5+(actor.critMultBonus||0)));crit=true;}
   return {amount:Math.max(1,base),crit:crit};
 }
 function frontAlive(list){return list.filter(function(c){return c.alive&&c.row==='front';});}
@@ -2419,7 +2606,8 @@ function onCombatWin(){
     setTimeout(function(){onVictory();},700);
     return;
   }
-  const baseGold=20+node.layer*7+randInt(0,14);
+  let baseGold=20+node.layer*7+randInt(0,14);
+  if(RUN.modifiers&&RUN.modifiers.brokenWard)baseGold=Math.round(baseGold*1.2);
   RUN.gold+=baseGold;
   const cards=buildRewardCards(node.layer);
   RUN.pendingReward={gold:baseGold,cards:cards,node:node};
@@ -3227,6 +3415,30 @@ function renderLegacy(){
       : M('Ascension '+META.ascensionChoice+': enemies have +'+pct+'% HP and ATK, and you gain +'+(META.ascensionChoice*3)+' bonus embers per march.',
           'Сложность '+META.ascensionChoice+': у врагов +'+pct+'% к HP и атаке, а вы получаете +'+(META.ascensionChoice*3)+' угольков за поход.');
   }
+  const biomeWrap=$('leg-biome');
+  if(biomeWrap){
+    biomeWrap.innerHTML='';
+    Object.keys(BIOME_DEFS).forEach(function(bk){
+      const bd=BIOME_DEFS[bk];
+      const pip=el('div','biome-pip'+(META.biomeChoice===bk?' selected':''),L(bd.name));
+      pip.addEventListener('click',function(){META.biomeChoice=bk;saveMeta();renderLegacy();});
+      biomeWrap.appendChild(pip);
+    });
+  }
+  const modWrap=$('leg-modifiers');
+  if(modWrap){
+    modWrap.innerHTML='';
+    MODIFIER_DEFS.forEach(function(md){
+      const on=!!(META.modifiers&&META.modifiers[md.key]);
+      const pip=el('div','mod-pip'+(on?' selected':''),"<strong>"+L(md.name)+"</strong><br><span style='font-size:11px;color:var(--muted);'>"+L(md.desc)+"</span>");
+      pip.addEventListener('click',function(){
+        META.modifiers=META.modifiers||{};
+        META.modifiers[md.key]=!META.modifiers[md.key];
+        saveMeta();renderLegacy();
+      });
+      modWrap.appendChild(pip);
+    });
+  }
   const statsBox=$('leg-stats');
   if(statsBox){
     const st=computeRunStats();
@@ -3386,7 +3598,7 @@ function importSave(){
     if(raw.indexOf('EMBERMARCH1:')===0)raw=raw.slice('EMBERMARCH1:'.length);
     try{
       const parsed=JSON.parse(decodeURIComponent(escape(atob(raw))));
-      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings)});
+      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:(parsed.biomeChoice==='frost')?'frost':'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers)});
       saveMeta();applyTheme();applySettings();closeModal();renderLegacy();
     }catch(e){
       err.textContent=M('That code could not be read. Check for typos and try again.','Не удалось прочитать код. Проверьте на опечатки и попробуйте снова.');
