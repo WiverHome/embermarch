@@ -265,7 +265,8 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
   /* Action panel + auto-battle toggle first on mobile, enemies/party below —
      otherwise the controls the player actually needs sit below the fold at
      the start of every fight, forcing a scroll before they can act. */
-  .combat-zone{grid-template-columns:1fr;grid-template-areas:"left" "right";}
+  .combat-zone{grid-template-columns:1fr;grid-template-areas:"left" "right";gap:8px;}
+  .combat-left,.combat-right{gap:8px;}
 }
 .unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .unit-card{
@@ -379,6 +380,49 @@ html.no-anim .float-text{display:none;}
 .cd-badge{position:absolute;top:4px;right:6px;font-size:10px;color:var(--danger);font-family:'JetBrains Mono',monospace;}
 .ult-tag{font-size:8px;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:middle;}
 
+/* Compact combat (mobile): the whole fight (turn order, log, actions, both unit
+   rows) needs to fit one phone screen with no scrolling. Everything below is
+   shrunk toward "just enough to read", and the log — normally a tall scrolling
+   history — collapses to one line (tap to expand) since the player needs the
+   board more than the last 10 lines of narration. Placed after the base combat
+   rules above (not inside the earlier combat-zone media query) so these
+   overrides actually win the cascade instead of being shadowed by them. */
+@media (max-width:680px){
+  #topbar{padding:6px 10px;margin-bottom:8px;font-size:11px;}
+  #screen-combat .card{padding:7px 9px;}
+  #turn-order-label{font-size:9.5px;}
+  #btn-auto-battle{font-size:9.5px;padding:2px 6px;}
+  .turn-order{gap:4px;}
+  .turn-order .to-item{width:20px;height:20px;font-size:9px;}
+  .to-badge{font-size:6.5px;padding:0 1px;}
+  #combat-log{
+    max-height:24px;min-height:0;padding:5px 9px;font-size:10.5px;line-height:1.3;gap:2px;
+    cursor:pointer;
+  }
+  #combat-log>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #combat-log.log-expanded{max-height:140px;}
+  #combat-log.log-expanded>div{white-space:normal;}
+  .ability-bar{gap:5px;}
+  .ability-btn{min-width:47%;padding:5px 6px;font-size:10.5px;}
+  .ability-btn .a-name{font-size:10.5px;}
+  .ability-btn .a-meta{display:none;}
+  .enemy-zone,.ally-zone{padding:7px;border-radius:9px;}
+  .zone-label{margin-bottom:4px;font-size:9px;}
+  .unit-row{gap:5px;}
+  .unit-card{width:64px;padding:4px 3px;border-radius:8px;}
+  .unit-avatar{width:22px;height:22px;margin-bottom:2px;font-size:10px;border-radius:6px;}
+  .unit-name{font-size:9px;min-height:1.9em;line-height:1.05;}
+  .unit-class{display:none;}
+  .unit-row-tag{font-size:6.5px;margin-top:0;}
+  .hpbar{height:4px;margin-top:2px;}
+  .hp-num{font-size:7px;margin-top:1px;}
+  .status-icons{margin-top:1px;}
+  .status-icon{font-size:6.5px;padding:0 2px;}
+}
+@media (max-width:360px){
+  .unit-card{width:56px;}
+}
+
 /* ---- reward / shop / event ---- */
 .card-choice{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:14px;text-align:left;width:100%;}
 .card-choice:hover:not(:disabled){border-color:var(--accent);}
@@ -427,10 +471,6 @@ html.no-anim .float-text{display:none;}
   --accent-soft:#1f3418;
 }
 
-@media (max-width:480px){
-  .unit-card{width:98px;}
-  .ability-btn{min-width:100%;}
-}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 
@@ -5600,6 +5640,10 @@ $('btn-confirm-heroes').addEventListener('click',function(){
 });
 $('btn-save-hero-preset').addEventListener('click',openSavePresetModal);
 $('btn-formation').addEventListener('click',openFormationModal);
+/* Mobile combat log: collapsed to one line by default (see the compact combat-screen
+   media query) so the fight fits on one screen without scrolling — tap it to expand
+   and read the last few lines, tap again to collapse. No-op on desktop widths. */
+$('combat-log').addEventListener('click',function(){$('combat-log').classList.toggle('log-expanded');});
 $('btn-auto-battle').addEventListener('click',function(){
   if(!RUN.combat)return;
   RUN.combat.autoBattle=!RUN.combat.autoBattle;
