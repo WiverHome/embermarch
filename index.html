@@ -269,7 +269,11 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
      flattened with display:contents so their children become direct flex
      items of .combat-zone and can be reordered independently of which
      wrapper they started in. */
-  .combat-zone{display:flex;flex-direction:column;gap:8px;}
+  /* align-items:stretch overrides the desktop grid's align-items:start — without
+     it, each flattened child (turn-order card, board, action panel) shrinks to
+     its own content width instead of filling the column, which is why the turn
+     order icon strip and other cards weren't actually spanning full width. */
+  .combat-zone{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
   .combat-left{display:contents;}
   #combat-turnorder-card{order:1;}
   /* Enemies and party side by side in one row (own company on the left, foes
@@ -406,39 +410,41 @@ html.no-anim .float-text{display:none;}
    combat-zone media query) so these overrides actually win the cascade
    instead of being shadowed by them. */
 @media (max-width:680px){
-  /* Side by side (see .combat-right above) leaves real headroom compared to the
-     old stacked board, so these are deliberately not shrunk as far as before —
-     sized to actually fill that freed-up vertical space instead of leaving a
-     dead gap under the action panel (which read as a layout bug). Tuned and
-     re-measured with body.scrollHeight against the viewport so it still fits
-     one screen with no scroll. */
-  #topbar{padding:7px 10px;margin-bottom:9px;font-size:11.5px;}
-  #screen-combat .card{padding:11px 13px;}
-  #turn-order-label{font-size:11px;}
-  #btn-auto-battle{font-size:11px;padding:4px 9px;}
-  .turn-order{gap:6px;}
-  .turn-order .to-item{width:28px;height:28px;font-size:12px;}
-  .to-badge{font-size:8px;}
+  /* Sized conservatively — a real phone's visible viewport is shorter than its
+     reported height once the browser's own address bar/nav chrome is counted,
+     so "fits at full window height in a headless test" isn't enough margin.
+     The turn-order strip stretches its items with flex so the row fills the
+     card's full width instead of a handful of small icons with blank space
+     next to them. Unit cards/fonts are a notch smaller than a first pass at
+     this so the two side-by-side zones (see .combat-right above) plus the
+     ability buttons reliably fit with room to spare, not just exactly. */
+  #topbar{padding:6px 10px;margin-bottom:7px;font-size:11px;}
+  #screen-combat .card{padding:8px 10px;}
+  #turn-order-label{font-size:10px;}
+  #btn-auto-battle{font-size:10px;padding:3px 7px;}
+  .turn-order{gap:5px;}
+  .turn-order .to-item{flex:1 1 0;width:auto;min-width:0;height:27px;font-size:11px;}
+  .to-badge{font-size:7px;}
   #combat-log{display:none;}
-  .ability-bar{gap:7px;}
-  .ability-btn{min-width:47%;padding:10px 11px;font-size:13.5px;}
-  .ability-btn .a-name{font-size:13.5px;}
+  .ability-bar{gap:6px;}
+  .ability-btn{min-width:47%;padding:7px 8px;font-size:11.5px;}
+  .ability-btn .a-name{font-size:11.5px;}
   .ability-btn .a-meta{display:none;}
-  .enemy-zone,.ally-zone{padding:11px;border-radius:10px;}
-  .zone-label{margin-bottom:7px;font-size:11px;}
-  .unit-row{gap:8px;}
-  .unit-card{width:84px;padding:8px 6px;border-radius:10px;}
-  .unit-avatar{width:30px;height:30px;margin-bottom:4px;font-size:13px;border-radius:7px;}
-  .unit-name{font-size:10.5px;min-height:1.9em;line-height:1.1;}
+  .enemy-zone,.ally-zone{padding:8px;border-radius:9px;}
+  .zone-label{margin-bottom:5px;font-size:9.5px;}
+  .unit-row{gap:6px;}
+  .unit-card{width:68px;padding:5px 4px;border-radius:9px;}
+  .unit-avatar{width:24px;height:24px;margin-bottom:3px;font-size:10.5px;border-radius:6px;}
+  .unit-name{font-size:9.5px;min-height:1.85em;line-height:1.08;}
   .unit-class{display:none;}
-  .unit-row-tag{font-size:7.5px;margin-top:1px;}
-  .hpbar{height:5px;margin-top:3px;}
-  .hp-num{font-size:8.5px;margin-top:2px;}
-  .status-icons{margin-top:2px;}
-  .status-icon{font-size:7.5px;padding:0 2px;}
+  .unit-row-tag{font-size:7px;margin-top:0;}
+  .hpbar{height:4px;margin-top:2px;}
+  .hp-num{font-size:7.5px;margin-top:1px;}
+  .status-icons{margin-top:1px;}
+  .status-icon{font-size:7px;padding:0 2px;}
 }
 @media (max-width:360px){
-  .unit-card{width:68px;}
+  .unit-card{width:60px;}
 }
 
 /* ---- reward / shop / event ---- */
@@ -4443,8 +4449,15 @@ function openFormationModal(){
 function computeEmbers(win){
   const allNodes = mapAllNodes(RUN.map);
   const cleared = allNodes.filter(function(n){return n.cleared;}).length;
-  let embers = cleared*2 + RUN.ascension*3;
-  if(win)embers+=15;
+  let embers;
+  if(win){
+    embers = cleared*2 + RUN.ascension*3 + 15;
+  }else{
+    /* Consolation reward on defeat/retreat: deliberately capped well below
+       what a full win pays, so clearing a handful of cheap non-combat nodes
+       and bailing out is never a better payout rate than finishing the run. */
+    embers = Math.min(cleared,6) + Math.floor(RUN.ascension*1.5);
+  }
   return Math.max(1,Math.round(embers));
 }
 function renderAchievementUnlocks(unlocked){
