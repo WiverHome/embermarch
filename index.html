@@ -270,9 +270,17 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
      items of .combat-zone and can be reordered independently of which
      wrapper they started in. */
   .combat-zone{display:flex;flex-direction:column;gap:8px;}
-  .combat-left,.combat-right{display:contents;}
+  .combat-left{display:contents;}
   #combat-turnorder-card{order:1;}
-  .enemy-zone,.ally-zone{order:2;}
+  /* Enemies and party side by side in one row (own company on the left, foes
+     on the right) instead of stacked full-width bands — shorter vertically
+     and easier to compare at a glance. .combat-right stays a real box here
+     (not display:contents like .combat-left) so it can be the row container;
+     order on its two zones is scoped to it, independent of the outer order
+     values used elsewhere in this block. */
+  .combat-right{order:2;display:flex;flex-direction:row;gap:6px;align-items:flex-start;}
+  .combat-right .ally-zone{order:1;flex:1;min-width:0;}
+  .combat-right .enemy-zone{order:2;flex:1;min-width:0;}
   #action-panel{order:3;}
 }
 .unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
