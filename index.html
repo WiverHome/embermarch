@@ -228,6 +228,25 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
   background-attachment:local, local, scroll, scroll;
 }
 .map-svg{display:block;height:320px;width:auto;max-width:none;}
+/* On wide desktop viewports the map screen alone breaks out of #app's normal
+   860px reading-width column (every other screen stays at that width — this
+   is the one screen whose content is a wide branching path, not text, so the
+   extra room actually helps instead of just stretching line length). A plain
+   "full-bleed" trick: width is set from the viewport rather than the parent,
+   then re-centered with a negative auto-margin equivalent (left:50%+translate).
+   The ::before glow pseudo-element on #screen-map is already centered on the
+   section itself, so it re-centers along with it for free. */
+@media (min-width:960px){
+  #screen-map{width:94vw;max-width:1360px;position:relative;left:50%;transform:translateX(-50%);}
+  /* The shared #topbar sits outside #screen-map as a sibling, but it looks
+     odd left at the normal 860px column width while the map card below it
+     has broken out to near-full-width. Widen it to match, but only while
+     the map screen is the one actually visible — any other screen's topbar
+     (combat, shop, etc.) stays at the normal reading width. */
+  #app:has(> #screen-map:not([hidden])) #topbar{
+    width:94vw;max-width:1360px;position:relative;left:50%;transform:translateX(-50%);
+  }
+}
 .map-node{cursor:pointer;}
 .map-node text{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.05em;fill:var(--bg);font-weight:700;pointer-events:none;}
 .map-node text.map-node-icon{font-size:15px;letter-spacing:0;pointer-events:none;}
