@@ -1932,7 +1932,9 @@ function salvageYield(item){
   const relic=item.slot==='relic';
   const table=relic?{rare:{shards:8,gold:12},epic:{shards:15,gold:20}}
                    :{common:{shards:3,gold:5},rare:{shards:6,gold:10},epic:{shards:12,gold:18}};
-  return table[item.rarity]||{shards:3,gold:5};
+  const base=table[item.rarity]||{shards:3,gold:5};
+  const bonusShards=(META.upgrades.fortune_capstone||0)?1:0;
+  return bonusShards?{shards:base.shards+bonusShards,gold:base.gold}:base;
 }
 function salvageItem(item){
   const y=salvageYield(item);
@@ -2434,7 +2436,7 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0,fortune:0,fortune_rite:0,fortune_capstone:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
@@ -2510,7 +2512,23 @@ const UPGRADE_DEFS = [
     requires:{key:'keen_edge',rank:3}},
   {key:'lethal_calling',name:{en:'Lethal Calling',ru:'Зов смерти'},desc:{en:'Capstone: +8% critical hit chance and +15% critical damage to every hero',ru:'Вершина ветки: +8% к шансу крит. удара и +15% к урону от крита каждого героя'},max:1,cost:function(){return 45;},
     requires:{key:'deadly_precision',rank:2}},
+  /* Fifth branch (see relicChanceBonus()): the first branch that isn't a flat
+     per-hero stat — it leans on the econ/itemization side of the run instead
+     (reliccs, salvage shards), parallel in shape (base -> rite -> capstone)
+     to the existing four axes. */
+  {key:'fortune',name:{en:"Fortune's Favor",ru:'Благосклонность фортуны'},desc:{en:'+2% chance for a relic in march rewards per rank',ru:'+2% к шансу найти реликвию в наградах похода за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'fortune_rite',name:{en:'Rite of Fortune',ru:'Обряд удачи'},desc:{en:'+3% chance for a relic in march rewards per rank',ru:'+3% к шансу найти реликвию в наградах похода за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'fortune',rank:3}},
+  {key:'fortune_capstone',name:{en:"Fortune's Blessing",ru:'Благословение фортуны'},desc:{en:'Capstone: +10% chance for a relic in march rewards, and +1 shard whenever you salvage gear',ru:'Вершина ветки: +10% к шансу реликвии в наградах похода и +1 осколок при разборе снаряжения'},max:1,cost:function(){return 45;},
+    requires:{key:'fortune_rite',rank:2}},
 ];
+/* Total relic-chance bonus from the Fortune branch above, applied everywhere
+   a relic drop/stock chance is rolled (march rewards, shop relic stock —
+   see buildRewardCards()/refreshShopStock()) so all three ranks of the
+   branch plus the capstone add up consistently in one place. */
+function relicChanceBonus(){
+  return (META.upgrades.fortune||0)*0.02+(META.upgrades.fortune_rite||0)*0.03+((META.upgrades.fortune_capstone||0)?0.10:0);
+}
 
 const ACHIEVEMENTS = [
   {id:'first_win',name:{en:'First Light',ru:'Первый рассвет'},desc:{en:'Win a march.',ru:'Победить в походе.'},reward:20,
@@ -4014,7 +4032,7 @@ function buildRewardCards(layer){
   if(r2<0.34)cards.push({type:'gold',amount:10+tier*5+randInt(0,8)});
   else if(r2<0.67)cards.push({type:'elixir'});
   else cards.push({type:'item',item:randomItem(tier)});
-  if(Math.random()<0.16)cards.push({type:'item',item:randomRelic(tier)});
+  if(Math.random()<0.16+relicChanceBonus())cards.push({type:'item',item:randomRelic(tier)});
   return cards;
 }
 
@@ -4117,7 +4135,7 @@ function buildShopStock(layer){
     {kind:'elixir',price:20},
     {kind:'vigor',price:32},
   ];
-  const relicChance=tier>=3?0.6:(tier===2?0.4:0.25);
+  const relicChance=(tier>=3?0.6:(tier===2?0.4:0.25))+relicChanceBonus();
   if(Math.random()<relicChance)stock.push({kind:'item',item:randomRelic(tier),price:0});
   return stock.map(function(s){if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];return s;});
 }
