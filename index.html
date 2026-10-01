@@ -620,6 +620,7 @@ html.no-anim .float-text{display:none;}
       <button id="btn-open-arena"></button>
       <button id="btn-open-legacy"></button>
       <button id="btn-open-rules"></button>
+      <button id="btn-open-tutorial"></button>
     </div>
     <div class="title-foot" id="title-stats"></div>
     <div class="title-foot" id="title-daily-info" style="margin-top:8px;"></div>
@@ -1076,7 +1077,8 @@ function applyProgressToMeta(progress){
     settings:Object.assign(defaultMeta().settings,progress.settings),
     biomeChoice:BIOME_DEFS[progress.biomeChoice]?progress.biomeChoice:'ashfall',
     modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers),
-    bestiary:progress.bestiary||{},gearPresets:progress.gearPresets||[]
+    bestiary:progress.bestiary||{},gearPresets:progress.gearPresets||[],
+    tutorial:Object.assign(defaultMeta().tutorial,progress.tutorial)
   });
 }
 function attemptSessionRestore(){
@@ -1140,6 +1142,7 @@ function onAuthSubmit(e){
     applyTheme();applySettings();
     setSyncStatus(true);
     renderTitle();
+    maybeShowTutorial('welcome',showWelcomeTutorial);
   }).catch(function(err){
     submitBtn.disabled=false;
     if(!err||err.status===undefined){
@@ -1219,6 +1222,7 @@ const STATIC_I18N = {
   'auth-label-password':{en:'Password',ru:'Пароль'},
   'btn-daily':{en:'Daily Challenge',ru:'Испытание дня'},
   'btn-open-rules':{en:'How to Play',ru:'Правила игры'},
+  'btn-open-tutorial':{en:'Tutorial',ru:'Обучение'},
   'btn-save-reminder-export':{en:'Export code now',ru:'Экспортировать код'},
   'btn-save-reminder-dismiss':{en:'Remind me later',ru:'Напомнить позже'},
   'settings-animations-label':{en:'Animations',ru:'Анимации'},
@@ -2456,7 +2460,11 @@ function defaultMeta(){
        the player can re-apply in one click instead of picking heroes by hand each time. */
     gearPresets:[],
     /* Best depth reached in the Endless March (post-boss survival mode) — see onDefeat(). */
-    bestEndlessDepth:0,endlessRuns:[]};
+    bestEndlessDepth:0,endlessRuns:[],
+    /* One-time onboarding tips, each shown at most once per account (see
+       maybeShowTutorial()). 'welcome' fires right after first login/register;
+       the rest fire the first time that screen/situation is reached. */
+    tutorial:{welcome:false,heroSelect:false,map:false,combat:false}};
 }
 let META = defaultMeta(); // populated from the server after login — see onAuthSubmit()
 function loadMeta(){
@@ -2465,7 +2473,8 @@ function loadMeta(){
       settings:Object.assign(defaultMeta().settings,m.settings),
       biomeChoice:BIOME_DEFS[m.biomeChoice]?m.biomeChoice:'ashfall',
       modifiers:Object.assign(defaultMeta().modifiers,m.modifiers),
-      bestiary:m.bestiary||{},gearPresets:m.gearPresets||[]});
+      bestiary:m.bestiary||{},gearPresets:m.gearPresets||[],
+      tutorial:Object.assign(defaultMeta().tutorial,m.tutorial)});
   }catch(e){return defaultMeta();}
 }
 function applySettings(){
@@ -3745,6 +3754,7 @@ function startCombat(node){
   show('screen-combat');
   renderTopbar();
   newRound();
+  maybeShowTutorial('combat',showCombatTutorial);
 }
 function logCombat(msg){RUN.combat.log.push(msg);renderCombatLog();}
 /* Resume a battle that was left mid-fight (page reload / closed browser). Every combat
@@ -4417,6 +4427,7 @@ function renderMap(){
     svg.appendChild(g);
   });
   renderMapMobileList(allNodes);
+  maybeShowTutorial('map',showMapTutorial);
 }
 
 /* Mobile node-choice list (see .map-mobile in the CSS): instead of the full
@@ -5277,6 +5288,93 @@ function renderLegacy(){
   show('screen-legacy');
 }
 
+/* ============================= TUTORIAL / ONBOARDING =============================
+   A handful of short, one-time modal tips shown the first time a new account hits
+   a given situation (first login, first hero pick, first map, first fight). Each
+   fires at most once per account (flags live in META.tutorial, synced to the
+   server like the rest of progress), and the whole sequence can be replayed any
+   time from the title screen's "Tutorial" button. Text-only modal cards were
+   chosen over coordinate-based UI highlighting so the exact same code works
+   unchanged on both the desktop and mobile layouts (the modal itself is already
+   fully responsive — see .modal/.modal-card in the stylesheet). */
+function maybeShowTutorial(key,builder){
+  if(!META.tutorial)META.tutorial={welcome:false,heroSelect:false,map:false,combat:false};
+  if(META.tutorial[key])return;
+  META.tutorial[key]=true;
+  saveMeta();
+  builder();
+}
+function openTutorialSteps(steps,doneLabel){
+  let idx=0;
+  function renderStep(){
+    const s=steps[idx];
+    const wrap=el('div','stack');
+    wrap.appendChild(el('div','eyebrow',M('Tutorial','Обучение')+' · '+(idx+1)+'/'+steps.length));
+    wrap.appendChild(el('h3','',s.title));
+    wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;line-height:1.5;'>"+s.body+"</span>"));
+    const row=el('div','row');
+    if(idx>0){
+      const back=el('button','',M('Back','Назад'));
+      back.type='button';
+      back.addEventListener('click',function(){idx--;renderStep();});
+      row.appendChild(back);
+    }
+    const next=el('button','primary',idx<steps.length-1?M('Next','Далее'):(doneLabel||M('Got it','Понятно')));
+    next.type='button';
+    next.addEventListener('click',function(){
+      if(idx<steps.length-1){idx++;renderStep();}else{closeModal();}
+    });
+    row.appendChild(next);
+    wrap.appendChild(row);
+    openModal(wrap);
+  }
+  renderStep();
+}
+function showWelcomeTutorial(){
+  openTutorialSteps([
+    {title:M('Welcome, Commander','Добро пожаловать, командир'),body:M(
+      "Embermarch is a roguelite: you lead a small mercenary company on foot through a burnt land, fighting, looting and choosing a path node by node. Every march is freshly generated, and death isn't always the end — some of what you earn carries forward. This short tour covers the basics; skip it anytime with Back, and revisit it later from the \"Tutorial\" button on this screen.",
+      'Embermarch — рогалик: вы ведёте небольшой отряд наёмников пешком через выжженные земли, сражаясь, собирая добычу и выбирая путь от узла к узлу. Каждый поход генерируется заново, и гибель отряда — не всегда конец: часть добытого сохраняется между походами. Этот короткий тур расскажет основы; его можно пропустить кнопкой «Назад», а позже открыть снова кнопкой «Обучение» на этом экране.'
+    )},
+    {title:M('Build a company','Соберите отряд'),body:M(
+      'Before a march you pick exactly three heroes and arrange them into a front and back row. Each hero has a class, a damage stat (Strength or Intellect) and a handful of abilities with cooldowns. Melee abilities usually only reach the front row, so put fragile heroes in back.',
+      'Перед походом вы выбираете ровно трёх героев и расставляете их по переднему и заднему ряду. У каждого героя есть класс, характеристика урона (Сила или Интеллект) и несколько способностей с откатом. Ближние способности обычно достают только до переднего ряда — хрупких героев лучше ставить в тыл.'
+    )},
+    {title:M('The march','Поход'),body:M(
+      'The map screen shows the road ahead as a branching set of nodes: battles, events, shops and rest sites, leading up to a chapter boss. Tap or click a node to see what it offers before committing. "Formation & Gear" on the map lets you re-equip and reorder your rows at any time between fights.',
+      'Экран карты показывает путь вперёд как разветвлённую цепочку узлов: бои, события, лавки и привалы, ведущие к боссу главы. Нажмите на узел, чтобы увидеть, что он предлагает, прежде чем выбрать его. «Строй и снаряжение» на карте позволяет в любой момент между боями переэкипироваться и поменять ряды.'
+    )},
+    {title:M('Permanent progress','Постоянный прогресс'),body:M(
+      "Embers earned on a march stay with your account even if the company falls — spend them in the Legacy Ledger on permanent upgrades and new recruits for future marches. For the full rules on rows, statuses, cooldowns and damage types, open \"How to Play\" from this screen any time.",
+      'Угольки, заработанные в походе, остаются у аккаунта даже если отряд погибнет — тратьте их в Летописи на постоянные улучшения и новых наёмников для будущих походов. Полные правила по рядам, статусам, откатам и типам урона всегда доступны в «Правилах игры» на этом экране.'
+    )},
+  ],M("Let's go",'Вперёд'));
+}
+function showHeroSelectTutorial(){
+  openTutorialSteps([
+    {title:M('Choosing your company','Выбор отряда'),body:M(
+      'Pick exactly three heroes, then set each as front or back row — click a selected hero\'s row badge to swap it. Unlock more heroes by playing, or build a custom one of your own (one custom hero per account). You can save a line-up as a preset to reuse it in one click next time.',
+      'Выберите ровно трёх героев, затем задайте каждому передний или задний ряд — переключается кликом по значку ряда у выбранного героя. Новые герои открываются по мере игры, либо можно создать собственного героя (один на аккаунт). Состав можно сохранить как пресет и применить одним кликом в следующий раз.'
+    )},
+  ]);
+}
+function showMapTutorial(){
+  openTutorialSteps([
+    {title:M('Reading the map','Чтение карты'),body:M(
+      'Each icon is a node: crossed swords for a battle, a skull for an elite, a question mark for an event, a bag for a shop, a campfire to rest, and a crown for the chapter boss. Only the nodes connected to where you are now are open — tap one to preview it, then confirm to enter. "Formation & Gear" above the map is always free to use between nodes.',
+      'Каждый значок — это узел: скрещённые мечи — бой, череп — элитный враг, знак вопроса — событие, мешок — лавка, костёр — привал, корона — босс главы. Доступны только узлы, соединённые с текущим; нажмите на узел для предпросмотра, затем подтвердите вход. «Строй и снаряжение» над картой можно использовать бесплатно между узлами в любой момент.'
+    )},
+  ]);
+}
+function showCombatTutorial(){
+  openTutorialSteps([
+    {title:M('Your first battle','Первый бой'),body:M(
+      'Turn order is set by Speed — the queue at the top shows who acts next. On your turn, pick an ability then a target; stronger abilities go on cooldown (shown on the button) after use, so lean on basic attacks while they recharge. Watch for status icons (burning, stunned, exposed and more) — hover or tap one for details, and see "How to Play" for the full list and hero combos.',
+      'Порядок ходов определяется Скоростью — очередь сверху показывает, кто ходит следующим. В свой ход выберите способность, затем цель; сильные способности после использования уходят в откат (показан на кнопке), так что пока они перезаряжаются — используйте базовые удары. Следите за значками статусов (горение, оглушение, уязвимость и другие) — наведите или нажмите на значок для подробностей, а полный список и комбо героев — в «Правилах игры».'
+    )},
+  ]);
+}
+
 function showRulesModal(){
   const wrap=el('div','stack');
   wrap.appendChild(el('h3','',M('How to Play','Правила игры')));
@@ -5363,7 +5461,7 @@ function importSave(){
     if(raw.indexOf('EMBERMARCH1:')===0)raw=raw.slice('EMBERMARCH1:'.length);
     try{
       const parsed=JSON.parse(decodeURIComponent(escape(atob(raw))));
-      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:BIOME_DEFS[parsed.biomeChoice]?parsed.biomeChoice:'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers),bestiary:parsed.bestiary||{},gearPresets:parsed.gearPresets||[]});
+      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:BIOME_DEFS[parsed.biomeChoice]?parsed.biomeChoice:'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers),bestiary:parsed.bestiary||{},gearPresets:parsed.gearPresets||[],tutorial:Object.assign(defaultMeta().tutorial,parsed.tutorial)});
       saveMeta();applyTheme();applySettings();closeModal();renderLegacy();
     }catch(e){
       err.textContent=M('That code could not be read. Check for typos and try again.','Не удалось прочитать код. Проверьте на опечатки и попробуйте снова.');
@@ -6057,6 +6155,7 @@ function renderHeroSelect(){
   renderHeroPickList();
   renderHeroPresetsBar();
   show('screen-hero-select');
+  maybeShowTutorial('heroSelect',showHeroSelectTutorial);
 }
 
 function openCreateHeroModal(){
@@ -6263,6 +6362,11 @@ $('legacy-tabs').addEventListener('click',function(e){
   applyLegacyTabUI();
 });
 $('btn-open-rules').addEventListener('click',showRulesModal);
+$('btn-open-tutorial').addEventListener('click',function(){
+  META.tutorial={welcome:false,heroSelect:false,map:false,combat:false};
+  saveMeta();
+  maybeShowTutorial('welcome',showWelcomeTutorial);
+});
 $('btn-save-reminder-export').addEventListener('click',function(){
   META.lastExportNudgeEmbers=META.embers;saveMeta();
   exportSave();
