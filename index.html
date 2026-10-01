@@ -262,11 +262,18 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .combat-left{grid-area:left;display:flex;flex-direction:column;gap:14px;min-width:0;}
 .combat-right{grid-area:right;display:flex;flex-direction:column;gap:14px;min-width:0;}
 @media (max-width:680px){
-  /* Action panel + auto-battle toggle first on mobile, enemies/party below —
-     otherwise the controls the player actually needs sit below the fold at
-     the start of every fight, forcing a scroll before they can act. */
-  .combat-zone{grid-template-columns:1fr;grid-template-areas:"left" "right";gap:8px;}
-  .combat-left,.combat-right{gap:8px;}
+  /* Mobile reorders the fight top-to-bottom as: turn order strip, then the
+     board (enemies/party — what the player needs to see first), then the
+     ability buttons pinned at the bottom within thumb reach. combat-left/
+     combat-right are just CSS Grid wrappers on desktop; on mobile they're
+     flattened with display:contents so their children become direct flex
+     items of .combat-zone and can be reordered independently of which
+     wrapper they started in. */
+  .combat-zone{display:flex;flex-direction:column;gap:8px;}
+  .combat-left,.combat-right{display:contents;}
+  #combat-turnorder-card{order:1;}
+  .enemy-zone,.ally-zone{order:2;}
+  #action-panel{order:3;}
 }
 .unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .unit-card{
@@ -382,11 +389,14 @@ html.no-anim .float-text{display:none;}
 
 /* Compact combat (mobile): the whole fight (turn order, log, actions, both unit
    rows) needs to fit one phone screen with no scrolling. Everything below is
-   shrunk toward "just enough to read", and the log — normally a tall scrolling
-   history — collapses to one line (tap to expand) since the player needs the
-   board more than the last 10 lines of narration. Placed after the base combat
-   rules above (not inside the earlier combat-zone media query) so these
-   overrides actually win the cascade instead of being shadowed by them. */
+   shrunk toward "just enough to read". The log itself is dropped entirely on
+   mobile — at this width even one collapsed line ate space the board needed
+   more, and a one-line ellipsis wasn't actually readable — the player can
+   review the full log from a button on the screen after combat ends instead
+   (see #btn-view-combat-log / #btn-go-view-log / the arena "view log" link).
+   Placed after the base combat rules above (not inside the earlier
+   combat-zone media query) so these overrides actually win the cascade
+   instead of being shadowed by them. */
 @media (max-width:680px){
   #topbar{padding:6px 10px;margin-bottom:8px;font-size:11px;}
   #screen-combat .card{padding:7px 9px;}
@@ -395,13 +405,7 @@ html.no-anim .float-text{display:none;}
   .turn-order{gap:4px;}
   .turn-order .to-item{width:20px;height:20px;font-size:9px;}
   .to-badge{font-size:6.5px;padding:0 1px;}
-  #combat-log{
-    max-height:24px;min-height:0;padding:5px 9px;font-size:10.5px;line-height:1.3;gap:2px;
-    cursor:pointer;
-  }
-  #combat-log>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  #combat-log.log-expanded{max-height:140px;}
-  #combat-log.log-expanded>div{white-space:normal;}
+  #combat-log{display:none;}
   .ability-bar{gap:5px;}
   .ability-btn{min-width:47%;padding:5px 6px;font-size:10.5px;}
   .ability-btn .a-name{font-size:10.5px;}
@@ -716,7 +720,7 @@ html.no-anim .float-text{display:none;}
   <section id="screen-combat" hidden>
     <div class="combat-zone">
       <div class="combat-left">
-        <div class="card" style="padding:10px 12px;">
+        <div class="card" id="combat-turnorder-card" style="padding:10px 12px;">
           <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;">
             <div class="eyebrow" id="turn-order-label" style="margin-bottom:0;"></div>
             <button id="btn-auto-battle" style="font-size:11px;padding:4px 8px;"></button>
@@ -745,7 +749,7 @@ html.no-anim .float-text{display:none;}
     <h2 id="reward-h2" style="color:var(--accent);"></h2>
     <div class="eyebrow" id="reward-eyebrow" style="margin:6px 0 14px;"></div>
     <div class="stack" id="reward-cards"></div>
-    <div class="row" style="margin-top:14px;"><button class="primary" id="btn-skip-reward"></button></div>
+    <div class="row" style="margin-top:14px;"><button class="primary" id="btn-skip-reward"></button><button id="btn-view-combat-log"></button></div>
   </section>
 
   <section id="screen-event" hidden>
@@ -784,8 +788,11 @@ html.no-anim .float-text{display:none;}
       <div class="spread"><span id="go-embers-label"></span><span class="gold-badge num" id="go-embers"></span></div>
     </div>
     <div class="stack" id="go-achievements"></div>
-    <button id="btn-go-endless" hidden></button>
-    <button class="primary" id="btn-go-continue"></button>
+    <div class="row">
+      <button id="btn-go-endless" hidden></button>
+      <button class="primary" id="btn-go-continue"></button>
+      <button id="btn-go-view-log"></button>
+    </div>
   </section>
 
 </div>
@@ -1088,6 +1095,7 @@ const STATIC_I18N = {
   'reward-h2':{en:'Spoils',ru:'Трофеи'},
   'reward-eyebrow':{en:'Take one',ru:'Выберите один'},
   'btn-skip-reward':{en:'Move On',ru:'Идти дальше'},
+  'btn-view-combat-log':{en:'Combat Log',ru:'Журнал боя'},
   'shop-h2':{en:"Peddler's Cart",ru:'Тележка торговца'},
   'shop-gold-label':{en:'Gold:',ru:'Золото:'},
   'shop-craft-label':{en:'Forge (spend shards)',ru:'Мастерская (тратит осколки)'},
@@ -1106,6 +1114,7 @@ const STATIC_I18N = {
   'btn-open-bestiary':{en:'Open Bestiary',ru:'Открыть бестиарий'},
   'btn-save-hero-preset':{en:'Save as Preset',ru:'Сохранить как пресет'},
   'btn-go-endless':{en:'Press on — Endless March',ru:'Идти дальше — Бесконечный поход'},
+  'btn-go-view-log':{en:'Combat Log',ru:'Журнал боя'},
 };
 function applyStaticI18n(){
   Object.keys(STATIC_I18N).forEach(function(id){
@@ -2613,6 +2622,42 @@ function findNode(map,id){
 
 let RUN=null;
 let UID_COUNTER=0;
+/* Snapshot of the last finished combat's full log (normal march, async arena, or live
+   PvP) — captured right as that combat ends, since RUN.combat (or RUN itself) is often
+   cleared/replaced a moment later by the win/loss/match-end flow. Mobile hides the live
+   #combat-log during the fight (see the compact-combat media query), so this is how the
+   player reviews it afterward, via openCombatLogModal(). */
+let LAST_COMBAT_LOG=[];
+function snapshotCombatLog(){LAST_COMBAT_LOG=(RUN&&RUN.combat&&RUN.combat.log)?RUN.combat.log.slice():[];}
+function openCombatLogModal(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Combat Log','Журнал боя')));
+  const box=el('div','');
+  box.style.cssText='max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.5;color:var(--muted);';
+  if(!LAST_COMBAT_LOG.length){
+    box.appendChild(el('div','',M('No log to show.','Журнал пуст.')));
+  } else {
+    LAST_COMBAT_LOG.forEach(function(m){box.appendChild(el('div','',m));});
+  }
+  wrap.appendChild(box);
+  const row=el('div','row');row.style.marginTop='12px';
+  const close=el('button','primary',M('Close','Закрыть'));
+  close.addEventListener('click',closeModal);
+  row.appendChild(close);
+  wrap.appendChild(row);
+  openModal(wrap);
+  box.scrollTop=box.scrollHeight;
+}
+/* Small "view the fight's log" link dropped at the top of the arena/live-PvP hub right
+   after a match — that screen has no dedicated reward/gameover section of its own to
+   put a button on, so it's inserted ahead of whatever renderArenaBody() just drew. */
+function appendViewLogLink(container){
+  if(!container||!LAST_COMBAT_LOG.length)return;
+  const link=el('button','',M('View combat log','Посмотреть журнал боя'));
+  link.style.cssText='font-size:11px;padding:4px 10px;margin-bottom:10px;';
+  link.addEventListener('click',openCombatLogModal);
+  container.insertBefore(link,container.firstChild);
+}
 function nextUid(){UID_COUNTER++;return 'u'+UID_COUNTER;}
 
 function makeHeroInstance(key){
@@ -3533,6 +3578,7 @@ function heroChooseTarget(target){
 
 function onCombatWin(){
   logCombat(M('The foes are defeated.','Враги повержены.'));
+  snapshotCombatLog();
   RUN.layersCleared=Math.max(RUN.layersCleared,RUN.combat.node.layer+1);
   const node=RUN.combat.node;
   if(node.type==='boss'){
@@ -3551,6 +3597,7 @@ function onCombatWin(){
 }
 function onCombatLoss(){
   logCombat(M('The company has fallen.','Отряд пал.'));
+  snapshotCombatLog();
   saveRun();
   setTimeout(function(){onDefeat();},900);
 }
@@ -4163,6 +4210,8 @@ function renderRewardScreen(){
   show('screen-reward');
   renderTopbar();
   $('btn-skip-reward').onclick=function(){finishRewardNode(pr.node);};
+  $('btn-view-combat-log').hidden=!LAST_COMBAT_LOG.length;
+  $('btn-view-combat-log').onclick=openCombatLogModal;
 }
 
 /* ---- modals ---- */
@@ -4343,6 +4392,7 @@ function onVictory(){
      checkpoint), so pressing on just keeps using them for one more scaled fight at a
      time instead of ending the session here. */
   $('btn-go-endless').hidden=false;
+  $('btn-go-view-log').hidden=!LAST_COMBAT_LOG.length;
   show('screen-gameover');
   SFX.victory();
 }
@@ -4399,6 +4449,7 @@ function onDefeat(){
   }
   $('go-embers').textContent=embers;
   renderAchievementUnlocks(unlocked);
+  $('btn-go-view-log').hidden=!LAST_COMBAT_LOG.length;
   show('screen-gameover');
   SFX.defeat();
 }
@@ -5149,6 +5200,7 @@ function startArenaCombat(){
 }
 function onArenaCombatEnd(didWin){
   logCombat(didWin?M('Victory! The crowd roars.','Победа! Толпа ревёт.'):M('Defeat. The company withdraws.','Поражение. Отряд отступает.'));
+  snapshotCombatLog();
   const battleToken=ARENA_OPPONENT&&ARENA_OPPONENT.battleToken;
   const finish=function(ratingText){
     setTimeout(function(){
@@ -5158,7 +5210,8 @@ function onArenaCombatEnd(didWin){
       show('screen-arena');
       apiGetChampion().then(function(champ){ARENA_CHAMPION=champ;renderArenaBody();
         if(ratingText){const note=el('div','eyebrow',ratingText);$('arena-body').insertBefore(note,$('arena-body').firstChild);}
-      }).catch(function(){renderArenaBody();});
+        appendViewLogLink($('arena-body'));
+      }).catch(function(){renderArenaBody();appendViewLogLink($('arena-body'));});
     },900);
   };
   if(!battleToken){finish(null);return;}
@@ -5342,6 +5395,7 @@ function liveOnMatchEnd(msg){
     :msg.result==='loss'?M('Defeat. You withdraw from the arena.','Поражение. Вы покидаете арену.')
     :M('A draw — the match is called.','Ничья — поединок остановлен.');
   logCombat(resultText);
+  snapshotCombatLog();
   const ratingText=(typeof msg.ratingDelta==='number'&&msg.ratingDelta!==0)
     ? (msg.ratingDelta>=0?'+':'')+msg.ratingDelta+M(' rating (now ',' рейтинга (теперь ')+msg.newRating+')'
     : null;
@@ -5353,7 +5407,8 @@ function liveOnMatchEnd(msg){
     apiGetChampion().then(function(champ){
       ARENA_CHAMPION=champ;renderArenaBody();renderLiveDuelPanel();
       if(ratingText){const note=el('div','eyebrow',ratingText);$('arena-body').insertBefore(note,$('arena-body').firstChild);}
-    }).catch(function(){renderArenaBody();renderLiveDuelPanel();});
+      appendViewLogLink($('arena-body'));
+    }).catch(function(){renderArenaBody();renderLiveDuelPanel();appendViewLogLink($('arena-body'));});
   },900);
 }
 function liveQueueJoin(){
@@ -5640,10 +5695,6 @@ $('btn-confirm-heroes').addEventListener('click',function(){
 });
 $('btn-save-hero-preset').addEventListener('click',openSavePresetModal);
 $('btn-formation').addEventListener('click',openFormationModal);
-/* Mobile combat log: collapsed to one line by default (see the compact combat-screen
-   media query) so the fight fits on one screen without scrolling — tap it to expand
-   and read the last few lines, tap again to collapse. No-op on desktop widths. */
-$('combat-log').addEventListener('click',function(){$('combat-log').classList.toggle('log-expanded');});
 $('btn-auto-battle').addEventListener('click',function(){
   if(!RUN.combat)return;
   RUN.combat.autoBattle=!RUN.combat.autoBattle;
@@ -5689,6 +5740,7 @@ $('btn-rest-train').addEventListener('click',function(){
 });
 $('btn-go-continue').addEventListener('click',renderTitle);
 $('btn-go-endless').addEventListener('click',startEndlessMode);
+$('btn-go-view-log').addEventListener('click',openCombatLogModal);
 $('btn-theme-toggle').addEventListener('click',toggleTheme);
 $('btn-toggle-animations').addEventListener('click',function(){
   META.settings.animations = META.settings.animations===false;
