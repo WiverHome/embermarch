@@ -3731,6 +3731,10 @@ function autoActHero(unit){
   resolveHeroAbility(decision.ability,decision.target);
 }
 function heroChooseAbility(ability){
+  /* Guards against a stray click landing after this hero's turn already
+     resolved (see the note in resolveHeroAbility) — without this,
+     RUN.combat.activeHero.level below would itself throw on null. */
+  if(!RUN.combat||!RUN.combat.activeHero||RUN.combat.phase!=='hero_choose')return;
   if(ability.cdLeft>0)return;
   if(ability.minLevel&&(RUN.combat.activeHero.level||1)<ability.minLevel)return;
   if(!abilityHasTargets(ability,RUN.combat.activeHero))return;
@@ -3756,6 +3760,13 @@ function resolveHeroAbility(ability,target){
   RUN.combat.qi++;
   RUN.combat.phase='advance';
   renderCombat();
+  /* The old ability-bar buttons stay in the DOM (and clickable) until
+     advanceTurn()'s next renderActionPanel() call, 250-450ms later. A fast
+     double-click (or an automated bot) landing in that window re-enters
+     heroChooseAbility() with RUN.combat.activeHero already null, crashing
+     on caster.side inside abilityHasTargets()/getValidTargets(). Clearing
+     the panel immediately closes that window. */
+  renderActionPanel();
   playCombatFx(logs.fx);
   setTimeout(advanceTurn,250);
 }
