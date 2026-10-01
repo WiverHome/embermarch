@@ -5779,8 +5779,9 @@ function onArenaCombatEnd(didWin){
   }).catch(function(){finish(M('Could not report the result to the server.','Не удалось отправить результат на сервер.'));});
 }
 /* ============================= LIVE PvP (real-time, server-authoritative) ============================= */
-/* Companion to the async arena above: same saved ARENA_CHAMPION squad (first hero of it
-   fights), but resolved live over a WebSocket against a human opponent instead of a
+/* Companion to the async arena above: same saved ARENA_CHAMPION squad (the whole 1-3
+   hero squad fights, same as the async arena — see live-pvp.js's loadChampion()),
+   but resolved live over a WebSocket against a human opponent instead of a
    snapshot. The SERVER computes every damage/heal/turn outcome (see live-pvp.js +
    combat-engine.js on the backend) — this client only displays what it's told and
    submits {abilityId,targetUid} on its own turn. It reuses the entire existing combat
