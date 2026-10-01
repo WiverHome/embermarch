@@ -420,6 +420,12 @@ html.no-anim .float-text{display:none;}
   --accent-deep:#4a92b0;
   --accent-soft:#16323c;
 }
+/* Thornwild biome tint, same pattern as the frost tint above. */
+#screen-map.biome-verdant,#screen-combat.biome-verdant{
+  --accent:#8fc96a;
+  --accent-deep:#5a8f3a;
+  --accent-soft:#1f3418;
+}
 
 @media (max-width:480px){
   .unit-card{width:98px;}
@@ -858,7 +864,7 @@ function applyProgressToMeta(progress){
     history:progress.history||[],
     theme:progress.theme==='light'?'light':'dark',
     settings:Object.assign(defaultMeta().settings,progress.settings),
-    biomeChoice:(progress.biomeChoice==='frost')?'frost':'ashfall',
+    biomeChoice:BIOME_DEFS[progress.biomeChoice]?progress.biomeChoice:'ashfall',
     modifiers:Object.assign(defaultMeta().modifiers,progress.modifiers),
     bestiary:progress.bestiary||{},gearPresets:progress.gearPresets||[]
   });
@@ -1253,12 +1259,22 @@ const ENEMY_ICON_SVG = {
   glacierknight:'<svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 5-3 8-7 9-4-1-7-4-7-9V7l7-4z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M12 3v18M8 9l4 3 4-3" stroke="#12141a" stroke-width="1.2" fill="none"/></svg>',
   wailingblizzard:'<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7c0 3-2 4-2 7l-1 4H8l-1-4c0-3-2-4-2-7a7 7 0 017-7z" fill="#12141a"/><path d="M9 8l1 3-1 2M15 8l-1 3 1 2" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
   permafrostwarden:'<svg viewBox="0 0 24 24"><path d="M12 2l4 4-1 5 3 4-2 7H8l-2-7 3-4-1-5z" fill="#12141a"/><path d="M9 12l3 2 3-2" stroke="#e9e4d6" stroke-width="1" fill="none"/></svg>',
+  /* Thornwild biome roster, same minimalist dark-silhouette style. */
+  thornling:'<svg viewBox="0 0 24 24"><path d="M12 3c5 2 7 8 4 13-2 3-6 4-8 2-3-3-2-8 1-11 1-1 2-3 3-4z" fill="#12141a"/><path d="M9 10l2 2M9 14l2-1" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
+  spinearcher:'<svg viewBox="0 0 24 24"><path d="M7 3c5 3 5 15 0 18" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M7 12h12M15 8l4 4-4 4" fill="none" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/><circle cx="18" cy="6" r="1.2" fill="#12141a"/></svg>',
+  bramblehound:'<svg viewBox="0 0 24 24"><path d="M12 4l3 3 4-1-2 4 2 4-4 3-3 4-3-4-4-3 2-4-2-4 4 1 3-3z" fill="#12141a"/><path d="M8 7l1 2M16 7l-1 2M8 17l1-2M16 17l-1-2" stroke="#12141a" stroke-width="1" stroke-linecap="round"/><circle cx="9.5" cy="11" r="1" fill="#e9e4d6"/><circle cx="14.5" cy="11" r="1" fill="#e9e4d6"/></svg>',
+  rootwitch:'<svg viewBox="0 0 24 24"><path d="M12 21V9" stroke="#12141a" stroke-width="1.6" stroke-linecap="round"/><path d="M12 15l-3 2M12 18l3 2" stroke="#12141a" stroke-width="1.2" stroke-linecap="round" fill="none"/><circle cx="12" cy="6" r="3.4" fill="#12141a"/></svg>',
+  mosswarden:'<svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 017 7v5l-2 6H7l-2-6V10a7 7 0 017-7z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M9 9l1 3-1 3M15 9l-1 3 1 3" stroke="#12141a" stroke-width="1.2" fill="none"/></svg>',
+  thornknight:'<svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 5-3 8-7 9-4-1-7-4-7-9V7l7-4z" fill="none" stroke="#12141a" stroke-width="1.6"/><path d="M8 9l2 2-2 2M16 9l-2 2 2 2" stroke="#12141a" stroke-width="1.1" fill="none"/></svg>',
+  wailingvine:'<svg viewBox="0 0 24 24"><ellipse cx="12" cy="11" rx="6" ry="7.5" fill="#12141a"/><path d="M9 16l-1 4M15 16l1 4M12 17v4" stroke="#12141a" stroke-width="1" stroke-linecap="round"/><ellipse cx="12" cy="10" rx="2" ry="2.6" fill="#e9e4d6"/></svg>',
+  brambletyrant:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="#12141a"/><circle cx="9.3" cy="11" r="1.3" fill="#e9e4d6"/><circle cx="14.7" cy="11" r="1.3" fill="#e9e4d6"/><path d="M6 6l2 3M18 6l-2 3M9 4l1 3M15 4l-1 3M12 3v3" stroke="#12141a" stroke-width="1.4" stroke-linecap="round"/></svg>',
 };
 const BOSS_ICON_SVG = {
   warden:'<svg viewBox="0 0 24 24"><path d="M12 2c-2 2-4 2.5-4 6 0 2 1 3 1 5-2 .5-3 2-3 4a6 6 0 0012 0c0-2-1-3.5-3-4 0-2 1-3 1-5 0-3.5-2-4-4-6z" fill="#12141a"/><circle cx="9.5" cy="14" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="14" r="1.1" fill="#e9e4d6"/></svg>',
   colossus:'<svg viewBox="0 0 24 24"><path d="M2 20L9 6l3 4 3-6 7 16H2z" fill="#12141a"/><path d="M9 6l2 5-3 2M12 10l1 4-2 1" stroke="#e9e4d6" stroke-width="0.8" fill="none"/></svg>',
   vessel:'<svg viewBox="0 0 24 24"><path d="M9 3h6l1 3-1 2c2 2 3 5 3 8a6 6 0 01-12 0c0-3 1-6 3-8l-1-2 1-3z" fill="#12141a"/><path d="M9 12l2 2-1 3 2 2" stroke="#e9e4d6" stroke-width="0.9" fill="none"/></svg>',
   rimesovereign:'<svg viewBox="0 0 24 24"><path d="M12 2l3 5-1 4 4 3-2 8H10l-2-8 4-3-1-4z" fill="#12141a"/><circle cx="9.5" cy="15" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="15" r="1.1" fill="#e9e4d6"/><path d="M6 6l2 2M18 6l-2 2M12 2v3" stroke="#12141a" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  thornsovereign:'<svg viewBox="0 0 24 24"><path d="M12 2c-2 2-4 2.5-4 6 0 2 1 3 1 5-2 .5-3 2-3 4a6 6 0 0012 0c0-2-1-3.5-3-4 0-2 1-3 1-5 0-3.5-2-4-4-6z" fill="#12141a"/><circle cx="9.5" cy="14" r="1.1" fill="#e9e4d6"/><circle cx="14.5" cy="14" r="1.1" fill="#e9e4d6"/><path d="M6 10l2 2M18 10l-2 2M8 7l1 2M16 7l-1 2" stroke="#12141a" stroke-width="1" stroke-linecap="round"/></svg>',
 };
 
 const ENEMY_DEFS = {
@@ -1332,6 +1348,35 @@ const ENEMY_DEFS = {
     abilities:[{id:'tyrantslam',name:{en:'Tyrant Slam',ru:'Удар тирана'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.2},
                {id:'icewave',name:{en:'Ice Wave',ru:'Ледяная волна'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.9,dot:{amount:3,duration:2}},
                {id:'frostroar',name:{en:'Frost Roar',ru:'Морозный рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'spd',amount:-3,duration:2}]},
+  /* Thornwild biome roster — the poison/thorn counterpart to the Ashfall and Frozen
+     Reach rosters above. Same generic ability engine (dot/buff/debuff), reflavored
+     as thorns/poison instead of ash/chill, so no new combat mechanics are needed. */
+  thornling:{name:{en:'Thornling',ru:'Терновый прихвостень'},icon:'T',color:'#4a6b3a',hp:21,atk:6,def:3,spd:5,row:'front',
+    abilities:[{id:'thornclaw',name:{en:'Thorn Claw',ru:'Терновый коготь'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'poisonbite',name:{en:'Poison Bite',ru:'Ядовитый укус'},cd:2,reach:'melee',targets:'single',type:'damage',mult:1.1,dot:{amount:2,duration:3}}]},
+  spinearcher:{name:{en:'Spine Archer',ru:'Шипострел'},icon:'R',color:'#7a9a5a',hp:15,atk:7,def:1,spd:6,row:'back',
+    abilities:[{id:'spineshot',name:{en:'Spine Shot',ru:'Шиповой выстрел'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.9},
+               {id:'barbedshot',name:{en:'Barbed Shot',ru:'Зазубренный выстрел'},cd:2,reach:'ranged',targets:'single',type:'damage',mult:1.0,dot:{amount:2,duration:3}}]},
+  bramblehound:{name:{en:'Bramble Stalker',ru:'Терновый крадец'},icon:'H',color:'#5a7a3a',hp:18,atk:8,def:2,spd:10,row:'front',
+    abilities:[{id:'brambite',name:{en:'Bramble Bite',ru:'Терновый укус'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0},
+               {id:'tangle',name:{en:'Tangle',ru:'Опутывание'},cd:2,reach:'melee',targets:'single',type:'debuff',stat:'spd',amount:-3,duration:2}]},
+  rootwitch:{name:{en:'Root Witch',ru:'Корневая ведьма'},icon:'W',color:'#5a6a3a',hp:18,atk:5,def:2,spd:5,row:'back',res:'magic',
+    abilities:[{id:'rootbolt',name:{en:'Root Bolt',ru:'Корневой заряд'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.8},
+               {id:'withercurse',name:{en:"Withering Curse",ru:'Увядающее проклятие'},cd:3,reach:'ranged',targets:'single',type:'debuff',stat:'pow',amount:-3,duration:2},
+               {id:'sapmend',name:{en:'Sap Mend',ru:'Исцеление соком'},cd:3,reach:'any',targets:'single-ally',type:'heal',mult:0,flat:9}]},
+  thornknight:{name:{en:'Thorn Knight',ru:'Терновый рыцарь'},icon:'K',color:'#3a4a2a',hp:37,atk:13,def:11,spd:6,row:'front',res:'phys',
+    abilities:[{id:'thornslash',name:{en:'Thorn Slash',ru:'Терновый удар'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.15},
+               {id:'barkguard',name:{en:'Shatter Bark',ru:'Раскол коры'},cd:2,reach:'melee',targets:'single',type:'debuff',stat:'def',amount:-5,duration:2}]},
+  wailingvine:{name:{en:'Wailing Vine',ru:'Воющая лоза'},icon:'Y',color:'#6a8a4a',hp:27,atk:12,def:4,spd:9,row:'back',res:'magic',
+    abilities:[{id:'lashingvine',name:{en:'Lashing Vine',ru:'Хлёсткая лоза'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:1.1},
+               {id:'vinesong',name:{en:'Vine Song',ru:'Песнь лозы'},cd:3,reach:'ranged',targets:'all',type:'damage',mult:0.6,dot:{amount:2,duration:3}}]},
+  mosswarden:{name:{en:'Moss Warden',ru:'Страж мха'},icon:'X',color:'#2f4522',hp:45,atk:9,def:6,spd:4,row:'front',elite:true,res:'phys',
+    abilities:[{id:'mossslam',name:{en:'Moss Slam',ru:'Удар мха'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.1},
+               {id:'rootquake',name:{en:'Rootquake',ru:'Корневое сотрясение'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.0}]},
+  brambletyrant:{name:{en:'Bramble Tyrant',ru:'Терновый тиран'},icon:'Ω',color:'#22321c',hp:65,atk:15,def:9,spd:5,row:'front',elite:true,res:'phys',
+    abilities:[{id:'tyrantthorn',name:{en:'Tyrant Thorn',ru:'Шип тирана'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.2},
+               {id:'thornwave',name:{en:'Thorn Wave',ru:'Терновая волна'},cd:2,reach:'melee',targets:'row',type:'damage',mult:0.9,dot:{amount:3,duration:3}},
+               {id:'wildroar',name:{en:'Wild Roar',ru:'Дикий рёв'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'def',amount:-3,duration:2}]},
 };
 
 const BOSS_DEFS = {
@@ -1355,6 +1400,11 @@ const BOSS_DEFS = {
                {id:'glacialsmash',name:{en:'Glacial Smash',ru:'Ледниковый удар'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
                {id:'wintersgrasp',name:{en:"Winter's Grasp",ru:'Хватка зимы'},cd:3,reach:'any',targets:'all-ally',type:'debuff',stat:'spd',amount:-3,duration:2},
                {id:'blizzard',name:{en:'Eternal Blizzard',ru:'Вечная метель'},cd:3,reach:'any',targets:'all',type:'damage',mult:1.6,requiresEnrage:true,desc:{en:'Enrage only: a howling blizzard engulfs the whole company',ru:'Только в ярости: воющая метель накрывает весь отряд'}}]},
+  thornsovereign:{key:'thornsovereign',name:{en:'The Thorn Sovereign',ru:'Терновый государь'},icon:'❀',color:'#20301a',hp:102,atk:13,def:9,spd:6,row:'front',boss:true,res:'phys',
+    abilities:[{id:'thornrake',name:{en:'Thorn Rake',ru:'Терновые грабли'},cd:0,reach:'melee',targets:'single',type:'damage',mult:1.0,dot:{amount:3,duration:2}},
+               {id:'brambleslash',name:{en:'Bramble Slash',ru:'Терновый удар'},cd:2,reach:'melee',targets:'row',type:'damage',mult:1.4},
+               {id:'wildgrowth',name:{en:'Wild Growth',ru:'Дикий рост'},cd:3,reach:'any',targets:'self',type:'buff',stat:'def',amount:6,duration:2},
+               {id:'thornstorm',name:{en:'Thornstorm',ru:'Терновая буря'},cd:3,reach:'any',targets:'all',type:'damage',mult:1.5,dot:{amount:3,duration:2},requiresEnrage:true,desc:{en:'Enrage only: a storm of thorns tears through the whole company',ru:'Только в ярости: буря шипов обрушивается на весь отряд'}}]},
 };
 
 /* Biomes parametrize which enemy/elite pools and which bosses a march can draw from.
@@ -1370,11 +1420,17 @@ const BIOME_DEFS = {
     eliteKeys:{1:'permafrostwarden',2:'permafrostwarden',3:'glaciertyrant',4:'glaciertyrant'},
     eliteMinions:{1:['frostling'],2:['frostling','icearcher','rimewolf'],3:['rimewolf','frostwitch','glacierknight'],4:['glacierknight','wailingblizzard','frostwitch']},
     bosses:['rimesovereign']},
+  verdant:{key:'verdant',name:{en:'The Thornwild',ru:'Терновая чаща'},tint:'verdant',
+    pools:{1:['thornling','spinearcher'],2:['thornling','spinearcher','bramblehound','rootwitch'],3:['bramblehound','rootwitch','thornknight','wailingvine'],4:['thornknight','wailingvine','rootwitch','bramblehound']},
+    eliteKeys:{1:'mosswarden',2:'mosswarden',3:'brambletyrant',4:'brambletyrant'},
+    eliteMinions:{1:['thornling'],2:['thornling','spinearcher','bramblehound'],3:['bramblehound','rootwitch','thornknight'],4:['thornknight','wailingvine','rootwitch']},
+    bosses:['thornsovereign']},
 };
 function getBiome(key){return BIOME_DEFS[key]||BIOME_DEFS.ashfall;}
 const BIOME_FLAVOR = {
   ashfall:{en:'Smouldering ashlands — the original march, warm-toned foes and a fire-touched final boss.',ru:'Тлеющие пепельные земли — изначальный маршрут, враги в тёплых тонах и финальный босс, тронутый огнём.'},
   frost:{en:'A frozen wasteland with its own roster of ice-bound foes and a different final boss.',ru:'Замёрзшая пустошь со своим набором ледяных врагов и другим финальным боссом.'},
+  verdant:{en:'An overgrown, poison-choked wild — thorned beasts and witches, ruled by a sovereign wreathed in brambles.',ru:'Заросшая, пропитанная ядом чащоба — терновые звери и ведьмы под властью государя, увитого шипами.'},
 };
 
 /* ============================= BESTIARY ============================= */
@@ -2081,7 +2137,7 @@ function loadMeta(){
   try{const raw=localStorage.getItem(META_KEY);if(!raw)return defaultMeta();
     const m=JSON.parse(raw);return Object.assign(defaultMeta(),m,{upgrades:Object.assign(defaultMeta().upgrades,m.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,m.heroesUnlocked),customHeroes:m.customHeroes||[],achievements:m.achievements||{},history:m.history||[],theme:m.theme==='light'?'light':'dark',
       settings:Object.assign(defaultMeta().settings,m.settings),
-      biomeChoice:(m.biomeChoice==='frost')?'frost':'ashfall',
+      biomeChoice:BIOME_DEFS[m.biomeChoice]?m.biomeChoice:'ashfall',
       modifiers:Object.assign(defaultMeta().modifiers,m.modifiers),
       bestiary:m.bestiary||{},gearPresets:m.gearPresets||[]});
   }catch(e){return defaultMeta();}
@@ -2376,7 +2432,8 @@ function show(screenId){
     .forEach(function(id){$(id).hidden=(id!==screenId);});
   $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
   if(screenId==='screen-map'||screenId==='screen-combat'){
-    $(screenId).classList.toggle('biome-frost', !!(RUN&&RUN.biome==='frost'));
+    const el2=$(screenId);
+    Object.keys(BIOME_DEFS).forEach(function(bk){el2.classList.toggle('biome-'+bk, !!(RUN&&RUN.biome===bk));});
   }
 }
 function closeModal(){$('modal-root').innerHTML='';}
@@ -2663,7 +2720,7 @@ function hydrateParty(run){
   if(!run.inventory)run.inventory=[];
   if(typeof run.shards!=='number')run.shards=0;
   if(!run.comboCount)run.comboCount=0;
-  if(run.biome!=='frost')run.biome='ashfall';
+  if(!BIOME_DEFS[run.biome])run.biome='ashfall';
   if(!run.modifiers)run.modifiers={eliteVanguard:false,earlyStorm:false,brokenWard:false};
   run.party.forEach(function(h){
     normalizeLeveling(h);
@@ -2700,7 +2757,7 @@ function startNewRun(heroKeys,dailySeed){
   const startGold=25+META.upgrades.packs*15+(META.upgrades.caravan||0)*20;
   /* Daily Challenge always runs the default Ashfall March with no modifiers, so every
      player on a given day faces the exact same seeded encounters. */
-  const biomeKey=dailySeed?'ashfall':((META.biomeChoice==='frost')?'frost':'ashfall');
+  const biomeKey=dailySeed?'ashfall':(BIOME_DEFS[META.biomeChoice]?META.biomeChoice:'ashfall');
   const modifiers=dailySeed?{eliteVanguard:false,earlyStorm:false,brokenWard:false}:Object.assign({},META.modifiers);
   RUN={
     ascension:dailySeed?0:META.ascensionChoice,
@@ -4601,7 +4658,7 @@ function importSave(){
     if(raw.indexOf('EMBERMARCH1:')===0)raw=raw.slice('EMBERMARCH1:'.length);
     try{
       const parsed=JSON.parse(decodeURIComponent(escape(atob(raw))));
-      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:(parsed.biomeChoice==='frost')?'frost':'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers),bestiary:parsed.bestiary||{},gearPresets:parsed.gearPresets||[]});
+      META=Object.assign(defaultMeta(),parsed,{upgrades:Object.assign(defaultMeta().upgrades,parsed.upgrades),heroesUnlocked:Object.assign(defaultMeta().heroesUnlocked,parsed.heroesUnlocked),customHeroes:parsed.customHeroes||[],achievements:parsed.achievements||{},history:parsed.history||[],theme:parsed.theme==='light'?'light':'dark',settings:Object.assign(defaultMeta().settings,parsed.settings),biomeChoice:BIOME_DEFS[parsed.biomeChoice]?parsed.biomeChoice:'ashfall',modifiers:Object.assign(defaultMeta().modifiers,parsed.modifiers),bestiary:parsed.bestiary||{},gearPresets:parsed.gearPresets||[]});
       saveMeta();applyTheme();applySettings();closeModal();renderLegacy();
     }catch(e){
       err.textContent=M('That code could not be read. Check for typos and try again.','Не удалось прочитать код. Проверьте на опечатки и попробуйте снова.');
