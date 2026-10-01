@@ -3472,6 +3472,7 @@ function heroChooseAbility(ability){
   renderCombat();
 }
 function resolveHeroAbility(ability,target){
+  if(RUN.combat.isLivePvp){liveResolveHeroAbility(ability,target);return;}
   const unit=RUN.combat.activeHero;
   ability.cdLeft=ability.cd;
   const logs=applyAbilityEffect(unit,ability,target);
@@ -4031,7 +4032,11 @@ function updateAutoBattleButton(){
 function renderActionPanel(){
   const panel=$('action-panel');panel.innerHTML='';
   const unit=RUN.combat.activeHero;
-  if(!unit){panel.innerHTML='<div style="color:var(--muted);font-size:13px;">'+M('The foe stirs…','Враг готовится…')+'</div>';return;}
+  if(RUN.combat.isLivePvp&&RUN.combat.phase==='hero_wait'){panel.innerHTML='<div style="color:var(--muted);font-size:13px;">'+M('Resolving…','Разрешение хода…')+'</div>';return;}
+  if(!unit){
+    const waitMsg=RUN.combat.isLivePvp?M("Opponent's turn…",'Ход соперника…'):M('The foe stirs…','Враг готовится…');
+    panel.innerHTML='<div style="color:var(--muted);font-size:13px;">'+waitMsg+'</div>';return;
+  }
   panel.appendChild(el('div','eyebrow',M(unit.name+"'s turn",'Ход: '+unit.name)));
   const bar=el('div','ability-bar');
   unit.abilities.forEach(function(a,idx){
@@ -4968,7 +4973,7 @@ function renderArenaHub(){
   card.appendChild(el('div','eyebrow',M('Wins ','Побед ')+ARENA_CHAMPION.wins+M('  ·  Losses ','  ·  Поражений ')+ARENA_CHAMPION.losses));
   card.appendChild(arenaMiniSquad(ARENA_CHAMPION.heroes));
   const row=el('div','row',null);
-  const findBtn=el('button','primary',M('Find an Opponent','Найти соперника'));
+  const findBtn=el('button','primary',M('Find an Opponent (Async)','Найти соперника (асинхронно)'));
   findBtn.disabled=ARENA_BUSY;
   findBtn.addEventListener('click',fetchArenaOpponent);
   row.appendChild(findBtn);
@@ -4980,6 +4985,7 @@ function renderArenaHub(){
   row.appendChild(lbBtn);
   card.appendChild(row);
   body.appendChild(card);
+  renderLiveDuelPanel();
 }
 function renderArenaOpponentPreview(){
   const body=$('arena-body');body.innerHTML='';
@@ -5121,6 +5127,252 @@ function onArenaCombatEnd(didWin){
     finish((delta>=0?'+':'')+delta+M(' rating (now ',' рейтинга (теперь ')+res.newRating+')');
   }).catch(function(){finish(M('Could not report the result to the server.','Не удалось отправить результат на сервер.'));});
 }
+/* ============================= LIVE PvP (real-time, server-authoritative) ============================= */
+/* Companion to the async arena above: same saved ARENA_CHAMPION squad (first hero of it
+   fights), but resolved live over a WebSocket against a human opponent instead of a
+   snapshot. The SERVER computes every damage/heal/turn outcome (see live-pvp.js +
+   combat-engine.js on the backend) — this client only displays what it's told and
+   submits {abilityId,targetUid} on its own turn. It reuses the entire existing combat
+   screen/engine machinery (unitCard, renderCombat, playCombatFx, heroChooseAbility/Target)
+   the same way the async arena duel does (RUN.combat.isArena) via a parallel
+   RUN.combat.isLivePvp flag — see resolveHeroAbility()'s branch near the bottom of the
+   combat engine section, and liveStateToLocal() below for how server state becomes a
+   normal-looking RUN.combat.party/enemies pair. */
+let LIVE=null; // {ws,status,matchId,mySide,you,opponent,inviteCode,pendingPrompt}
+function liveWsUrl(){return API_BASE.replace(/^http/,'ws')+'/arena/live?token='+encodeURIComponent(AUTH_TOKEN);}
+function liveEnsure(onReady){
+  if(LIVE&&LIVE.ws&&(LIVE.ws.readyState===WebSocket.OPEN||LIVE.ws.readyState===WebSocket.CONNECTING)){
+    if(LIVE.status==='connected'||LIVE.status==='queued'||LIVE.status==='inviting'||LIVE.status==='in_match'){onReady&&onReady();return;}
+    const prev=LIVE._onReady;LIVE._onReady=function(){prev&&prev();onReady&&onReady();};
+    return;
+  }
+  LIVE={ws:null,status:'connecting',matchId:null,mySide:null,you:null,opponent:null,inviteCode:null,pendingPrompt:null,_onReady:onReady};
+  let ws;
+  try{ws=new WebSocket(liveWsUrl());}catch(e){LIVE.status='error';renderLiveDuelPanel();return;}
+  LIVE.ws=ws;
+  ws.addEventListener('open',function(){});
+  ws.addEventListener('close',function(){
+    const wasInMatch=LIVE&&LIVE.status==='in_match';
+    if(LIVE)LIVE.status='disconnected';
+    if(wasInMatch&&RUN&&RUN.combat&&RUN.combat.isLivePvp&&!RUN.combat.over){
+      logCombat(M('Connection to the arena lost.','Соединение с ареной потеряно.'));
+    }
+    if($('arena-body')&&!$('screen-arena').hidden)renderLiveDuelPanel();
+  });
+  ws.addEventListener('error',function(){});
+  ws.addEventListener('message',function(ev){
+    let msg;try{msg=JSON.parse(ev.data);}catch(e){return;}
+    liveHandleMessage(msg);
+  });
+  ws.addEventListener('message',function onFirst(ev){
+    let msg;try{msg=JSON.parse(ev.data);}catch(e){return;}
+    if(msg.type==='auth_ok'){
+      ws.removeEventListener('message',onFirst);
+      LIVE.status='connected';
+      const cb=LIVE._onReady;LIVE._onReady=null;
+      cb&&cb();
+    }
+  });
+}
+function liveClose(){
+  if(LIVE&&LIVE.ws){try{LIVE.ws.close();}catch(e){}}
+  LIVE=null;
+}
+function liveSend(obj){
+  if(!LIVE||!LIVE.ws||LIVE.ws.readyState!==WebSocket.OPEN)return;
+  LIVE.ws.send(JSON.stringify(obj));
+}
+/* Converts the server's side-neutral {party,enemies} (labelled 'hero'/'enemy' once at
+   match creation, fixed for the whole match) into the local convention the rest of the
+   combat engine expects: RUN.combat.party is always *my* unit(s), RUN.combat.enemies is
+   always the *opponent's* — exactly how the async arena duel already sets things up
+   (cloneArenaUnit), so unitCard/getValidTargets/abilityHasTargets/heroChooseAbility all
+   just work unmodified. */
+function liveStateToLocal(state,mySide){
+  const mine=(mySide==='hero'?state.party:state.enemies).map(function(u){return Object.assign({},u,{side:'hero'});});
+  const theirs=(mySide==='hero'?state.enemies:state.party).map(function(u){return Object.assign({},u,{side:'enemy'});});
+  return {party:mine,enemies:theirs};
+}
+function liveFindLocalUnit(uid){
+  if(!RUN||!RUN.combat)return null;
+  return RUN.combat.party.concat(RUN.combat.enemies).find(function(u){return u.uid===uid;});
+}
+function liveHandleMessage(msg){
+  if(!LIVE)return;
+  if(msg.type==='auth_ok'){LIVE.status='connected';return;}
+  if(msg.type==='queue_joined'){LIVE.status='queued';renderLiveDuelPanel();return;}
+  if(msg.type==='queue_left'){LIVE.status='connected';renderLiveDuelPanel();return;}
+  if(msg.type==='invite_created'){LIVE.status='inviting';LIVE.inviteCode=msg.code;renderLiveDuelPanel();return;}
+  if(msg.type==='error'){
+    if(RUN&&RUN.combat&&RUN.combat.isLivePvp){logCombat(M('Server: ','Сервер: ')+msg.message);RUN.combat.phase='hero_choose';renderActionPanel();}
+    else{const body=$('arena-body');if(body){const n=el('div','',"<span style='color:var(--danger);'>"+msg.message+"</span>");body.insertBefore(n,body.firstChild);}}
+    return;
+  }
+  if(msg.type==='match_found'){
+    LIVE.status='in_match';LIVE.matchId=msg.matchId;LIVE.mySide=msg.side;LIVE.you=msg.you;LIVE.opponent=msg.opponent;
+    liveStartCombatScreen(msg.state);
+    return;
+  }
+  if(msg.type==='turn_prompt'){
+    liveApplyTurnPrompt(msg);
+    return;
+  }
+  if(msg.type==='combat_log'){
+    (msg.logs||[]).forEach(function(l){logCombat(L(l));});
+    if(RUN&&RUN.combat&&RUN.combat.isLivePvp){
+      const loc=liveStateToLocal(msg.state,LIVE.mySide);
+      RUN.combat.party=loc.party;RUN.combat.enemies=loc.enemies;
+      renderCombat();
+      playCombatFx((msg.fx||[]).map(function(f){return Object.assign({},f,{text:f.text?L(f.text):undefined});}));
+    }
+    return;
+  }
+  if(msg.type==='opponent_disconnected'){
+    if(RUN&&RUN.combat&&RUN.combat.isLivePvp)logCombat(M('Your opponent disconnected — waiting for them to return…','Соперник отключился — ждём возвращения…'));
+    return;
+  }
+  if(msg.type==='opponent_disconnected_final'){
+    if(RUN&&RUN.combat&&RUN.combat.isLivePvp)logCombat(M('Your opponent never reconnected.','Соперник так и не вернулся.'));
+    return;
+  }
+  if(msg.type==='match_end'){
+    liveOnMatchEnd(msg);
+    return;
+  }
+}
+function liveStartCombatScreen(state){
+  if(loadRun()){
+    liveSend({type:'forfeit'});
+    return;
+  }
+  const loc=liveStateToLocal(state,LIVE.mySide);
+  RUN={isArenaTemp:true,party:loc.party,gold:0,ascension:0,modifiers:{},biome:'ashfall',inventory:[],combat:null};
+  RUN.combat={
+    isLivePvp:true,
+    enemies:loc.enemies,
+    party:RUN.party,
+    queue:[],qi:0,round:1,log:[],
+    selectedAbility:null,targetingUnit:null,over:false,autoBattle:false,
+    activeUnit:null,activeHero:null,phase:'waiting',
+  };
+  show('screen-combat');
+  renderTopbar();
+  $('tb-layer').textContent=M('Live Duel','Живая дуэль');
+  logCombat(M(
+    'The live arena connects you to '+(LIVE.opponent&&LIVE.opponent.username)+' — the fight begins!',
+    'Арена соединяет вас с '+(LIVE.opponent&&LIVE.opponent.username)+' — бой начинается!'
+  ));
+  renderCombat();
+  renderActionPanel();
+}
+function liveApplyTurnPrompt(msg){
+  if(!RUN||!RUN.combat||!RUN.combat.isLivePvp)return;
+  const loc=liveStateToLocal(msg.state,LIVE.mySide);
+  RUN.combat.party=loc.party;RUN.combat.enemies=loc.enemies;
+  const unit=liveFindLocalUnit(msg.activeUid);
+  RUN.combat.activeUnit=unit;
+  RUN.combat.round=(RUN.combat.round||1);
+  if(msg.yourTurn&&unit){
+    RUN.combat.activeHero=unit;
+    RUN.combat.phase='hero_choose';
+    RUN.combat.selectedAbility=null;
+    LIVE.pendingPrompt=msg;
+  } else {
+    RUN.combat.activeHero=null;
+    RUN.combat.phase='enemy_turn';
+    LIVE.pendingPrompt=null;
+  }
+  renderCombat();
+  renderActionPanel();
+}
+/* Called from resolveHeroAbility() instead of the normal local-resolve path when
+   RUN.combat.isLivePvp — see that function's branch. Sends the choice to the server and
+   waits (phase 'hero_wait') for its authoritative combat_log + next turn_prompt instead
+   of resolving anything locally. */
+function liveResolveHeroAbility(ability,target){
+  RUN.combat.selectedAbility=null;
+  RUN.combat.phase='hero_wait';
+  renderCombat();
+  renderActionPanel();
+  liveSend({type:'action',abilityId:ability.id,targetUid:target?target.uid:null});
+}
+function liveOnMatchEnd(msg){
+  if(RUN&&RUN.combat)RUN.combat.over=true;
+  const resultText=msg.result==='win'?M('Victory! The crowd roars.','Победа! Толпа ревёт.')
+    :msg.result==='loss'?M('Defeat. You withdraw from the arena.','Поражение. Вы покидаете арену.')
+    :M('A draw — the match is called.','Ничья — поединок остановлен.');
+  logCombat(resultText);
+  const ratingText=(typeof msg.ratingDelta==='number'&&msg.ratingDelta!==0)
+    ? (msg.ratingDelta>=0?'+':'')+msg.ratingDelta+M(' rating (now ',' рейтинга (теперь ')+msg.newRating+')'
+    : null;
+  setTimeout(function(){
+    RUN=null;
+    LIVE.status='connected';LIVE.matchId=null;LIVE.mySide=null;LIVE.opponent=null;
+    ARENA_VIEW='hub';
+    show('screen-arena');
+    apiGetChampion().then(function(champ){
+      ARENA_CHAMPION=champ;renderArenaBody();renderLiveDuelPanel();
+      if(ratingText){const note=el('div','eyebrow',ratingText);$('arena-body').insertBefore(note,$('arena-body').firstChild);}
+    }).catch(function(){renderArenaBody();renderLiveDuelPanel();});
+  },900);
+}
+function liveQueueJoin(){
+  if(loadRun()){$('arena-body').innerHTML="<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>";return;}
+  if(!ARENA_CHAMPION){return;}
+  liveEnsure(function(){liveSend({type:'queue_join'});});
+}
+function liveQueueLeave(){liveSend({type:'queue_leave'});if(LIVE)LIVE.status='connected';renderLiveDuelPanel();}
+function liveInviteCreate(){
+  if(loadRun()){$('arena-body').innerHTML="<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>";return;}
+  if(!ARENA_CHAMPION){return;}
+  liveEnsure(function(){liveSend({type:'invite_create'});});
+  renderLiveDuelPanel();
+}
+function liveInviteCancel(){liveSend({type:'invite_cancel'});if(LIVE){LIVE.status='connected';LIVE.inviteCode=null;}renderLiveDuelPanel();}
+function liveInviteJoin(code){
+  if(loadRun()){$('arena-body').innerHTML="<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>";return;}
+  if(!ARENA_CHAMPION||!code)return;
+  liveEnsure(function(){liveSend({type:'invite_join',code:code.toUpperCase().trim()});});
+}
+function renderLiveDuelPanel(){
+  const body=$('arena-body');
+  if(!body||!ARENA_CHAMPION)return;
+  const old=$('live-duel-card');if(old)old.remove();
+  const card=el('div','card stack',null);card.id='live-duel-card';
+  card.appendChild(el('h3','',M('⚔ Live Duel','⚔ Живая дуэль')));
+  const status=(LIVE&&LIVE.status)||'disconnected';
+  if(status==='queued'){
+    card.appendChild(el('div','eyebrow',M('Searching for an opponent…','Ищем соперника…')));
+    const cancel=el('button','',M('Cancel','Отмена'));cancel.addEventListener('click',liveQueueLeave);
+    card.appendChild(cancel);
+  } else if(status==='inviting'&&LIVE.inviteCode){
+    card.appendChild(el('div','eyebrow',M('Share this code — it expires in 10 minutes:','Поделитесь этим кодом — он истекает через 10 минут:')));
+    card.appendChild(el('div','',"<strong style='font-size:22px;letter-spacing:3px;'>"+LIVE.inviteCode+"</strong>"));
+    const cancel=el('button','',M('Cancel Invite','Отменить приглашение'));cancel.addEventListener('click',liveInviteCancel);
+    card.appendChild(cancel);
+  } else {
+    card.appendChild(el('div','eyebrow',M('Fight a real opponent live — the server referees every hit, no snapshots.','Сразитесь с живым соперником — сервер судит каждый удар, никаких снимков.')));
+    const row=el('div','row',null);
+    const quick=el('button','primary',M('Quick Match','Быстрый бой'));
+    quick.addEventListener('click',liveQueueJoin);
+    row.appendChild(quick);
+    const invite=el('button','',M('Create Invite','Создать приглашение'));
+    invite.addEventListener('click',liveInviteCreate);
+    row.appendChild(invite);
+    card.appendChild(row);
+    const joinRow=el('div','row',null);
+    const codeInput=document.createElement('input');
+    codeInput.type='text';codeInput.maxLength=6;codeInput.placeholder=M('Enter code','Введите код');
+    codeInput.style.cssText='width:120px;text-transform:uppercase;';
+    joinRow.appendChild(codeInput);
+    const joinBtn=el('button','',M('Join Duel','Войти в дуэль'));
+    joinBtn.addEventListener('click',function(){liveInviteJoin(codeInput.value);});
+    joinRow.appendChild(joinBtn);
+    card.appendChild(joinRow);
+  }
+  body.appendChild(card);
+}
+
 function renderHeroSelect(){
   heroSelectState=[];
   renderHeroSelectBiomePicker();
@@ -5313,8 +5565,13 @@ $('btn-continue').addEventListener('click',function(){
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
 $('btn-open-arena').addEventListener('click',openArena);
-$('btn-arena-back').addEventListener('click',renderTitle);
-$('btn-arena-back-top').addEventListener('click',renderTitle);
+function leaveArenaScreen(){
+  if(LIVE&&LIVE.status==='queued')liveQueueLeave();
+  if(LIVE&&LIVE.status==='inviting')liveInviteCancel();
+  renderTitle();
+}
+$('btn-arena-back').addEventListener('click',leaveArenaScreen);
+$('btn-arena-back-top').addEventListener('click',leaveArenaScreen);
 $('legacy-tabs').addEventListener('click',function(e){
   const btn=e.target.closest('.legacy-tab');
   if(!btn)return;
