@@ -262,7 +262,10 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .combat-left{grid-area:left;display:flex;flex-direction:column;gap:14px;min-width:0;}
 .combat-right{grid-area:right;display:flex;flex-direction:column;gap:14px;min-width:0;}
 @media (max-width:680px){
-  .combat-zone{grid-template-columns:1fr;grid-template-areas:"right" "left";}
+  /* Action panel + auto-battle toggle first on mobile, enemies/party below —
+     otherwise the controls the player actually needs sit below the fold at
+     the start of every fight, forcing a scroll before they can act. */
+  .combat-zone{grid-template-columns:1fr;grid-template-areas:"left" "right";}
 }
 .unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
 .unit-card{
@@ -541,11 +544,6 @@ html.no-anim .float-text{display:none;}
           <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
         </div>
         <div class="legacy-subsection">
-          <h4 id="legacy-biome-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
-          <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
-          <div class="biome-row" id="leg-biome"></div>
-        </div>
-        <div class="legacy-subsection">
           <h4 id="legacy-modifiers-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
           <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
           <div class="mod-row" id="leg-modifiers"></div>
@@ -561,6 +559,11 @@ html.no-anim .float-text{display:none;}
           <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
           <div class="stack" id="leg-history"></div>
         </div>
+      </div>
+      <div class="card stack" style="margin-top:14px;">
+        <h3 id="legacy-endless-h3" style="font-size:15px;"></h3>
+        <div class="eyebrow" id="legacy-endless-eyebrow"></div>
+        <div class="stack" id="leg-endless-board"></div>
       </div>
       <div class="card stack" style="margin-top:14px;">
         <div class="row" style="justify-content:space-between;align-items:center;">
@@ -619,6 +622,12 @@ html.no-anim .float-text{display:none;}
       <button id="btn-back-title-top" style="flex-shrink:0;"></button>
     </div>
     <div class="eyebrow" id="hero-select-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="card stack" style="margin-bottom:14px;">
+      <h3 id="hero-select-biome-h3" style="font-size:15px;"></h3>
+      <div class="eyebrow" id="hero-select-biome-eyebrow"></div>
+      <div class="biome-row" id="hero-select-biome-row"></div>
+      <div style="color:var(--muted);font-size:11px;" id="hero-select-biome-info"></div>
+    </div>
     <div class="row" id="hero-presets-bar" style="flex-wrap:wrap;margin-bottom:12px;"></div>
     <div class="stack" id="hero-pick-list"></div>
     <div class="row" style="margin-top:16px;">
@@ -954,15 +963,17 @@ const STATIC_I18N = {
   'legacy-eyebrow':{en:'Embers carry forward even when the company falls',ru:'Угольки сохраняются, даже если отряд погибнет'},
   'legacy-embers-label':{en:'Embers banked',ru:'Накоплено угольков'},
   'legacy-tab-upgrades':{en:'Upgrades',ru:'Прокачка'},
-  'legacy-tab-march':{en:'March Setup',ru:'Поход'},
+  'legacy-tab-march':{en:'Difficulty',ru:'Сложность'},
   'legacy-tab-stats':{en:'Records',ru:'Статистика'},
   'legacy-tab-settings':{en:'Settings',ru:'Настройки'},
   'legacy-upgrades-h3':{en:'Permanent Upgrades',ru:'Постоянные улучшения'},
   'legacy-recruits-h3':{en:'Recruits',ru:'Наёмники'},
-  'legacy-march-h3':{en:'March Setup',ru:'Настройка похода'},
+  'legacy-march-h3':{en:'Difficulty',ru:'Сложность'},
   'legacy-ascension-h3':{en:'Ascension',ru:'Сложность'},
   'legacy-stats-h3':{en:'Statistics',ru:'Статистика'},
   'legacy-history-h3':{en:'Recent Marches',ru:'Недавние походы'},
+  'legacy-endless-h3':{en:'Endless March — Best Depths',ru:'Бесконечный поход — лучшие глубины'},
+  'legacy-endless-eyebrow':{en:'Top runs past the final boss, deepest first.',ru:'Лучшие забеги за финальным боссом, от самого глубокого.'},
   'legacy-achievements-h3':{en:'Achievements',ru:'Достижения'},
   'legacy-settings-h3':{en:'Settings',ru:'Настройки'},
   'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
@@ -990,6 +1001,8 @@ const STATIC_I18N = {
   'btn-legacy-back-top':{en:'← Back',ru:'← Назад'},
   'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
   'hero-select-eyebrow':{en:'Choose three. Choose well — there is no reforming mid-march.',ru:'Выбери троих. Выбирай с умом — в середине похода отряд не переформировать.'},
+  'hero-select-biome-h3':{en:'Where does the march lead?',ru:'Куда ведёт поход?'},
+  'hero-select-biome-eyebrow':{en:'Pick which lands the company crosses this time.',ru:'Выберите, через какие земли пройдёт отряд в этот раз.'},
   'btn-confirm-heroes':{en:'Set Out',ru:'В путь'},
   'btn-back-title':{en:'Back',ru:'Назад'},
   'btn-back-title-top':{en:'← Back',ru:'← Назад'},
@@ -1359,6 +1372,10 @@ const BIOME_DEFS = {
     bosses:['rimesovereign']},
 };
 function getBiome(key){return BIOME_DEFS[key]||BIOME_DEFS.ashfall;}
+const BIOME_FLAVOR = {
+  ashfall:{en:'Smouldering ashlands — the original march, warm-toned foes and a fire-touched final boss.',ru:'Тлеющие пепельные земли — изначальный маршрут, враги в тёплых тонах и финальный босс, тронутый огнём.'},
+  frost:{en:'A frozen wasteland with its own roster of ice-bound foes and a different final boss.',ru:'Замёрзшая пустошь со своим набором ледяных врагов и другим финальным боссом.'},
+};
 
 /* ============================= BESTIARY ============================= */
 /* Records which foes the player has actually met in combat (win or lose — meeting
@@ -2057,7 +2074,7 @@ function defaultMeta(){
        the player can re-apply in one click instead of picking heroes by hand each time. */
     gearPresets:[],
     /* Best depth reached in the Endless March (post-boss survival mode) — see onDefeat(). */
-    bestEndlessDepth:0};
+    bestEndlessDepth:0,endlessRuns:[]};
 }
 let META = defaultMeta(); // populated from the server after login — see onAuthSubmit()
 function loadMeta(){
@@ -2164,11 +2181,22 @@ function evaluateAchievements(win){
   });
   return unlocked;
 }
-function recordRunHistory(win,embers){
+function recordRunHistory(win,embers,endlessDepth){
   META.history=META.history||[];
   META.history.push({win:win,layer:RUN.layersCleared,ascension:RUN.ascension||0,embers:embers,ts:Date.now(),
+    endlessDepth:endlessDepth||null,
     heroKeys:RUN.party.map(function(h){return h.key;}),hadCustom:RUN.party.some(function(h){return h.custom;})});
   if(META.history.length>15)META.history=META.history.slice(-15);
+}
+/* Separate top-10 leaderboard of Endless March depths, independent of the
+   15-entry general march history above (which would otherwise push an old
+   deep Endless run out after a few ordinary marches). */
+function recordEndlessDepth(depth){
+  if(!depth)return;
+  META.endlessRuns=META.endlessRuns||[];
+  META.endlessRuns.push({depth:depth,ts:Date.now()});
+  META.endlessRuns.sort(function(a,b){return b.depth-a.depth;});
+  if(META.endlessRuns.length>10)META.endlessRuns=META.endlessRuns.slice(0,10);
 }
 function computeRunStats(){
   const hist=META.history||[];
@@ -2257,6 +2285,11 @@ const SFX={
   levelup:function(){[523,659,784].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.16,{type:'triangle',vol:0.1});},i*90);});},
   victory:function(){[392,523,659,784].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.22,{type:'triangle',vol:0.12});},i*110);});},
   defeat:function(){[330,262,220].forEach(function(f,i){setTimeout(function(){sfxTone(f,0.3,{type:'sawtooth',vol:0.1});},i*140);});},
+  /* A short two-note "cha-ching" for spending gold/shards (shop, crafting, upgrades) —
+     distinct from the generic click so a purchase actually feels like one. */
+  coin:function(){sfxTone(880,0.05,{type:'square',vol:0.08});setTimeout(function(){sfxTone(1175,0.09,{type:'square',slideTo:1320,vol:0.07});},45);},
+  /* A soft metallic clink for equipping/swapping gear on a hero. */
+  equip:function(){sfxTone(220,0.04,{type:'square',vol:0.06});setTimeout(function(){sfxTone(660,0.05,{type:'triangle',vol:0.05});},30);},
 };
 /* ---- combat visual feedback: floating numbers + card shake/flash/glow ---- */
 function spawnFloatText(uid,text,cls){
@@ -2562,11 +2595,35 @@ function finishRewardNode(node){
   if(node.endless){
     RUN.endlessDepth=(RUN.endlessDepth||0)+1;
     saveRun();
-    nextEndlessEncounter();
+    maybeEndlessWaypoint();
     return;
   }
   completeCurrentNode(node);
   goToMap();
+}
+/* Leaving a shop/rest stop that was entered from the endless chain (see
+   maybeEndlessWaypoint()) needs to resume that chain instead of the normal
+   completeCurrentNode()+goToMap(), since there is no real map to return to. */
+function afterLeaveNode(node){
+  completeCurrentNode(node);
+  if(node.endless){nextEndlessEncounter();return;}
+  goToMap();
+}
+/* Every 3rd depth past the boss, the Endless March pauses for a shop or a
+   rest (alternating) instead of throwing straight into the next fight —
+   otherwise it's an unbroken wall of battles with nowhere to spend the gold
+   it hands out or patch the company back up. Doesn't touch endlessDepth —
+   only a cleared battle advances the counter used for scaling/scoring. */
+function maybeEndlessWaypoint(){
+  const depth=RUN.endlessDepth||0;
+  if(depth>0&&depth%3===0){
+    const kind=(Math.floor(depth/3)%2===0)?'shop':'rest';
+    const node={id:'endless-waypoint-'+depth,type:kind,layer:TOTAL_MAP_LAYERS+depth,endless:true,endlessDepth:depth,cleared:false,next:[]};
+    if(kind==='shop')RUN.shopStock=null; // force a fresh, correctly-scaled stock rather than a stale one left from the map
+    enterNode(node);
+    return;
+  }
+  nextEndlessEncounter();
 }
 /* Applies (sign=1) or removes (sign=-1) an item's stat mods to/from a hero.
    str/int/def/mdef/spd are explicit keys (weapon/armor items already roll the
@@ -2589,6 +2646,7 @@ function applyItemToHero(hero,item){
   hero.equip[item.slot]=item;
   applyModsDelta(hero,item.mods,1);
   if(item.mods.hp){hero.maxHp+=item.mods.hp;hero.hp+=item.mods.hp;}
+  SFX.equip();
 }
 function unequipFromHero(hero,slot){
   const old=hero.equip[slot];
@@ -2597,6 +2655,7 @@ function unequipFromHero(hero,slot){
   hero.maxHp-=old.mods.hp||0;hero.hp=Math.min(hero.hp,hero.maxHp);
   hero.equip[slot]=null;
   if(RUN&&RUN.inventory)RUN.inventory.push(old);
+  SFX.equip();
 }
 
 function hydrateParty(run){
@@ -3491,7 +3550,7 @@ function renderShop(){
     b.disabled=RUN.gold<stock.price;
     b.addEventListener('click',function(){
       if(RUN.gold<stock.price)return;
-      RUN.gold-=stock.price;stock.sold=true;
+      RUN.gold-=stock.price;stock.sold=true;SFX.coin();
       if(stock.kind==='item'){promptEquip(stock.item,function(){renderShop();saveRun();});}
       else if(stock.kind==='elixir'){promptChooseHero(M('Elixir on whom?','Кому дать эликсир?'),function(h){h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.6));renderShop();saveRun();});}
       else if(stock.kind==='vigor'){promptChooseHero(M('Vigor for whom?','Кому дать флакон бодрости?'),function(h){h.maxHp+=6;h.hp+=6;renderShop();saveRun();});}
@@ -3530,7 +3589,7 @@ function renderShopCraft(){
     b.disabled=(RUN.shards||0)<r.cost;
     b.addEventListener('click',function(){
       if((RUN.shards||0)<r.cost)return;
-      RUN.shards-=r.cost;
+      RUN.shards-=r.cost;SFX.coin();
       const item=craftItemFromRecipe(r);
       promptEquip(item,function(){renderShop();saveRun();});
     });
@@ -4178,11 +4237,14 @@ function onDefeat(){
   const embers=computeEmbers(false)+(endlessRun?depth*3:0);
   META.embers+=embers;
   META.bestLayer=Math.max(META.bestLayer,RUN.layersCleared);
-  if(endlessRun)META.bestEndlessDepth=Math.max(META.bestEndlessDepth||0,depth);
+  if(endlessRun){
+    META.bestEndlessDepth=Math.max(META.bestEndlessDepth||0,depth);
+    recordEndlessDepth(depth);
+  }
   if(RUN.daily){META.dailyLastDate=RUN.daily;META.dailyLastResult={win:false,layer:RUN.layersCleared};META.embers+=5;restoreRandom();}
   const unlocked=evaluateAchievements(false);
   checkHeroUnlocks();
-  recordRunHistory(false,embers);
+  recordRunHistory(false,embers,endlessRun?depth:null);
   saveMeta();
   clearRun();
   if(endlessRun){
@@ -4280,7 +4342,7 @@ function renderLegacy(){
     btn.disabled = maxed || locked || META.embers<cost;
     btn.addEventListener('click',function(){
       if(META.embers<cost||maxed||locked)return;
-      META.embers-=cost;META.upgrades[def.key]=(META.upgrades[def.key]||0)+1;saveMeta();renderLegacy();
+      META.embers-=cost;META.upgrades[def.key]=(META.upgrades[def.key]||0)+1;SFX.coin();saveMeta();renderLegacy();
     });
     row.appendChild(btn);
     up.appendChild(row);
@@ -4319,16 +4381,6 @@ function renderLegacy(){
       ? M('Ascension 0: no modifiers.','Сложность 0: без модификаторов.')
       : M('Ascension '+META.ascensionChoice+': enemies have +'+pct+'% HP and ATK, and you gain +'+(META.ascensionChoice*3)+' bonus embers per march.',
           'Сложность '+META.ascensionChoice+': у врагов +'+pct+'% к HP и атаке, а вы получаете +'+(META.ascensionChoice*3)+' угольков за поход.');
-  }
-  const biomeWrap=$('leg-biome');
-  if(biomeWrap){
-    biomeWrap.innerHTML='';
-    Object.keys(BIOME_DEFS).forEach(function(bk){
-      const bd=BIOME_DEFS[bk];
-      const pip=el('div','biome-pip'+(META.biomeChoice===bk?' selected':''),L(bd.name));
-      pip.addEventListener('click',function(){META.biomeChoice=bk;saveMeta();renderLegacy();});
-      biomeWrap.appendChild(pip);
-    });
   }
   const modWrap=$('leg-modifiers');
   if(modWrap){
@@ -4374,6 +4426,21 @@ function renderLegacy(){
         const color=h.win?'var(--good)':'var(--danger)';
         row.innerHTML="<div style='flex:1;'><strong style='color:"+color+"'>"+outcome+"</strong> · "+M('layer','уровень')+' '+h.layer+'/'+TOTAL_STEPS+(h.ascension?(' · '+M('Asc ','Слож. ')+h.ascension):'')+"<br><span style='color:var(--muted);font-size:11px;'>+"+h.embers+M(' embers',' угольков')+"</span></div>";
         histBox.appendChild(row);
+      });
+    }
+  }
+  const endlessBoard=$('leg-endless-board');
+  if(endlessBoard){
+    endlessBoard.innerHTML='';
+    const runs=META.endlessRuns||[];
+    if(!runs.length){
+      endlessBoard.appendChild(el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('No Endless March runs yet — press on after beating a boss to start one.','Пока нет забегов Бесконечного похода — нажмите «Идти дальше» после победы над боссом.')+"</span>"));
+    } else {
+      runs.forEach(function(r,i){
+        const row=el('div','upgrade-row');
+        const date=new Date(r.ts).toLocaleDateString();
+        row.innerHTML="<div style='flex:1;'><strong>#"+(i+1)+"</strong> &middot; "+M('Depth ','Глубина ')+"<strong>"+r.depth+"</strong><br><span style='color:var(--muted);font-size:11px;'>"+date+"</span></div>";
+        endlessBoard.appendChild(row);
       });
     }
   }
@@ -4678,8 +4745,31 @@ function openSavePresetModal(){
   wrap.appendChild(cancel);
   openModal(wrap);
 }
+function renderHeroSelectBiomePicker(){
+  const wrap=$('hero-select-biome-row');
+  if(!wrap)return;
+  wrap.innerHTML='';
+  const isDaily=!!dailyPendingSeed;
+  Object.keys(BIOME_DEFS).forEach(function(bk){
+    const bd=BIOME_DEFS[bk];
+    const pip=el('div','biome-pip'+(META.biomeChoice===bk?' selected':''),L(bd.name));
+    if(isDaily){
+      // Daily Challenge always runs the default Ashfall March (see startNewRun) so every
+      // player faces the same map — picking a biome here would silently do nothing.
+      pip.classList.toggle('locked',bk!=='ashfall');
+      pip.style.opacity=bk==='ashfall'?'1':'.45';
+      pip.style.cursor=bk==='ashfall'?'default':'not-allowed';
+    } else {
+      pip.addEventListener('click',function(){META.biomeChoice=bk;saveMeta();renderHeroSelectBiomePicker();});
+    }
+    wrap.appendChild(pip);
+  });
+  const info=$('hero-select-biome-info');
+  if(info)info.textContent=isDaily?M("Today's Challenge always uses the Ashfall March, so everyone faces the same map.","Испытание дня всегда проходит в Пепельном походе, чтобы карта была одинаковой у всех."):L(BIOME_FLAVOR[META.biomeChoice]||BIOME_FLAVOR.ashfall);
+}
 function renderHeroSelect(){
   heroSelectState=[];
+  renderHeroSelectBiomePicker();
   renderHeroPickList();
   renderHeroPresetsBar();
   show('screen-hero-select');
@@ -4931,13 +5021,13 @@ $('btn-abandon').addEventListener('click',function(){
   wrap.appendChild(row);
   openModal(wrap);
 });
-$('btn-leave-shop').addEventListener('click',function(){completeCurrentNode(RUN._shopNode);goToMap();});
+$('btn-leave-shop').addEventListener('click',function(){afterLeaveNode(RUN._shopNode);});
 $('btn-rest-heal').addEventListener('click',function(){
   RUN.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.35));});
-  completeCurrentNode(RUN._restNode);goToMap();
+  afterLeaveNode(RUN._restNode);
 });
 $('btn-rest-train').addEventListener('click',function(){
-  promptChooseHero(M('Train whom?','Кого тренировать?'),function(h){const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+3;h.def+=1;completeCurrentNode(RUN._restNode);goToMap();});
+  promptChooseHero(M('Train whom?','Кого тренировать?'),function(h){const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+3;h.def+=1;afterLeaveNode(RUN._restNode);});
 });
 $('btn-go-continue').addEventListener('click',renderTitle);
 $('btn-go-endless').addEventListener('click',startEndlessMode);
