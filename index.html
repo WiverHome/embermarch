@@ -514,9 +514,11 @@ html.no-anim .float-text{display:none;}
 .asc-pip.locked{opacity:.35;}
 .asc-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
 
-.biome-row{display:flex;gap:8px;flex-wrap:wrap;}
+.biome-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .biome-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
 .biome-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+.biome-pip-story{cursor:default;}
+.biome-pip-arrow{color:var(--muted);font-size:13px;}
 .mod-row{display:flex;gap:8px;flex-wrap:wrap;}
 .mod-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
 .mod-pip.selected{border-color:var(--accent2);background:var(--accent2-soft);color:var(--accent2);}
@@ -1214,8 +1216,8 @@ const STATIC_I18N = {
   'btn-legacy-back-top':{en:'← Back',ru:'← Назад'},
   'hero-select-h2':{en:'Muster the Company',ru:'Собери отряд'},
   'hero-select-eyebrow':{en:'Choose three. Choose well — there is no reforming mid-march.',ru:'Выбери троих. Выбирай с умом — в середине похода отряд не переформировать.'},
-  'hero-select-biome-h3':{en:'Where does the march lead?',ru:'Куда ведёт поход?'},
-  'hero-select-biome-eyebrow':{en:'Pick which lands the company crosses this time.',ru:'Выберите, через какие земли пройдёт отряд в этот раз.'},
+  'hero-select-biome-h3':{en:'Where the march leads',ru:'Куда ведёт поход'},
+  'hero-select-biome-eyebrow':{en:'One story, three chapters — each land harsher than the last.',ru:'Один путь, три главы — каждая земля суровее предыдущей.'},
   'btn-confirm-heroes':{en:'Set Out',ru:'В путь'},
   'btn-back-title':{en:'Back',ru:'Назад'},
   'btn-back-title-top':{en:'← Back',ru:'← Назад'},
@@ -1617,7 +1619,10 @@ const BOSS_DEFS = {
 };
 
 /* Biomes parametrize which enemy/elite pools and which bosses a march can draw from.
-   buildEncounter() and startNewRun() key off RUN.biome (default 'ashfall' for old saves). */
+   The march is no longer a single biome picked at hero-select: it's always the same
+   three-act story, Ashfall -> Frost -> Verdant, each act harder than the last (see
+   BIOME_ACT_ORDER / biomeKeyForLayer below), with that act's own boss as a mid-march
+   "chapter climax" fight before the story moves on to the next, harsher land. */
 const BIOME_DEFS = {
   ashfall:{key:'ashfall',name:{en:'Ashfall March',ru:'Пепельный поход'},tint:null,
     pools:{1:['grunt','archer'],2:['grunt','archer','hound','shaman'],3:['wraith','caster','hound','shaman','stalker'],4:['knight','banshee','wraith','caster','zealot']},
@@ -1636,6 +1641,10 @@ const BIOME_DEFS = {
     bosses:['thornsovereign']},
 };
 function getBiome(key){return BIOME_DEFS[key]||BIOME_DEFS.ashfall;}
+/* The fixed story order every march now follows, easiest to hardest. See
+   biomeKeyForLayer()/CH1/CH2 near TOTAL_MAP_LAYERS for how a layer index maps
+   to one of these three acts. */
+const BIOME_ACT_ORDER = ['ashfall','frost','verdant'];
 const BIOME_FLAVOR = {
   ashfall:{en:'Smouldering ashlands — the original march, warm-toned foes and a fire-touched final boss.',ru:'Тлеющие пепельные земли — изначальный маршрут, враги в тёплых тонах и финальный босс, тронутый огнём.'},
   frost:{en:'A frozen wasteland with its own roster of ice-bound foes and a different final boss.',ru:'Замёрзшая пустошь со своим набором ледяных врагов и другим финальным боссом.'},
@@ -1712,9 +1721,9 @@ function openBestiaryModal(){
     hint.textContent=M('Undiscovered foes are revealed once you meet them in combat.','Неизученные враги открываются после первой встречи с ними в бою.');
     wrap.appendChild(hint);
   }
-  Object.keys(BIOME_DEFS).forEach(function(bk){
+  BIOME_ACT_ORDER.forEach(function(bk,i){
     const biome=BIOME_DEFS[bk];
-    wrap.appendChild(el('div','eyebrow',L(biome.name)));
+    wrap.appendChild(el('div','eyebrow',(i+1)+'. '+L(biome.name)));
     biomeEnemyKeys(biome).forEach(function(k){bestiaryRow(wrap,k,ENEMY_DEFS[k],false);});
     (biome.bosses||[]).forEach(function(bossKey){bestiaryRow(wrap,bossKey,BOSS_DEFS[bossKey],true);});
   });
@@ -2417,13 +2426,15 @@ const ACHIEVEMENTS = [
   {id:'wanderer',name:{en:'Wanderer',ru:'Странник'},desc:{en:'Win 3 Daily Challenge marches.',ru:'Победить в 3 испытаниях дня.'},reward:25,
     check:function(win){return win&&(META.dailyWinsCount||0)>=3;}},
   {id:'giant_slayer',name:{en:'Giant Slayer',ru:'Победитель исполина'},desc:{en:'Defeat the Colossus.',ru:'Победить Колосса.'},reward:20,
-    check:function(win){return win&&RUN.bossKey==='colossus';}},
+    check:function(win){return win&&!!(RUN.bossesBeaten&&RUN.bossesBeaten.colossus);}},
   {id:'warden_fallen',name:{en:'The Warden Falls',ru:'Страж повержен'},desc:{en:'Defeat the Warden.',ru:'Победить Стража.'},reward:20,
-    check:function(win){return win&&RUN.bossKey==='warden';}},
+    check:function(win){return win&&!!(RUN.bossesBeaten&&RUN.bossesBeaten.warden);}},
   {id:'vessel_broken',name:{en:'Vessel Broken',ru:'Сосуд разбит'},desc:{en:'Defeat the Withered Vessel.',ru:'Победить Иссохший сосуд.'},reward:20,
-    check:function(win){return win&&RUN.bossKey==='vessel';}},
+    check:function(win){return win&&!!(RUN.bossesBeaten&&RUN.bossesBeaten.vessel);}},
   {id:'sovereign_broken',name:{en:'The Sovereign Falls',ru:'Государь повержен'},desc:{en:'Defeat the Rime Sovereign in the Frozen Reach.',ru:'Победить Ледяного государя в Морозном рубеже.'},reward:20,
-    check:function(win){return win&&RUN.bossKey==='rimesovereign';}},
+    check:function(win){return win&&!!(RUN.bossesBeaten&&RUN.bossesBeaten.rimesovereign);}},
+  {id:'thornsovereign_broken',name:{en:'The Thorn Sovereign Falls',ru:'Терновый государь повержен'},desc:{en:"Defeat the Thorn Sovereign in the Thornwild — the march's final chapter.",ru:'Победить Тернового государя в Терновой чаще — финальной главе похода.'},reward:25,
+    check:function(win){return win&&!!(RUN.bossesBeaten&&RUN.bossesBeaten.thornsovereign);}},
   {id:'full_roster',name:{en:'Full Company',ru:'Полный отряд'},desc:{en:'Unlock every hero.',ru:'Открыть всех героев.'},reward:40,
     check:function(win){return Object.keys(META.heroesUnlocked).every(function(k){return META.heroesUnlocked[k];});}},
   {id:'hoarder',name:{en:'Ember Hoarder',ru:'Скопидом'},desc:{en:'Accumulate 300 embers over time.',ru:'Накопить 300 угольков за всё время.'},reward:15,
@@ -2689,13 +2700,31 @@ function rarityLabel(r){
   return {common:M('common','обычный'),rare:M('rare','редкий'),epic:M('epic','эпический')}[r]||r;
 }
 function rowLabel(row){return row==='front'?M('front','перед'):M('back','тыл');}
+/* With the march now moving through all three biomes in one run (see
+   BIOME_ACT_ORDER), the screen tint has to track where the story currently
+   is rather than one fixed RUN.biome: mid-fight, that's the node being
+   fought; on the map, it's whichever layer the reachable nodes sit in
+   (there's no single "current" node while choosing the next step). */
+function currentActBiomeKey(){
+  if(RUN&&RUN.combat&&RUN.combat.node)return biomeKeyForLayer(RUN.combat.node.layer);
+  if(RUN&&RUN.availableNodeIds&&RUN.availableNodeIds.length){
+    const n=findNode(RUN.map,RUN.availableNodeIds[0]);
+    if(n)return biomeKeyForLayer(n.layer);
+  }
+  if(RUN&&RUN.currentNodeId){
+    const n=findNode(RUN.map,RUN.currentNodeId);
+    if(n)return biomeKeyForLayer(n.layer);
+  }
+  return BIOME_ACT_ORDER[0];
+}
 function show(screenId){
   ['screen-auth','screen-title','screen-legacy','screen-profile','screen-arena','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
     .forEach(function(id){$(id).hidden=(id!==screenId);});
   $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-profile'||screenId==='screen-arena'||screenId==='screen-hero-select');
   if(screenId==='screen-map'||screenId==='screen-combat'){
     const el2=$(screenId);
-    Object.keys(BIOME_DEFS).forEach(function(bk){el2.classList.toggle('biome-'+bk, !!(RUN&&RUN.biome===bk));});
+    const cur=currentActBiomeKey();
+    Object.keys(BIOME_DEFS).forEach(function(bk){el2.classList.toggle('biome-'+bk, cur===bk);});
   }
 }
 function closeModal(){$('modal-root').innerHTML='';}
@@ -2716,6 +2745,17 @@ function clampIdx(i,n){return clamp(i,0,n-1);}
    layer once did (see the tierForLayer comment). */
 const TOTAL_MAP_LAYERS = 19;
 const TOTAL_STEPS = TOTAL_MAP_LAYERS+1; // +1 for the boss layer; used in "N / TOTAL_STEPS" displays
+/* The march's three acts (see BIOME_ACT_ORDER) split the regular layers into
+   thirds. CH1/CH2 are the layer indices forced to a single mandatory "chapter
+   boss" node — the Ashfall and Frost acts' own boss, fought mid-march, same
+   as the long-standing final boss layer but earlier in the story. Everything
+   up to and including CH1 is act 0 (Ashfall); up to and including CH2 is act 1
+   (Frost); the rest, including the true final boss layer at TOTAL_MAP_LAYERS
+   itself, is act 2 (Verdant) — the hardest, story-closing chapter. */
+const CH1=Math.round(TOTAL_MAP_LAYERS/3);
+const CH2=Math.round(TOTAL_MAP_LAYERS*2/3);
+function actForLayer(li){return li<=CH1?0:(li<=CH2?1:2);}
+function biomeKeyForLayer(li){return BIOME_ACT_ORDER[actForLayer(li)];}
 function buildLayerPlan(){
   const plan=[];
   for(let li=0;li<TOTAL_MAP_LAYERS;li++){
@@ -2733,6 +2773,11 @@ function buildLayerPlan(){
     const count=(li%3===2)?4:3;
     plan.push({count:count,pool:pool});
   }
+  /* Force the two chapter-boss layers to a single mandatory boss node each —
+     the same chokepoint pattern the final boss layer already uses, just
+     earlier in the march (see CH1/CH2 above). */
+  plan[CH1]={count:1,pool:['boss']};
+  plan[CH2]={count:1,pool:['boss']};
   return plan;
 }
 const LAYER_PLAN = buildLayerPlan();
@@ -2760,14 +2805,16 @@ function generateMap(modifiers){
     layers.forEach(function(l,li){if(li<layers.length-1)l.forEach(function(n){if(n.type!=='rest')candidates.push(n);});});
     if(candidates.length)pick(candidates).type='shop';
   }
-  /* Guaranteed trader right before the boss: a company should always be able
-     to spend its gold and gear up one last time before the march's final
-     fight, not gamble on the random layout putting a shop there. */
-  const lastLayer=layers[layers.length-1];
-  if(lastLayer&&lastLayer.length&&!lastLayer.some(function(n){return n.type==='shop';})){
-    const candidates=lastLayer.filter(function(n){return n.type!=='rest';});
-    (candidates.length?pick(candidates):lastLayer[0]).type='shop';
-  }
+  /* Guaranteed trader right before every boss fight — the final one and each
+     chapter-boss chokepoint (CH1/CH2) — so a company can always spend its
+     gold and gear up before a climax instead of gambling on the random
+     layout putting a shop there. */
+  [CH1-1,CH2-1,layers.length-1].forEach(function(li){
+    const lyr=layers[li];
+    if(!lyr||!lyr.length||lyr.some(function(n){return n.type==='shop';}))return;
+    const candidates=lyr.filter(function(n){return n.type!=='rest';});
+    (candidates.length?pick(candidates):lyr[0]).type='shop';
+  });
   const bossNode={id:'BOSS',layer:layers.length,idx:0,type:'boss',cleared:false,next:[]};
 
   function connect(curNodes,nextNodes){
@@ -3054,13 +3101,15 @@ function hydrateParty(run){
 function startNewRun(heroKeys,dailySeed){
   if(dailySeed)applyDailySeed(dailySeed);
   const startGold=25+META.upgrades.packs*15+(META.upgrades.caravan||0)*20;
-  /* Daily Challenge always runs the default Ashfall March with no modifiers, so every
-     player on a given day faces the exact same seeded encounters. */
-  const biomeKey=dailySeed?'ashfall':(BIOME_DEFS[META.biomeChoice]?META.biomeChoice:'ashfall');
+  /* Daily Challenge always runs with no modifiers, so every player on a given
+     day faces the exact same seeded encounters. The march itself is no
+     longer a single chosen biome — every run (Daily included) is the same
+     three-act story, Ashfall -> Frost -> Verdant (see BIOME_ACT_ORDER), each
+     act harder than the last. */
   const modifiers=dailySeed?{eliteVanguard:false,earlyStorm:false,brokenWard:false}:Object.assign({},META.modifiers);
+  const bossKeys=BIOME_ACT_ORDER.map(function(bk){return pick(getBiome(bk).bosses);});
   RUN={
     ascension:dailySeed?0:META.ascensionChoice,
-    biome:biomeKey,
     modifiers:modifiers,
     map:generateMap(modifiers),
     availableNodeIds:null,
@@ -3072,7 +3121,13 @@ function startNewRun(heroKeys,dailySeed){
     pendingReward:null,
     pendingItemPickup:null,
     heroDied:false,
-    bossKey:pick(getBiome(biomeKey).bosses),
+    /* One boss species chosen per act, up front, so the story is consistent
+       for the whole run — bossKeys[0] is Ashfall's chapter boss (CH1), [1] is
+       Frost's (CH2), [2] is Verdant's, the true final boss. bossKey stays as
+       an alias to the final one for any old code/save reading it. */
+    bossKeys:bossKeys,
+    bossKey:bossKeys[bossKeys.length-1],
+    bossesBeaten:{},
     daily:dailySeed||null,
     pendingChainEvent:null,
     inventory:[],
@@ -3174,13 +3229,21 @@ function makeEnemyInstance(defKey,li,uncapped){
     status:[],alive:true,enraged:false,
   };
 }
-function makeBossInstance(){
-  const s=enemyScale(TOTAL_MAP_LAYERS);
-  const BOSS_DEF=BOSS_DEFS[RUN.bossKey]||BOSS_DEFS.warden;
+function makeBossInstance(node){
+  /* One of three boss fights a march now has — this act's chapter boss (at
+     CH1/CH2, mid-march) or the true final boss (layer===TOTAL_MAP_LAYERS).
+     Scale and species both key off this specific node's layer/act, not the
+     march's overall end, so a chapter boss is a real climax for where it
+     sits in the story without being end-game strength this early. */
+  const li=node?node.layer:TOTAL_MAP_LAYERS;
+  const s=enemyScale(li);
+  const act=actForLayer(li);
+  const bossKey=(RUN.bossKeys&&RUN.bossKeys[act])||RUN.bossKey||'warden';
+  const BOSS_DEF=BOSS_DEFS[bossKey]||BOSS_DEFS.warden;
   const ds=enemyDefSplit(BOSS_DEF,s);
   return {
     uid:nextUid(),
-    key:'boss',bossKey:RUN.bossKey||'warden',name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',res:BOSS_DEF.res||null,
+    key:'boss',bossKey:bossKey,name:L(BOSS_DEF.name),icon:BOSS_DEF.icon,color:BOSS_DEF.color,isHero:false,side:'enemy',res:BOSS_DEF.res||null,
     maxHp:Math.round(BOSS_DEF.hp*s.hp),hp:Math.round(BOSS_DEF.hp*s.hp),
     atk:Math.round(BOSS_DEF.atk*s.atk),def:ds.def,mdef:ds.mdef,spd:BOSS_DEF.spd,row:'front',boss:true,
     abilities:BOSS_DEF.abilities.map(function(a){return Object.assign({},a,{name:L(a.name),cdLeft:0});}),
@@ -3205,7 +3268,10 @@ function disambiguateNames(list){
    minions) instead of a plain skirmish, so the climb still has rhythm to it. */
 function buildEndlessEncounter(depth){
   const li=TOTAL_MAP_LAYERS+depth;
-  const biome=getBiome(RUN&&RUN.biome);
+  /* Endless March runs past the true final boss, so it stays in the story's
+     last (hardest) act forever rather than cycling back through earlier,
+     easier biomes. */
+  const biome=getBiome(BIOME_ACT_ORDER[BIOME_ACT_ORDER.length-1]);
   const pool=biome.pools[4];
   if(depth>0&&depth%4===0){
     const list=[makeEnemyInstance(biome.eliteKeys[4],li,true)];
@@ -3223,8 +3289,8 @@ function buildEncounter(node){
   const li=node.layer;
   if(node.endless)return buildEndlessEncounter(node.endlessDepth||0);
   const tier=tierForLayer(li);
-  if(node.type==='boss')return disambiguateNames([makeBossInstance()]);
-  const biome=getBiome(RUN&&RUN.biome);
+  if(node.type==='boss')return disambiguateNames([makeBossInstance(node)]);
+  const biome=getBiome(biomeKeyForLayer(li));
   if(node.type==='elite'){
     const eliteKey=biome.eliteKeys[tier];
     const minions=biome.eliteMinions[tier];
@@ -3781,9 +3847,22 @@ function onCombatWin(){
   RUN.layersCleared=Math.max(RUN.layersCleared,RUN.combat.node.layer+1);
   const node=RUN.combat.node;
   if(node.type==='boss'){
-    saveRun();
-    setTimeout(function(){onVictory();},700);
-    return;
+    /* Record which boss species just fell (chapter or final) so achievements
+       keyed to a specific boss (see evaluateAchievements) can check "did I
+       beat this one this run" instead of "was this the run's final boss" —
+       with three boss fights now, only the Verdant one is ever the latter. */
+    const beaten=RUN.combat.enemies&&RUN.combat.enemies[0]&&RUN.combat.enemies[0].bossKey;
+    if(beaten){RUN.bossesBeaten=RUN.bossesBeaten||{};RUN.bossesBeaten[beaten]=true;}
+    /* Only the TRUE final boss (the layer after every regular layer, i.e.
+       the old-style standalone bossNode) ends the march. A chapter boss at
+       CH1/CH2 is a climax, not the end — fall through to the normal
+       reward-and-continue flow so the story moves into the next act. */
+    if(node.layer===TOTAL_MAP_LAYERS){
+      saveRun();
+      setTimeout(function(){onVictory();},700);
+      return;
+    }
+    logCombat(M('The chapter is won. The road presses on into harsher land.','Глава пройдена. Путь ведёт дальше, в более суровые земли.'));
   }
   let baseGold=14+node.layer*5+randInt(0,10);
   if(RUN.modifiers&&RUN.modifiers.brokenWard)baseGold=Math.round(baseGold*1.2);
@@ -4045,20 +4124,38 @@ function nodeIcon(type){
   // while these are guaranteed to be covered by any basic sans-serif font.
   return {battle:'†',elite:'‡',event:'❓',shop:'$',rest:'+',boss:'!'}[type];
 }
-function nodeTypeName(type){
+/* Accepts either a bare type string or a full node object. For 'boss' nodes
+   the wording now has to tell a chapter climax (CH1/CH2 — more land to cross
+   after this) apart from the true final boss (TOTAL_MAP_LAYERS — this fight
+   ends the march), since a march has three boss fights now instead of one.
+   Deliberately doesn't name the specific boss species here, same as the
+   (now-removed) placeholder name this replaces — which one of a biome's
+   boss options you'll actually face stays a surprise until the fight. */
+function nodeTypeName(node){
+  const type=(node&&typeof node==='object')?node.type:node;
+  if(type==='boss'){
+    const li=(node&&typeof node==='object'&&typeof node.layer==='number')?node.layer:TOTAL_MAP_LAYERS;
+    return li===TOTAL_MAP_LAYERS?M('The Final Boss','Финальный босс'):M('Chapter Boss','Босс главы');
+  }
   return {
     battle:M('Battle','Бой'),elite:M('Elite Battle','Элитный бой'),event:M('Event','Событие'),
-    shop:M('Wandering Cart','Бродячая тележка'),rest:M('Rest Site','Привал'),boss:M('The Ashlord','Владыка пепла')
+    shop:M('Wandering Cart','Бродячая тележка'),rest:M('Rest Site','Привал')
   }[type];
 }
-function nodeDescription(type){
+function nodeDescription(node){
+  const type=(node&&typeof node==='object')?node.type:node;
+  if(type==='boss'){
+    const li=(node&&typeof node==='object'&&typeof node.layer==='number')?node.layer:TOTAL_MAP_LAYERS;
+    return li===TOTAL_MAP_LAYERS
+      ? M('The march’s end: a powerful foe blocking the way out of the ash. Defeat it to win the march.','Конец похода: могучий враг преграждает путь из пепла. Победите его, чтобы завершить поход.')
+      : M('A chapter’s climax: a powerful foe standing between the company and the next, harsher land. Defeat it to press on.','Кульминация главы: могучий враг стоит между отрядом и следующей, более суровой землёй. Победите его, чтобы идти дальше.');
+  }
   return {
     battle:M('A skirmish against a band of ash-touched foes. Win to earn gold and a choice of rewards.','Стычка с отрядом врагов, тронутых пеплом. Победа приносит золото и выбор награды.'),
     elite:M('A tougher fight against a dangerous foe with a second wind at low health. Higher risk, better rewards.','Более тяжёлый бой с опасным противником, у которого при низком HP открывается «второе дыхание». Выше риск — лучше награда.'),
     event:M('An encounter with a choice to make — search, barter, help, or walk away. Some choices echo later in the march.','Встреча с выбором — обыскать, поторговаться, помочь или пройти мимо. Некоторые решения аукнутся позже в походе.'),
     shop:M('A cart of goods for sale. Spend gold on gear, an elixir, or a vial of vigor before moving on.','Тележка с товарами на продажу. Потратьте золото на снаряжение, эликсир или флакон бодрости перед тем, как идти дальше.'),
-    rest:M('A safe place to catch your breath. Heal the company or reforge gear before the road continues.','Безопасное место перевести дух. Подлечите отряд или перекуйте снаряжение перед тем, как идти дальше.'),
-    boss:M('The march’s end: a powerful foe blocking the way out of the ash. Defeat it to win the march.','Конец похода: могучий враг преграждает путь из пепла. Победите его, чтобы завершить поход.')
+    rest:M('A safe place to catch your breath. Heal the company or reforge gear before the road continues.','Безопасное место перевести дух. Подлечите отряд или перекуйте снаряжение перед тем, как идти дальше.')
   }[type];
 }
 const MAP_FLAVOR_BY_TIER={
@@ -4188,7 +4285,7 @@ function renderMapMobileList(allNodes){
     allNodes.filter(function(n){return n.cleared;}).forEach(function(n){
       const dot=el('div','mh-dot','✓');
       dot.style.background='var(--map-line-cleared)';
-      dot.title=nodeTypeName(n.type);
+      dot.title=nodeTypeName(n);
       history.appendChild(dot);
     });
   }
@@ -4215,8 +4312,8 @@ function renderMapMobileList(allNodes){
     icon.style.background=nodeColor(n.type);
     card.appendChild(icon);
     const body=el('div','mc-body');
-    body.appendChild(el('div','mc-title',nodeTypeName(n.type)));
-    body.appendChild(el('div','mc-desc',nodeDescription(n.type)));
+    body.appendChild(el('div','mc-title',nodeTypeName(n)));
+    body.appendChild(el('div','mc-desc',nodeDescription(n)));
     card.appendChild(body);
     card.addEventListener('click',function(){showNodePreviewModal(n,true);});
     list.appendChild(card);
@@ -4228,8 +4325,8 @@ function showNodePreviewModal(node,available){
   const badge=el('div','node-preview-badge',nodeLabel(node.type));
   badge.style.background=nodeColor(node.type);
   wrap.appendChild(badge);
-  wrap.appendChild(el('div','node-preview-type',nodeTypeName(node.type)));
-  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;line-height:1.5;'>"+nodeDescription(node.type)+"</span>"));
+  wrap.appendChild(el('div','node-preview-type',nodeTypeName(node)));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);font-size:13px;line-height:1.5;'>"+nodeDescription(node)+"</span>"));
   const status=el('div','','');
   status.style.marginTop='12px';
   status.style.fontSize='12px';
@@ -5259,27 +5356,31 @@ function openSavePresetModal(){
   wrap.appendChild(cancel);
   openModal(wrap);
 }
+/* The march is no longer a single biome the player picks — every run (Daily
+   included) crosses all three lands in the same fixed story order
+   (BIOME_ACT_ORDER), each act's own boss a climax before the road presses on
+   into the harsher land after it. This just previews that journey; there is
+   nothing left here to click. */
 function renderHeroSelectBiomePicker(){
   const wrap=$('hero-select-biome-row');
   if(!wrap)return;
   wrap.innerHTML='';
-  const isDaily=!!dailyPendingSeed;
-  Object.keys(BIOME_DEFS).forEach(function(bk){
+  BIOME_ACT_ORDER.forEach(function(bk,i){
     const bd=BIOME_DEFS[bk];
-    const pip=el('div','biome-pip'+(META.biomeChoice===bk?' selected':''),L(bd.name));
-    if(isDaily){
-      // Daily Challenge always runs the default Ashfall March (see startNewRun) so every
-      // player faces the same map — picking a biome here would silently do nothing.
-      pip.classList.toggle('locked',bk!=='ashfall');
-      pip.style.opacity=bk==='ashfall'?'1':'.45';
-      pip.style.cursor=bk==='ashfall'?'default':'not-allowed';
-    } else {
-      pip.addEventListener('click',function(){META.biomeChoice=bk;saveMeta();renderHeroSelectBiomePicker();});
-    }
+    const pip=el('div','biome-pip biome-pip-story',(i+1)+'. '+L(bd.name));
+    pip.style.cursor='default';
+    pip.title=L(BIOME_FLAVOR[bk]||BIOME_FLAVOR.ashfall);
     wrap.appendChild(pip);
+    if(i<BIOME_ACT_ORDER.length-1){
+      const arrow=el('div','biome-pip-arrow','→');
+      wrap.appendChild(arrow);
+    }
   });
   const info=$('hero-select-biome-info');
-  if(info)info.textContent=isDaily?M("Today's Challenge always uses the Ashfall March, so everyone faces the same map.","Испытание дня всегда проходит в Пепельном походе, чтобы карта была одинаковой у всех."):L(BIOME_FLAVOR[META.biomeChoice]||BIOME_FLAVOR.ashfall);
+  if(info)info.textContent=M(
+    'The march always runs this same road, start to finish — each chapter picks up where the last leaves off, and gets harder.',
+    'Поход всегда идёт этим же путём от начала до конца — каждая глава продолжает предыдущую и становится сложнее.'
+  );
 }
 
 /* ============================= ARENA (asynchronous PvP) =============================
