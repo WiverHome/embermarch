@@ -1650,6 +1650,19 @@ const BIOME_FLAVOR = {
   frost:{en:'A frozen wasteland with its own roster of ice-bound foes and a different final boss.',ru:'Замёрзшая пустошь со своим набором ледяных врагов и другим финальным боссом.'},
   verdant:{en:'An overgrown, poison-choked wild — thorned beasts and witches, ruled by a sovereign wreathed in brambles.',ru:'Заросшая, пропитанная ядом чащоба — терновые звери и ведьмы под властью государя, увитого шипами.'},
 };
+/* Shown once as a short full-screen-modal interlude the moment the party steps
+   onto the map of a new act, right after a chapter boss falls (see
+   maybeShowChapterTransition() / onCombatWin()). Two short lines per arriving
+   biome: what's left behind, and what the road now looks like — enough to sell
+   "one continuous story" without turning into a real cutscene. Keyed by the
+   biome key being ENTERED (BIOME_ACT_ORDER[1] and [2] only — there's no
+   transition into the first act, the march just begins there). */
+const CHAPTER_ARRIVAL = {
+  frost:{en:'The ashlands fall away behind the company, their embers fading to grey. Ahead, the air sharpens — the road climbs into a wind-scoured, frozen reach.',
+    ru:'Пепельные земли остаются позади, их угли подёргиваются сединой. Впереди воздух становится резче — дорога поднимается в продуваемый ветром, промёрзший край.'},
+  verdant:{en:'The last frost cracks underfoot and gives way to damp, living ground. Thorned vines creep across the path ahead — the march enters a wild that grows faster than it can be cut back.',
+    ru:'Последний лёд трескается под ногами, уступая влажной, живой земле. Терновые плети стелются поперёк тропы — поход входит в чащу, что разрастается быстрее, чем её успевают вырубать.'},
+};
 
 /* ============================= BESTIARY ============================= */
 /* Records which foes the player has actually met in combat (win or lose — meeting
@@ -2036,7 +2049,7 @@ const EVENTS = [
         return M('The shade seems satisfied with that alone. The company feels lighter for the promise kept.','Тени этого оказывается достаточно. Отряду становится легче от сдержанного обещания.');
       }},
     ]},
-  {id:'idol',title:{en:'Cursed Idol',ru:'Проклятый идол'},
+  {id:'idol',biome:'ashfall',title:{en:'Cursed Idol',ru:'Проклятый идол'},
     text:{en:'A small black idol watches from a hollow log. It is warm to the touch, and it wants to be carried.',
           ru:'Маленький чёрный идол смотрит из дупла бревна. Он тёплый на ощупь, и он хочет, чтобы его забрали.'},
     choices:[
@@ -2063,7 +2076,7 @@ const EVENTS = [
                  'Вы глубоко закапываете идола. Что бы он ни хотел, он уносит это с собой в молчание — но оставляет несколько выпавших монет. +'+g+' золота.');
       }},
     ]},
-  {id:'ashes',title:{en:'Campfire Ashes',ru:'Остывший костёр'},
+  {id:'ashes',biome:'ashfall',title:{en:'Campfire Ashes',ru:'Остывший костёр'},
     text:{en:"Someone's fire, cold for days now. A little warmth might still be found in the embers.",
           ru:'Чей-то костёр, остывший уже много дней назад. Немного тепла ещё можно найти в углях.'},
     choices:[
@@ -2218,7 +2231,7 @@ const EVENTS = [
         return M('The shade leaves a scatter of old coins behind and fades for good. +'+g+' gold.','Тень оставляет горсть старых монет и исчезает навсегда. +'+g+' золота.');
       }},
     ]},
-  {id:'forge',title:{en:'Abandoned Forge',ru:'Заброшенная кузница'},
+  {id:'forge',biome:'ashfall',title:{en:'Abandoned Forge',ru:'Заброшенная кузница'},
     text:{en:'A cold forge sits under a collapsed roof, its coals long dead but the anvil still true.',
           ru:'Остывшая кузница стоит под обрушенной крышей — угли давно погасли, но наковальня всё ещё цела.'},
     choices:[
@@ -2311,7 +2324,7 @@ const EVENTS = [
         return M('A passing trader pays handsomely for it, no questions asked. +'+g+' gold.','Проезжий торговец щедро платит за неё, не задавая вопросов. +'+g+' золота.');
       }},
     ]},
-  {id:'wardstone',title:{en:'Glyph-Warded Stone',ru:'Камень с охранным знаком'},
+  {id:'wardstone',biome:'ashfall',title:{en:'Glyph-Warded Stone',ru:'Камень с охранным знаком'},
     text:{en:'Half-buried in the ash, a smooth stone is etched with old warding glyphs. It hums faintly against anything that feels like magic.',
           ru:'Наполовину занесённый пеплом гладкий камень покрыт старинными охранными знаками. Он слабо гудит рядом со всем, что похоже на магию.'},
     choices:[
@@ -2324,6 +2337,74 @@ const EVENTS = [
         return M('A collector of old wards pays well for it, no questions asked. +'+g+' gold.','Коллекционер старинных оберегов щедро платит за него, не задавая вопросов. +'+g+' золота.');
       }},
       {label:{en:'Leave it — the glyphs feel like they\'re watching you',ru:'Оставить — кажется, знаки наблюдают за вами'},resolve(){return M('You leave the stone half-buried where it lay.','Вы оставляете камень там же, наполовину в пепле.');}},
+    ]},
+  /* Frost-only chain (see startEvent()'s biome filter): an ice-bound echo of
+     the ashfall idol/shrine chains, but themed to the Frozen Reach instead of
+     reusing ash flavor text in a land that has none. */
+  {id:'cairn',biome:'frost',title:{en:'Frozen Cairn',ru:'Ледяной курган'},
+    text:{en:'A cairn of ice-rimed stones stands alone against the wind, a dead warrior\'s blade still frozen upright atop it.',
+          ru:'Курган из обледенелых камней одиноко стоит против ветра, на вершине всё ещё вмёрз клинок павшего воина.'},
+    choices:[
+      {label:{en:'Pry the blade free',ru:'Вырвать клинок изо льда'},resolve(run){
+        const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;h.def=Math.max(0,h.def-1);
+        run.pendingChainEvent='cairn_chill';
+        return M(h.name+' works the blade loose. It bites as cold as the day it was buried. (+2 '+statAbbr(dt)+' / -1 DEF this march) The cairn\'s chill seems to cling to them now.',
+                 h.name+' вырывает клинок изо льда. Он леденит руки так же, как в день, когда его похоронили. (+2 к '+(dt==='int'?'интеллекту':'силе')+' / -1 к защите в этом походе) Холод кургана будто цепляется за героя.');
+      }},
+      {label:{en:'Clear the frost reverently',ru:'Почтительно очистить ото льда'},resolve(run){
+        const g=15+Math.floor(Math.random()*14);run.gold+=g;
+        return M('Beneath the frost, old grave-coin glints. You take it with a quiet word of respect. +'+g+' gold.','Под инеем блестят старые погребальные монеты. Вы забираете их с тихим словом уважения. +'+g+' золота.');
+      }},
+      {label:{en:'Leave the dead undisturbed',ru:'Не тревожить мёртвых'},resolve(){return M('You leave the cairn to the wind and snow.','Вы оставляете курган ветру и снегу.');}},
+    ]},
+  {id:'cairn_chill',chainOnly:true,title:{en:"The Cairn's Chill",ru:'Холод кургана'},
+    text:{en:'The cold from the frozen blade hasn\'t left — it settles deeper with every mile, as if the cairn wants something back.',
+          ru:'Холод замёрзшего клинка не отступает — он въедается глубже с каждой милей, будто курган хочет что-то вернуть.'},
+    choices:[
+      {label:{en:'Let the cold settle in (-6 HP, one hero)',ru:'Позволить холоду укорениться (-6 HP одному герою)'},resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-6);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;
+        return M('The chill sinks in and goes still. '+h.name+' feels the blade\'s old purpose sharpen their own. (+2 '+statAbbr(dt)+' this march)',
+                 'Холод оседает и затихает. '+h.name+' чувствует, как давняя цель клинка обостряет его собственную. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');
+      }},
+      {label:{en:'Bury the blade again',ru:'Снова похоронить клинок'},resolve(run){
+        const g=20+Math.floor(Math.random()*14);run.gold+=g;
+        return M('You return the blade to the snow. The chill lifts at once, leaving behind a few coins shaken loose in the digging. +'+g+' gold.',
+                 'Вы возвращаете клинок снегу. Холод тут же спадает, оставив несколько монет, вытряхнутых при копании. +'+g+' золота.');
+      }},
+    ]},
+  /* Verdant-only chain: poison/thorn flavor for the Thornwild, parallel in
+     shape to the ashfall idol chain and the frost cairn chain above. */
+  {id:'bloom',biome:'verdant',title:{en:'Weeping Bloom',ru:'Плачущий цветок'},
+    text:{en:'A heavy, thorned flower drips slow amber venom onto the path, its scent sweet enough to make the head swim.',
+          ru:'Тяжёлый, покрытый шипами цветок медленно капает янтарным ядом на тропу, его запах настолько сладок, что кружится голова.'},
+    choices:[
+      {label:{en:'Drink the venom in a careful dose',ru:'Выпить яд малой осторожной дозой'},resolve(run){
+        const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;h.hp=Math.max(1,h.hp-4);
+        run.pendingChainEvent='bloom_seed';run.bloomHeroKey=h.key;
+        return M(h.name+' swallows a careful dose. The venom burns, then sharpens everything. (+2 '+statAbbr(dt)+' / -4 HP this march) A seed from the bloom sticks to their sleeve.',
+                 h.name+' проглатывает осторожную дозу. Яд жжёт, затем всё обостряет. (+2 к '+(dt==='int'?'интеллекту':'силе')+' / -4 HP в этом походе) Семя цветка прилипает к рукаву.');
+      }},
+      {label:{en:'Harvest the thorns carefully',ru:'Аккуратно собрать шипы'},resolve(run){
+        const g=15+Math.floor(Math.random()*14);run.gold+=g;
+        return M('The thorns fetch a fine price from apothecaries willing to risk the handling. +'+g+' gold.','Шипы стоят немало — есть аптекари, готовые рискнуть, работая с ними. +'+g+' золота.');
+      }},
+      {label:{en:'Steer well clear',ru:'Обойти стороной'},resolve(){return M('You give the bloom a wide, wary berth.','Вы осторожно обходите цветок стороной.');}},
+    ]},
+  {id:'bloom_seed',chainOnly:true,title:{en:'The Bloom Takes Root',ru:'Цветок прорастает'},
+    text:{en:'The seed from the weeping bloom has taken root under the skin, a faint green vein creeping up toward the elbow.',
+          ru:'Семя плачущего цветка проросло под кожей — слабая зелёная жилка тянется вверх, к локтю.'},
+    choices:[
+      {label:{en:'Let it bloom fully (-6 HP, one hero)',ru:'Дать ему полностью прорасти (-6 HP одному герою)'},resolve(run){
+        const h=run.party.find(function(x){return x.key===run.bloomHeroKey&&x.alive;})||randAlive(run.party);
+        h.hp=Math.max(1,h.hp-6);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+1;h.def+=1;
+        return M('The vein spreads, then stills, woven into '+h.name+"'s strength for good. (+1 "+statAbbr(dt)+' / +1 DEF this march)',
+                 'Жилка расползается, затем успокаивается, навсегда вплетаясь в силу '+h.name+'. (+1 к '+(dt==='int'?'интеллекту':'силе')+' / +1 к защите в этом походе)');
+      }},
+      {label:{en:'Cut it out and sell the sap',ru:'Вырезать и продать сок'},resolve(run){
+        const g=18+Math.floor(Math.random()*12);run.gold+=g;
+        return M('A field medic cuts the vein free before it spreads further; the sap alone is worth '+g+' gold to a collector. +'+g+' gold.',
+                 'Полевой лекарь вырезает жилку, пока она не разрослась дальше; один сок стоит сборщику '+g+' золота. +'+g+' золота.');
+      }},
     ]},
 ];
 
@@ -3002,6 +3083,26 @@ function finishRewardNode(node){
   }
   completeCurrentNode(node);
   goToMap();
+  maybeShowChapterTransition(node);
+}
+/* Fires right after a chapter boss (CH1/CH2, never the true final boss — see
+   onCombatWin()) is cleared and the party lands back on the map, one act
+   harsher than before. Purely narrative: no mechanical effect, closes on its
+   own button, never blocks anything if dismissed or skipped. */
+function maybeShowChapterTransition(node){
+  if(!node||node.type!=='boss'||node.layer===TOTAL_MAP_LAYERS)return;
+  const nextKey=BIOME_ACT_ORDER[actForLayer(node.layer)+1];
+  const arrival=nextKey&&CHAPTER_ARRIVAL[nextKey];
+  if(!arrival)return;
+  const biome=getBiome(nextKey);
+  const wrap=el('div','stack');
+  wrap.appendChild(el('div','eyebrow',M('The chapter turns','Глава сменяется')));
+  wrap.appendChild(el('h3','',L(biome.name)));
+  wrap.appendChild(el('div','',"<span style='color:var(--muted);'>"+L(arrival)+"</span>"));
+  const close=el('button','primary',M('Onward','Вперёд'));
+  close.addEventListener('click',closeModal);
+  wrap.appendChild(close);
+  openModal(wrap);
 }
 /* Leaving a shop/rest stop that was entered from the endless chain (see
    maybeEndlessWaypoint()) needs to resume that chain instead of the normal
@@ -3928,7 +4029,14 @@ function startEvent(node){
     def=EVENTS.find(function(e){return e.id===RUN.pendingChainEvent;})||null;
     RUN.pendingChainEvent=null;
   }
-  if(!def)def=pick(EVENTS.filter(function(e){return !e.chainOnly;}));
+  if(!def){
+    /* Biome-tagged events (see CHAPTER_ARRIVAL/BIOME_ACT_ORDER above) only
+       fire in their own act; untagged events are generic and can fire
+       anywhere. A chain already in flight (looked up by id above) always
+       continues regardless of which biome it started in. */
+    const curBiome=biomeKeyForLayer(node.layer);
+    def=pick(EVENTS.filter(function(e){return !e.chainOnly&&(!e.biome||e.biome===curBiome);}));
+  }
   currentEvent={node:node,def:def};
   $('event-title').textContent=L(currentEvent.def.title);
   $('event-text').textContent=L(currentEvent.def.text);
