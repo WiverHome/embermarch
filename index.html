@@ -236,6 +236,34 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .map-flavor{font-size:12px;font-style:italic;color:var(--accent2);text-align:center;margin-bottom:8px;min-height:15px;}
 .map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
 .legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
+/* Mobile node-choice list: hidden on desktop, shown instead of .map-wrap
+   below 680px (see the media query further down). */
+.map-mobile{display:none;}
+.map-mobile-history{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.map-mobile-history .mh-dot{
+  width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--bg);flex-shrink:0;
+}
+.map-mobile-eyebrow{margin-bottom:8px;}
+.map-mobile-list{display:flex;flex-direction:column;gap:10px;}
+.map-mobile-card{
+  display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;background:var(--surface);cursor:pointer;text-align:left;width:100%;
+  font-family:inherit;color:inherit;
+}
+.map-mobile-card:active{opacity:.8;}
+.map-mobile-card .mc-icon{
+  width:42px;height:42px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:19px;color:var(--bg);font-weight:700;
+}
+.map-mobile-card .mc-body{flex:1;min-width:0;}
+.map-mobile-card .mc-title{font-family:'Marcellus',serif;font-size:15px;}
+.map-mobile-card .mc-desc{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.map-mobile-empty{font-size:12px;color:var(--muted);text-align:center;padding:10px 0;}
+@media (max-width:680px){
+  .map-wrap{display:none;}
+  .map-mobile{display:block;}
+}
 .node-preview-type{font-family:'Marcellus',serif;font-size:18px;margin-bottom:4px;}
 .node-preview-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;margin-bottom:10px;color:var(--bg);}
 
@@ -777,6 +805,18 @@ html.no-anim .float-text{display:none;}
         <span><span class="legend-dot" style="background:var(--gold)"></span><span id="legend-shop"></span></span>
         <span><span class="legend-dot" style="background:var(--good)"></span><span id="legend-rest"></span></span>
       </div>
+    </div>
+    <!-- Mobile-only alternative to the horizontally-scrolling SVG map above:
+         a vertical list of just the currently reachable nodes as large tap
+         targets, plus a compact history strip of the path so far. Built by
+         renderMapMobileList() every time renderMap() runs; which of the two
+         is visible is purely a CSS media-query switch (see max-width:680px
+         rules), so both stay in sync with the same RUN state. -->
+    <div class="map-mobile" id="map-mobile">
+      <div class="map-flavor" id="map-flavor-mobile"></div>
+      <div class="map-mobile-history" id="map-mobile-history"></div>
+      <div class="map-mobile-eyebrow eyebrow" id="map-mobile-eyebrow"></div>
+      <div class="map-mobile-list" id="map-mobile-list"></div>
     </div>
     <div class="row" style="margin-top:14px;">
       <button id="btn-formation"></button>
@@ -4055,6 +4095,59 @@ function renderMap(){
     g.appendChild(text);
     g.addEventListener('click',function(){showNodePreviewModal(n,available);});
     svg.appendChild(g);
+  });
+  renderMapMobileList(allNodes);
+}
+
+/* Mobile node-choice list (see .map-mobile in the CSS): instead of the full
+   branching SVG map, show only the nodes the player can actually walk into
+   right now as big tappable cards, plus a compact strip of the path already
+   cleared for context. Tapping a card reuses the same preview modal as a
+   desktop SVG node, so the "Enter"/"Close" flow and all its copy stay shared
+   between both layouts. */
+function renderMapMobileList(allNodes){
+  const flavorSrc=$('map-flavor');
+  const flavorDst=$('map-flavor-mobile');
+  if(flavorDst)flavorDst.textContent=flavorSrc?flavorSrc.textContent:'';
+
+  const history=$('map-mobile-history');
+  if(history){
+    history.innerHTML='';
+    allNodes.filter(function(n){return n.cleared;}).forEach(function(n){
+      const dot=el('div','mh-dot','✓');
+      dot.style.background='var(--map-line-cleared)';
+      dot.title=nodeTypeName(n.type);
+      history.appendChild(dot);
+    });
+  }
+
+  const list=$('map-mobile-list');
+  const eyebrow=$('map-mobile-eyebrow');
+  if(!list)return;
+  list.innerHTML='';
+  const choices=allNodes.filter(function(n){
+    return !n.cleared && RUN.availableNodeIds && RUN.availableNodeIds.indexOf(n.id)>=0;
+  });
+  if(eyebrow)eyebrow.textContent=choices.length>1
+    ? M('Choose your next step','Выберите следующий шаг')
+    : M('Next step','Следующий шаг');
+  if(!choices.length){
+    list.appendChild(el('div','map-mobile-empty',M('No reachable nodes right now.','Сейчас нет доступных узлов.')));
+    return;
+  }
+  choices.forEach(function(n){
+    const card=document.createElement('button');
+    card.type='button';
+    card.className='map-mobile-card';
+    const icon=el('div','mc-icon',nodeIcon(n.type));
+    icon.style.background=nodeColor(n.type);
+    card.appendChild(icon);
+    const body=el('div','mc-body');
+    body.appendChild(el('div','mc-title',nodeTypeName(n.type)));
+    body.appendChild(el('div','mc-desc',nodeDescription(n.type)));
+    card.appendChild(body);
+    card.addEventListener('click',function(){showNodePreviewModal(n,true);});
+    list.appendChild(card);
   });
 }
 
