@@ -460,7 +460,19 @@ html.no-anim .float-text{display:none;}
   .ability-btn .a-meta{display:none;}
   .enemy-zone,.ally-zone{padding:8px;border-radius:9px;}
   .zone-label{margin-bottom:5px;font-size:9.5px;}
-  .unit-row{gap:6px;}
+  /* Face-to-face formation: within each zone the front/back unit-rows become
+     columns side by side (zone-label stays a full-width heading above them
+     via flex-basis:100%) instead of stacked rows, and the front column is
+     ordered toward the zone boundary in the middle of the screen, back
+     column toward the outer edge — so the two front lines end up facing
+     each other across the ally/enemy gap, like a real battle line. */
+  .enemy-zone,.ally-zone{display:flex;flex-wrap:wrap;gap:6px;}
+  .zone-label{flex-basis:100%;}
+  .ally-zone #hero-row-back{order:1;}
+  .ally-zone #hero-row-front{order:2;}
+  .enemy-zone #enemy-row-front{order:1;}
+  .enemy-zone #enemy-row-back{order:2;}
+  .unit-row{gap:6px;flex:1;min-width:0;flex-direction:column;align-items:center;}
   .unit-card{width:68px;padding:5px 4px;border-radius:9px;}
   .unit-avatar{width:24px;height:24px;margin-bottom:3px;font-size:10.5px;border-radius:6px;}
   .unit-name{font-size:9.5px;min-height:1.85em;line-height:1.08;}
