@@ -406,33 +406,39 @@ html.no-anim .float-text{display:none;}
    combat-zone media query) so these overrides actually win the cascade
    instead of being shadowed by them. */
 @media (max-width:680px){
-  #topbar{padding:6px 10px;margin-bottom:8px;font-size:11px;}
-  #screen-combat .card{padding:7px 9px;}
-  #turn-order-label{font-size:9.5px;}
-  #btn-auto-battle{font-size:9.5px;padding:2px 6px;}
-  .turn-order{gap:4px;}
-  .turn-order .to-item{width:20px;height:20px;font-size:9px;}
-  .to-badge{font-size:6.5px;padding:0 1px;}
+  /* Side by side (see .combat-right above) leaves real headroom compared to the
+     old stacked board, so these are deliberately not shrunk as far as before —
+     sized to actually fill that freed-up vertical space instead of leaving a
+     dead gap under the action panel (which read as a layout bug). Tuned and
+     re-measured with body.scrollHeight against the viewport so it still fits
+     one screen with no scroll. */
+  #topbar{padding:7px 10px;margin-bottom:9px;font-size:11.5px;}
+  #screen-combat .card{padding:11px 13px;}
+  #turn-order-label{font-size:11px;}
+  #btn-auto-battle{font-size:11px;padding:4px 9px;}
+  .turn-order{gap:6px;}
+  .turn-order .to-item{width:28px;height:28px;font-size:12px;}
+  .to-badge{font-size:8px;}
   #combat-log{display:none;}
-  .ability-bar{gap:5px;}
-  .ability-btn{min-width:47%;padding:5px 6px;font-size:10.5px;}
-  .ability-btn .a-name{font-size:10.5px;}
+  .ability-bar{gap:7px;}
+  .ability-btn{min-width:47%;padding:10px 11px;font-size:13.5px;}
+  .ability-btn .a-name{font-size:13.5px;}
   .ability-btn .a-meta{display:none;}
-  .enemy-zone,.ally-zone{padding:7px;border-radius:9px;}
-  .zone-label{margin-bottom:4px;font-size:9px;}
-  .unit-row{gap:5px;}
-  .unit-card{width:64px;padding:4px 3px;border-radius:8px;}
-  .unit-avatar{width:22px;height:22px;margin-bottom:2px;font-size:10px;border-radius:6px;}
-  .unit-name{font-size:9px;min-height:1.9em;line-height:1.05;}
+  .enemy-zone,.ally-zone{padding:11px;border-radius:10px;}
+  .zone-label{margin-bottom:7px;font-size:11px;}
+  .unit-row{gap:8px;}
+  .unit-card{width:84px;padding:8px 6px;border-radius:10px;}
+  .unit-avatar{width:30px;height:30px;margin-bottom:4px;font-size:13px;border-radius:7px;}
+  .unit-name{font-size:10.5px;min-height:1.9em;line-height:1.1;}
   .unit-class{display:none;}
-  .unit-row-tag{font-size:6.5px;margin-top:0;}
-  .hpbar{height:4px;margin-top:2px;}
-  .hp-num{font-size:7px;margin-top:1px;}
-  .status-icons{margin-top:1px;}
-  .status-icon{font-size:6.5px;padding:0 2px;}
+  .unit-row-tag{font-size:7.5px;margin-top:1px;}
+  .hpbar{height:5px;margin-top:3px;}
+  .hp-num{font-size:8.5px;margin-top:2px;}
+  .status-icons{margin-top:2px;}
+  .status-icon{font-size:7.5px;padding:0 2px;}
 }
 @media (max-width:360px){
-  .unit-card{width:56px;}
+  .unit-card{width:68px;}
 }
 
 /* ---- reward / shop / event ---- */
