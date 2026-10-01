@@ -531,10 +531,7 @@ html.no-anim .float-text{display:none;}
     <div class="eyebrow" id="title-eyebrow" style="margin-bottom:10px;"></div>
     <h1>EMBERMARCH</h1>
     <div class="tagline" id="title-tagline"></div>
-    <div class="title-foot" id="title-account-bar" style="margin:4px 0 10px;" hidden>
-      <span id="title-account-user"></span>
-      <button id="btn-title-logout" style="margin-left:10px;font-size:11px;padding:3px 10px;"></button>
-    </div>
+    <button id="btn-open-profile" class="lang-btn" style="margin:4px 0 10px;" hidden></button>
     <div class="title-actions">
       <button class="primary" id="btn-continue" hidden></button>
       <button class="primary" id="btn-new-run"></button>
@@ -675,6 +672,56 @@ html.no-anim .float-text{display:none;}
     </div>
 
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
+  </section>
+
+  <section id="screen-profile" hidden>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="profile-h2" style="color:var(--accent);"></h2>
+      <button id="btn-profile-back-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="profile-eyebrow" style="margin-bottom:14px;"></div>
+
+    <div class="card">
+      <h3 id="profile-username-h3" style="font-size:15px;margin:0 0 12px;"></h3>
+      <div class="auth-box" style="margin:0;max-width:none;">
+        <div class="auth-field">
+          <label id="profile-label-new-username" for="profile-new-username"></label>
+          <input id="profile-new-username" type="text" autocomplete="username" maxlength="32">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-username-password" for="profile-username-password"></label>
+          <input id="profile-username-password" type="password" autocomplete="current-password" maxlength="72">
+        </div>
+        <div class="auth-error" id="profile-username-error"></div>
+        <button class="primary" id="btn-profile-save-username"></button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 id="profile-password-h3" style="font-size:15px;margin:0 0 12px;"></h3>
+      <div class="auth-box" style="margin:0;max-width:none;">
+        <div class="auth-field">
+          <label id="profile-label-current-password" for="profile-current-password"></label>
+          <input id="profile-current-password" type="password" autocomplete="current-password" maxlength="72">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-new-password" for="profile-new-password"></label>
+          <input id="profile-new-password" type="password" autocomplete="new-password" maxlength="72">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-confirm-password" for="profile-confirm-password"></label>
+          <input id="profile-confirm-password" type="password" autocomplete="new-password" maxlength="72">
+        </div>
+        <div class="auth-error" id="profile-password-error"></div>
+        <button class="primary" id="btn-profile-save-password"></button>
+      </div>
+    </div>
+
+    <div class="card stack" style="margin-top:14px;">
+      <button id="btn-profile-logout"></button>
+    </div>
+
+    <div style="margin-top:16px;"><button id="btn-profile-back"></button></div>
   </section>
 
   <section id="screen-hero-select" hidden>
@@ -853,6 +900,12 @@ function apiLogin(username,password){
 }
 function apiLogoutRequest(){
   return apiRequest('/logout',{method:'POST'}).catch(function(){});
+}
+function apiChangeUsername(newUsername,password){
+  return apiRequest('/account/username',{method:'PUT',body:JSON.stringify({newUsername:newUsername,password:password})});
+}
+function apiChangePassword(currentPassword,newPassword){
+  return apiRequest('/account/password',{method:'PUT',body:JSON.stringify({currentPassword:currentPassword,newPassword:newPassword})});
 }
 function apiGetProgress(){
   return apiRequest('/progress',{method:'GET'});
@@ -1054,7 +1107,20 @@ const STATIC_I18N = {
   'legacy-save-h3':{en:'Save Data',ru:'Сохранение'},
   'legacy-account-h3':{en:'Account',ru:'Аккаунт'},
   'btn-logout':{en:'Log Out',ru:'Выйти из аккаунта'},
-  'btn-title-logout':{en:'Log Out',ru:'Выйти'},
+  'profile-h2':{en:'Profile',ru:'Профиль'},
+  'profile-eyebrow':{en:'Manage your account.',ru:'Управление аккаунтом.'},
+  'profile-username-h3':{en:'Change Username',ru:'Смена имени пользователя'},
+  'profile-label-new-username':{en:'New username',ru:'Новое имя пользователя'},
+  'profile-label-username-password':{en:'Current password (to confirm)',ru:'Текущий пароль (для подтверждения)'},
+  'btn-profile-save-username':{en:'Save Username',ru:'Сохранить имя'},
+  'profile-password-h3':{en:'Change Password',ru:'Смена пароля'},
+  'profile-label-current-password':{en:'Current password',ru:'Текущий пароль'},
+  'profile-label-new-password':{en:'New password',ru:'Новый пароль'},
+  'profile-label-confirm-password':{en:'Confirm new password',ru:'Повторите новый пароль'},
+  'btn-profile-save-password':{en:'Save Password',ru:'Сохранить пароль'},
+  'btn-profile-logout':{en:'Log Out',ru:'Выйти из аккаунта'},
+  'btn-profile-back-top':{en:'Back',ru:'Назад'},
+  'btn-profile-back':{en:'Back to Title',ru:'Назад в меню'},
   'auth-eyebrow':{en:'A COMPANY OF THE LAST ROAD',ru:'ОТРЯД ПОСЛЕДНЕЙ ДОРОГИ'},
   'auth-label-username':{en:'Username',ru:'Имя пользователя'},
   'auth-label-password':{en:'Password',ru:'Пароль'},
@@ -2503,9 +2569,9 @@ function rarityLabel(r){
 }
 function rowLabel(row){return row==='front'?M('front','перед'):M('back','тыл');}
 function show(screenId){
-  ['screen-auth','screen-title','screen-legacy','screen-arena','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
+  ['screen-auth','screen-title','screen-legacy','screen-profile','screen-arena','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
     .forEach(function(id){$(id).hidden=(id!==screenId);});
-  $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-arena'||screenId==='screen-hero-select');
+  $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-profile'||screenId==='screen-arena'||screenId==='screen-hero-select');
   if(screenId==='screen-map'||screenId==='screen-combat'){
     const el2=$(screenId);
     Object.keys(BIOME_DEFS).forEach(function(bk){el2.classList.toggle('biome-'+bk, !!(RUN&&RUN.biome===bk));});
@@ -4471,13 +4537,74 @@ function renderTitle(){
   if(dailyInfo)dailyInfo.innerHTML=M('A fixed map, the same for everyone today. Ascension 0, +10 embers on a win.','Одинаковая карта для всех сегодня. Сложность 0, +10 угольков за победу.');
   const reminder=$('title-save-reminder');
   if(reminder)reminder.hidden=true; // progress now lives on the server, not the browser
-  const acctBar=$('title-account-bar');
-  if(acctBar){
-    acctBar.hidden=!CURRENT_USER;
-    if(CURRENT_USER)$('title-account-user').textContent=M('Logged in as ','Вы вошли как ')+CURRENT_USER;
+  const profileBtn=$('btn-open-profile');
+  if(profileBtn){
+    profileBtn.hidden=!CURRENT_USER;
+    if(CURRENT_USER)profileBtn.textContent='👤 '+CURRENT_USER;
   }
   renderLangSwitch();
   show('screen-title');
+}
+
+function renderProfileScreen(){
+  $('profile-username-h3').textContent=CURRENT_USER?M('Change Username (current: ','Смена имени пользователя (сейчас: ')+CURRENT_USER+')':L(STATIC_I18N['profile-username-h3']);
+  $('profile-new-username').value='';
+  $('profile-username-password').value='';
+  $('profile-username-error').textContent='';
+  $('profile-current-password').value='';
+  $('profile-new-password').value='';
+  $('profile-confirm-password').value='';
+  $('profile-password-error').textContent='';
+  show('screen-profile');
+}
+function profileSaveUsername(){
+  const newUsername=($('profile-new-username').value||'').trim();
+  const password=$('profile-username-password').value||'';
+  const errEl=$('profile-username-error');
+  errEl.textContent='';
+  if(!newUsername||!password){errEl.textContent=M('Fill in both fields.','Заполните оба поля.');return;}
+  const btn=$('btn-profile-save-username');
+  btn.disabled=true;
+  apiChangeUsername(newUsername,password).then(function(res){
+    AUTH_TOKEN=res.token;
+    CURRENT_USER=res.username;
+    persistAuthToken(AUTH_TOKEN);
+    btn.disabled=false;
+    $('profile-new-username').value='';
+    $('profile-username-password').value='';
+    errEl.style.color='var(--good)';
+    errEl.textContent=M('Username updated.','Имя пользователя обновлено.');
+    $('profile-username-h3').textContent=M('Change Username (current: ','Смена имени пользователя (сейчас: ')+CURRENT_USER+')';
+  }).catch(function(e){
+    btn.disabled=false;
+    errEl.style.color='var(--danger)';
+    errEl.textContent=(e&&e.body&&e.body.error)||M('Could not update username.','Не удалось обновить имя пользователя.');
+  });
+}
+function profileSavePassword(){
+  const currentPassword=$('profile-current-password').value||'';
+  const newPassword=$('profile-new-password').value||'';
+  const confirmPassword=$('profile-confirm-password').value||'';
+  const errEl=$('profile-password-error');
+  errEl.style.color='var(--danger)';
+  errEl.textContent='';
+  if(!currentPassword||!newPassword||!confirmPassword){errEl.textContent=M('Fill in all three fields.','Заполните все три поля.');return;}
+  if(newPassword!==confirmPassword){errEl.textContent=M('New passwords do not match.','Новые пароли не совпадают.');return;}
+  if(newPassword.length<8){errEl.textContent=M('New password must be at least 8 characters.','Новый пароль должен быть не короче 8 символов.');return;}
+  const btn=$('btn-profile-save-password');
+  btn.disabled=true;
+  apiChangePassword(currentPassword,newPassword).then(function(){
+    btn.disabled=false;
+    $('profile-current-password').value='';
+    $('profile-new-password').value='';
+    $('profile-confirm-password').value='';
+    errEl.style.color='var(--good)';
+    errEl.textContent=M('Password updated.','Пароль обновлён.');
+  }).catch(function(e){
+    btn.disabled=false;
+    errEl.style.color='var(--danger)';
+    errEl.textContent=(e&&e.body&&e.body.error)||M('Could not update password.','Не удалось обновить пароль.');
+  });
 }
 
 /* Achievements list can get long once most are unlocked; collapsed by default
@@ -5660,6 +5787,12 @@ $('btn-continue').addEventListener('click',function(){
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
 $('btn-open-arena').addEventListener('click',openArena);
+$('btn-open-profile').addEventListener('click',renderProfileScreen);
+$('btn-profile-back').addEventListener('click',renderTitle);
+$('btn-profile-back-top').addEventListener('click',renderTitle);
+$('btn-profile-logout').addEventListener('click',doLogout);
+$('btn-profile-save-username').addEventListener('click',profileSaveUsername);
+$('btn-profile-save-password').addEventListener('click',profileSavePassword);
 function leaveArenaScreen(){
   if(LIVE&&LIVE.status==='queued')liveQueueLeave();
   if(LIVE&&LIVE.status==='inviting')liveInviteCancel();
@@ -5810,7 +5943,6 @@ function spawnEmberParticles(){
 $('auth-form').addEventListener('submit',onAuthSubmit);
 $('auth-toggle-link').addEventListener('click',onAuthToggle);
 $('btn-logout').addEventListener('click',doLogout);
-$('btn-title-logout').addEventListener('click',doLogout);
 
 applyStaticI18n();
 applyTheme();
