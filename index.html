@@ -495,6 +495,7 @@ html.no-anim .float-text{display:none;}
       <button class="primary" id="btn-continue" hidden></button>
       <button class="primary" id="btn-new-run"></button>
       <button id="btn-daily"></button>
+      <button id="btn-open-arena"></button>
       <button id="btn-open-legacy"></button>
       <button id="btn-open-rules"></button>
     </div>
@@ -507,6 +508,16 @@ html.no-anim .float-text{display:none;}
         <button id="btn-save-reminder-dismiss" style="font-size:12px;padding:6px 12px;"></button>
       </div>
     </div>
+  </section>
+
+  <section id="screen-arena" hidden>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="arena-h2" style="color:var(--accent);"></h2>
+      <button id="btn-arena-back-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="arena-eyebrow" style="margin-bottom:14px;"></div>
+    <div id="arena-body" class="stack"></div>
+    <div style="margin-top:16px;"><button id="btn-arena-back"></button></div>
   </section>
 
   <section id="screen-legacy" hidden>
@@ -802,6 +813,12 @@ function apiGetProgress(){
 function apiPutProgress(data){
   return apiRequest('/progress',{method:'PUT',body:JSON.stringify(data)});
 }
+/* ---- Arena (asynchronous PvP) ---- */
+function apiGetChampion(){return apiRequest('/arena/champion',{method:'GET'});}
+function apiPutChampion(name,heroes){return apiRequest('/arena/champion',{method:'PUT',body:JSON.stringify({name:name,heroes:heroes})});}
+function apiGetOpponent(){return apiRequest('/arena/opponent',{method:'GET'});}
+function apiReportArena(battleToken,result){return apiRequest('/arena/report',{method:'POST',body:JSON.stringify({battleToken:battleToken,result:result})});}
+function apiArenaLeaderboard(limit){return apiRequest('/arena/leaderboard?limit='+(limit||20),{method:'GET'});}
 
 /* Debounced sync of META to the server. Called from saveMeta() everywhere the game
    already persisted progress — coalesced so we don't hit the API on every render. */
@@ -965,6 +982,11 @@ const STATIC_I18N = {
   'btn-continue':{en:'Continue Expedition',ru:'Продолжить поход'},
   'btn-new-run':{en:'New Expedition',ru:'Новый поход'},
   'btn-open-legacy':{en:'Legacy Ledger',ru:'Летопись'},
+  'btn-open-arena':{en:'Arena',ru:'Арена'},
+  'arena-h2':{en:'Arena',ru:'Арена'},
+  'arena-eyebrow':{en:'Build a champion once, then duel other players’ saved squads — asynchronous: no one needs to be online.',ru:'Соберите чемпиона один раз — и сражайтесь с отрядами других игроков. Это асинхронно: никто не должен быть онлайн одновременно.'},
+  'btn-arena-back':{en:'Back',ru:'Назад'},
+  'btn-arena-back-top':{en:'← Back',ru:'← Назад'},
   'legacy-h2':{en:'Legacy Ledger',ru:'Летопись'},
   'legacy-eyebrow':{en:'Embers carry forward even when the company falls',ru:'Угольки сохраняются, даже если отряд погибнет'},
   'legacy-embers-label':{en:'Embers banked',ru:'Накоплено угольков'},
@@ -2159,7 +2181,11 @@ function toggleTheme(){
 const ICON_SUN='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>';
 const ICON_MOON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 119.5 4a6.5 6.5 0 0010.5 10.5z"/></svg>';
 function saveMeta(){scheduleMetaSync();}
-function saveRun(){try{localStorage.setItem(RUN_KEY,JSON.stringify(RUN));}catch(e){} }
+/* Arena fights reuse the whole march combat engine (see startArenaCombat below) by
+   temporarily pointing the global RUN at a disposable, isArenaTemp-flagged object —
+   never at this key, so a crash mid-fight can never clobber or discard a real
+   in-progress march. */
+function saveRun(){if(RUN&&RUN.isArenaTemp)return;try{localStorage.setItem(RUN_KEY,JSON.stringify(RUN));}catch(e){} }
 function clearRun(){try{localStorage.removeItem(RUN_KEY);}catch(e){} }
 function loadRun(){try{const raw=localStorage.getItem(RUN_KEY);return raw?JSON.parse(raw):null;}catch(e){return null;} }
 
@@ -2428,9 +2454,9 @@ function rarityLabel(r){
 }
 function rowLabel(row){return row==='front'?M('front','перед'):M('back','тыл');}
 function show(screenId){
-  ['screen-auth','screen-title','screen-legacy','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
+  ['screen-auth','screen-title','screen-legacy','screen-arena','screen-hero-select','screen-map','screen-combat','screen-reward','screen-event','screen-shop','screen-rest','screen-gameover']
     .forEach(function(id){$(id).hidden=(id!==screenId);});
-  $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-hero-select');
+  $('topbar').hidden=(screenId==='screen-auth'||screenId==='screen-title'||screenId==='screen-legacy'||screenId==='screen-arena'||screenId==='screen-hero-select');
   if(screenId==='screen-map'||screenId==='screen-combat'){
     const el2=$(screenId);
     Object.keys(BIOME_DEFS).forEach(function(bk){el2.classList.toggle('biome-'+bk, !!(RUN&&RUN.biome===bk));});
@@ -3266,6 +3292,11 @@ function checkCombatEnd(){
   if(RUN.combat.over)return true;
   const heroesAlive=anyAlive(RUN.combat.party).length>0;
   const enemiesAlive=anyAlive(RUN.combat.enemies).length>0;
+  if(RUN.combat.isArena){
+    if(!enemiesAlive){RUN.combat.over=true;onArenaCombatEnd(true);return true;}
+    if(!heroesAlive){RUN.combat.over=true;onArenaCombatEnd(false);return true;}
+    return false;
+  }
   if(!enemiesAlive){RUN.combat.over=true;onCombatWin();return true;}
   if(!heroesAlive){RUN.combat.over=true;onCombatLoss();return true;}
   return false;
@@ -4824,6 +4855,272 @@ function renderHeroSelectBiomePicker(){
   const info=$('hero-select-biome-info');
   if(info)info.textContent=isDaily?M("Today's Challenge always uses the Ashfall March, so everyone faces the same map.","Испытание дня всегда проходит в Пепельном походе, чтобы карта была одинаковой у всех."):L(BIOME_FLAVOR[META.biomeChoice]||BIOME_FLAVOR.ashfall);
 }
+
+/* ============================= ARENA (asynchronous PvP) =============================
+   One persistent "champion" (1-3 heroes, snapshotted at save time) per account, kept on
+   the server. Fighting pulls a random opponent's snapshot and plays it out locally with
+   the exact same combat engine as a march — the opponent's heroes just sit on the
+   'enemy' side of RUN.combat, AI-piloted by the same buildEnemyIntent()/enemyAct() the
+   game already uses for monsters, since that logic only ever looks at unit.side and
+   ability shapes, never at what kind of unit it is. No server-side combat simulation,
+   no real-time connection: the result is reported back once, under a short-lived
+   single-use token the server issued when the matchup was fetched (see arena/opponent
+   and arena/report in server.js) so a client can't fabricate a win against a foe it
+   never actually drew. */
+let ARENA_BUILDER_STATE=[];
+let ARENA_CHAMPION=null;   // {name,heroes,rating,wins,losses} — this account's saved champion, or null
+let ARENA_OPPONENT=null;   // last fetched {username,name,heroes,rating,battleToken}, or null
+let ARENA_VIEW='hub';      // 'hub' | 'builder' | 'opponent'
+let ARENA_BUSY=false;
+
+function arenaHeroPickCard(list,key,def,unlocked){
+  const card=el('div','hero-pick'+(unlocked?'':' locked'));
+  if(unlocked&&ARENA_BUILDER_STATE.indexOf(key)>=0)card.classList.add('selected');
+  const av=el('div','hero-avatar',def.custom?customPortraitSVG(def):(HERO_ICON_SVG[def.tplKey||key]||def.icon));av.style.background=def.color;
+  card.appendChild(av);
+  const info=el('div','hero-info');
+  info.appendChild(el('div','name',L(def.name)+(unlocked?'':M(' (locked)',' (заблокировано)'))));
+  info.appendChild(el('div','cls',L(def.cls)));
+  const heroDt=HERO_DMG_TYPE[def.tplKey||key]||'str';
+  info.appendChild(el('div','hero-stats',statAbbr('hp')+' '+def.baseHp+' &middot; '+statAbbr(heroDt)+' '+(heroDt==='str'?def.baseStr:def.baseInt)+' &middot; '+statAbbr('def')+' '+def.baseDef+' &middot; '+statAbbr('spd')+' '+def.baseSpd));
+  card.appendChild(info);
+  if(unlocked){
+    card.addEventListener('click',function(){
+      const idx=ARENA_BUILDER_STATE.indexOf(key);
+      if(idx>=0)ARENA_BUILDER_STATE.splice(idx,1);
+      else if(ARENA_BUILDER_STATE.length<3)ARENA_BUILDER_STATE.push(key);
+      renderArenaBuilder();
+    });
+  }
+  list.appendChild(card);
+}
+function renderArenaBuilder(){
+  const body=$('arena-body');body.innerHTML='';
+  body.appendChild(el('h3','',M('Build your champion','Соберите чемпиона')));
+  body.appendChild(el('div','eyebrow',M('Pick 1-3 heroes. Their current stats (unlocks, legacy upgrades) are frozen into this squad until you edit it again — gear from your marches is not included.','Выберите 1-3 героев. Их текущие характеристики (открытые герои, постоянные улучшения) замораживаются в этом составе до следующего редактирования — снаряжение из походов в него не входит.')));
+  const nameWrap=el('div','',null);
+  nameWrap.innerHTML='<label style="font-size:12px;color:var(--muted);">'+M('Champion name','Имя чемпиона')+'</label>';
+  const nameInput=document.createElement('input');
+  nameInput.type='text';nameInput.maxLength=24;nameInput.style.cssText='width:100%;margin-top:4px;';
+  nameInput.value=(ARENA_CHAMPION&&ARENA_CHAMPION.name)||(CURRENT_USER?CURRENT_USER+M("'s Company",' отряд'):M('My Champion','Мой чемпион'));
+  nameWrap.appendChild(nameInput);
+  body.appendChild(nameWrap);
+  const list=el('div','hero-pick-list',null);
+  HERO_ORDER.forEach(function(key){arenaHeroPickCard(list,key,HERO_DEFS[key],META.heroesUnlocked[key]);});
+  (META.customHeroes||[]).forEach(function(c){arenaHeroPickCard(list,c.id,customHeroToDef(c.id),true);});
+  body.appendChild(list);
+  const err=el('div','',"");err.style.cssText='color:var(--danger);font-size:12px;min-height:14px;';
+  body.appendChild(err);
+  const row=el('div','row',null);
+  const save=el('button','primary',M('Save Champion','Сохранить чемпиона'));
+  save.disabled=ARENA_BUSY;
+  save.addEventListener('click',function(){
+    const name=nameInput.value.trim();
+    if(!name){err.textContent=M('Enter a name.','Введите имя.');return;}
+    if(!ARENA_BUILDER_STATE.length){err.textContent=M('Pick at least one hero.','Выберите хотя бы одного героя.');return;}
+    ARENA_BUSY=true;save.disabled=true;err.textContent='';
+    const heroes=ARENA_BUILDER_STATE.map(makeHeroInstance);
+    apiPutChampion(name.slice(0,24),heroes).then(function(champ){
+      ARENA_BUSY=false;
+      ARENA_CHAMPION=champ;
+      ARENA_VIEW='hub';
+      renderArenaBody();
+    }).catch(function(e){
+      ARENA_BUSY=false;save.disabled=false;
+      err.textContent=(e&&e.body&&e.body.error)||M('Could not save — check your connection and try again.','Не удалось сохранить — проверьте соединение и попробуйте снова.');
+    });
+  });
+  row.appendChild(save);
+  if(ARENA_CHAMPION){
+    const cancel=el('button','',M('Cancel','Отмена'));
+    cancel.addEventListener('click',function(){ARENA_VIEW='hub';renderArenaBody();});
+    row.appendChild(cancel);
+  }
+  body.appendChild(row);
+}
+function arenaMiniSquad(heroes){
+  const wrap=el('div','row',null);
+  wrap.style.flexWrap='wrap';
+  (heroes||[]).forEach(function(h){
+    const chip=el('div','',null);
+    chip.style.cssText='display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 8px 4px 4px;font-size:12px;';
+    const av=el('div','hero-avatar',h.custom?customPortraitSVG(h):(HERO_ICON_SVG[h.tplKey||h.key]||h.icon));
+    av.style.cssText='width:26px;height:26px;background:'+h.color+';flex-shrink:0;';
+    chip.appendChild(av);
+    chip.appendChild(el('span','',h.name+' · '+statAbbr('hp')+h.maxHp));
+    wrap.appendChild(chip);
+  });
+  return wrap;
+}
+function renderArenaHub(){
+  const body=$('arena-body');body.innerHTML='';
+  if(!ARENA_CHAMPION){
+    body.appendChild(el('div','',"<span style='color:var(--muted);'>"+M('No champion saved yet — build one to enter the arena.','Чемпион ещё не создан — соберите его, чтобы выйти на арену.')+"</span>"));
+    const build=el('button','primary',M('Build a Champion','Собрать чемпиона'));
+    build.addEventListener('click',function(){ARENA_BUILDER_STATE=[];ARENA_VIEW='builder';renderArenaBody();});
+    body.appendChild(build);
+    return;
+  }
+  const card=el('div','card stack',null);
+  const head=el('div','spread',null);
+  head.innerHTML='<strong>'+ARENA_CHAMPION.name+'</strong><span class="gold-badge num">'+M('Rating ','Рейтинг ')+ARENA_CHAMPION.rating+'</span>';
+  card.appendChild(head);
+  card.appendChild(el('div','eyebrow',M('Wins ','Побед ')+ARENA_CHAMPION.wins+M('  ·  Losses ','  ·  Поражений ')+ARENA_CHAMPION.losses));
+  card.appendChild(arenaMiniSquad(ARENA_CHAMPION.heroes));
+  const row=el('div','row',null);
+  const findBtn=el('button','primary',M('Find an Opponent','Найти соперника'));
+  findBtn.disabled=ARENA_BUSY;
+  findBtn.addEventListener('click',fetchArenaOpponent);
+  row.appendChild(findBtn);
+  const editBtn=el('button','',M('Edit Squad','Изменить отряд'));
+  editBtn.addEventListener('click',function(){ARENA_BUILDER_STATE=ARENA_CHAMPION.heroes.map(function(h){return h.key;});ARENA_VIEW='builder';renderArenaBody();});
+  row.appendChild(editBtn);
+  const lbBtn=el('button','',M('Leaderboard','Таблица лидеров'));
+  lbBtn.addEventListener('click',openArenaLeaderboard);
+  row.appendChild(lbBtn);
+  card.appendChild(row);
+  body.appendChild(card);
+}
+function renderArenaOpponentPreview(){
+  const body=$('arena-body');body.innerHTML='';
+  const card=el('div','card stack',null);
+  const head=el('div','spread',null);
+  head.innerHTML='<strong>'+ARENA_OPPONENT.name+'</strong><span class="gold-badge num">'+M('Rating ','Рейтинг ')+ARENA_OPPONENT.rating+'</span>';
+  card.appendChild(head);
+  card.appendChild(el('div','eyebrow',M('Played by ','Игрок ')+ARENA_OPPONENT.username));
+  card.appendChild(arenaMiniSquad(ARENA_OPPONENT.heroes));
+  const row=el('div','row',null);
+  const fight=el('button','primary',M('Fight!','Сразиться!'));
+  fight.addEventListener('click',startArenaCombat);
+  row.appendChild(fight);
+  const again=el('button','',M('Different Opponent','Другой соперник'));
+  again.addEventListener('click',fetchArenaOpponent);
+  row.appendChild(again);
+  card.appendChild(row);
+  body.appendChild(card);
+}
+function renderArenaBody(){
+  if(ARENA_VIEW==='builder')renderArenaBuilder();
+  else if(ARENA_VIEW==='opponent'&&ARENA_OPPONENT)renderArenaOpponentPreview();
+  else renderArenaHub();
+}
+function fetchArenaOpponent(){
+  if(loadRun()){
+    const body=$('arena-body');
+    body.innerHTML='';
+    body.appendChild(el('div','',"<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>"));
+    return;
+  }
+  ARENA_BUSY=true;
+  const body=$('arena-body');
+  body.innerHTML="<div style='color:var(--muted);'>"+M('Searching the arena…','Ищем соперника…')+"</div>";
+  apiGetOpponent().then(function(opp){
+    ARENA_BUSY=false;
+    ARENA_OPPONENT=opp;
+    ARENA_VIEW='opponent';
+    renderArenaBody();
+  }).catch(function(e){
+    ARENA_BUSY=false;
+    body.innerHTML='';
+    body.appendChild(el('div','',"<span style='color:var(--danger);'>"+((e&&e.body&&e.body.error)||M('No opponents available yet — try again later.','Пока нет соперников — попробуйте позже.'))+"</span>"));
+    const back=el('button','',M('Back','Назад'));
+    back.addEventListener('click',function(){ARENA_VIEW='hub';renderArenaBody();});
+    body.appendChild(back);
+  });
+}
+function openArenaLeaderboard(){
+  const wrap=el('div','stack');
+  wrap.appendChild(el('h3','',M('Arena Leaderboard','Таблица лидеров арены')));
+  apiArenaLeaderboard(20).then(function(rows){
+    if(!rows.length){wrap.appendChild(el('div','',"<span style='color:var(--muted);'>"+M('No champions yet.','Пока нет чемпионов.')+"</span>"));}
+    rows.forEach(function(r,idx){
+      const row=el('div','row',null);
+      row.style.justifyContent='space-between';
+      row.innerHTML='<span>'+(idx+1)+'. <strong>'+r.name+'</strong> ('+r.username+')</span><span>'+r.rating+' &middot; '+r.wins+'W/'+r.losses+'L</span>';
+      wrap.appendChild(row);
+    });
+    const close=el('button','primary',M('Close','Закрыть'));
+    close.addEventListener('click',closeModal);
+    wrap.appendChild(close);
+  }).catch(function(){
+    wrap.appendChild(el('div','',M('Could not load the leaderboard.','Не удалось загрузить таблицу лидеров.')));
+  });
+  openModal(wrap);
+}
+function openArena(){
+  if(loadRun()){
+    show('screen-arena');
+    $('arena-body').innerHTML="<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>";
+    return;
+  }
+  show('screen-arena');
+  $('arena-body').innerHTML="<div style='color:var(--muted);'>"+M('Loading…','Загрузка…')+"</div>";
+  apiGetChampion().then(function(champ){
+    ARENA_CHAMPION=champ;
+    ARENA_VIEW='hub';
+    renderArenaBody();
+  }).catch(function(){
+    ARENA_CHAMPION=null;
+    ARENA_VIEW='hub';
+    renderArenaBody();
+  });
+}
+/* Builds a fresh, disposable RUN (isArenaTemp:true, never persisted — see saveRun())
+   so the normal march combat engine can run a hero-vs-hero duel untouched: the
+   opponent's snapshot heroes sit on RUN.combat.enemies with side:'enemy', which makes
+   every existing enemy-AI function (buildEnemyIntent/enemyAct) pilot them exactly like
+   it pilots monsters, since that code only ever looks at unit.side. */
+function cloneArenaUnit(h,side){
+  const c=JSON.parse(JSON.stringify(h));
+  c.uid=nextUid();c.side=side;c.alive=true;c.hp=c.maxHp;c.status=[];c.usedPhoenix=false;
+  if(!c.equip)c.equip={weapon:null,armor:null,trinket:null,relic:null};
+  return c;
+}
+function startArenaCombat(){
+  if(!ARENA_CHAMPION||!ARENA_OPPONENT)return;
+  if(loadRun()){
+    $('arena-body').innerHTML="<span style='color:var(--danger);'>"+M('Finish or abandon your current march first.','Сначала заверши или прерви текущий поход.')+"</span>";
+    return;
+  }
+  const myHeroes=ARENA_CHAMPION.heroes.map(function(h){return cloneArenaUnit(h,'hero');});
+  const oppHeroes=ARENA_OPPONENT.heroes.map(function(h){return cloneArenaUnit(h,'enemy');});
+  RUN={isArenaTemp:true,party:myHeroes,gold:0,ascension:0,modifiers:{},biome:'ashfall',inventory:[],combat:null};
+  RUN.combat={
+    isArena:true,
+    enemies:oppHeroes,
+    party:RUN.party,
+    queue:[],qi:0,round:1,log:[],
+    selectedAbility:null,targetingUnit:null,over:false,autoBattle:false,
+  };
+  show('screen-combat');
+  renderTopbar();
+  $('tb-layer').textContent=M('Arena Duel','Арена — дуэль');
+  logCombat(M(
+    'The arena gates open — '+ARENA_OPPONENT.name+' ('+ARENA_OPPONENT.username+') steps forward.',
+    'Ворота арены открываются — '+ARENA_OPPONENT.name+' ('+ARENA_OPPONENT.username+') выходит навстречу.'
+  ));
+  newRound();
+}
+function onArenaCombatEnd(didWin){
+  logCombat(didWin?M('Victory! The crowd roars.','Победа! Толпа ревёт.'):M('Defeat. The company withdraws.','Поражение. Отряд отступает.'));
+  const battleToken=ARENA_OPPONENT&&ARENA_OPPONENT.battleToken;
+  const finish=function(ratingText){
+    setTimeout(function(){
+      RUN=null;
+      ARENA_OPPONENT=null;
+      ARENA_VIEW='hub';
+      show('screen-arena');
+      apiGetChampion().then(function(champ){ARENA_CHAMPION=champ;renderArenaBody();
+        if(ratingText){const note=el('div','eyebrow',ratingText);$('arena-body').insertBefore(note,$('arena-body').firstChild);}
+      }).catch(function(){renderArenaBody();});
+    },900);
+  };
+  if(!battleToken){finish(null);return;}
+  apiReportArena(battleToken,didWin?'win':'loss').then(function(res){
+    const delta=res.ratingDelta;
+    finish((delta>=0?'+':'')+delta+M(' rating (now ',' рейтинга (теперь ')+res.newRating+')');
+  }).catch(function(){finish(M('Could not report the result to the server.','Не удалось отправить результат на сервер.'));});
+}
 function renderHeroSelect(){
   heroSelectState=[];
   renderHeroSelectBiomePicker();
@@ -5015,6 +5312,9 @@ $('btn-continue').addEventListener('click',function(){
   saveRun();show('screen-map');renderTopbar();renderMap();
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
+$('btn-open-arena').addEventListener('click',openArena);
+$('btn-arena-back').addEventListener('click',renderTitle);
+$('btn-arena-back-top').addEventListener('click',renderTitle);
 $('legacy-tabs').addEventListener('click',function(e){
   const btn=e.target.closest('.legacy-tab');
   if(!btn)return;
