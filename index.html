@@ -154,6 +154,13 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .xp-bar{height:5px;border-radius:3px;background:var(--surface3);overflow:hidden;margin-top:2px;}
 .xp-bar-fill{height:100%;background:var(--accent2);}
 .stack{display:flex;flex-direction:column;gap:12px;}
+/* Collapsible Legacy-screen sections: keep the native <summary> marker but make the
+   whole row clearly clickable, so long reference sections (achievements, settings...)
+   can be collapsed instead of forcing one long scroll. */
+details.card{padding:16px;}
+details.card>summary{cursor:pointer;display:block;}
+details.card>summary::-webkit-details-marker{color:var(--muted);}
+details.card[open]>summary{margin-bottom:0;}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 .spread{display:flex;justify-content:space-between;align-items:center;gap:10px;}
 
@@ -202,7 +209,22 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 #screen-shop::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--gold) 16%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
 #screen-rest{position:relative;}
 #screen-rest::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--good) 14%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
-.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;position:relative;}
+.map-wrap{
+  border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;position:relative;
+  /* CSS-only "scroll shadow": a soft edge shadow that only shows while there is
+     more map content off-screen in that direction, and fades away once scrolled
+     all the way to that edge. Gives a visual hint that the map scrolls horizontally. */
+  background-color:var(--surface);
+  background-image:
+    linear-gradient(to right, var(--surface) 30%, rgba(0,0,0,0)),
+    linear-gradient(to left, var(--surface) 30%, rgba(0,0,0,0)),
+    linear-gradient(to right, rgba(0,0,0,.35), rgba(0,0,0,0) 30%),
+    linear-gradient(to left, rgba(0,0,0,.35), rgba(0,0,0,0) 30%);
+  background-repeat:no-repeat;
+  background-size:24px 100%, 24px 100%, 12px 100%, 12px 100%;
+  background-position:left, right, left, right;
+  background-attachment:local, local, scroll, scroll;
+}
 .map-svg{display:block;height:320px;width:auto;max-width:none;}
 .map-node{cursor:pointer;}
 .map-node text{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.05em;fill:var(--bg);font-weight:700;pointer-events:none;}
@@ -360,7 +382,7 @@ html.no-anim .float-text{display:none;}
 .rarity-rare{color:var(--accent2);}
 .rarity-epic{color:var(--accent);}
 
-.modal-backdrop{position:fixed;inset:0;background:rgba(10,11,15,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,11,15,.78);backdrop-filter:blur(3px) saturate(85%);-webkit-backdrop-filter:blur(3px) saturate(85%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;}
 .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;}
 
 .gameover-banner{font-size:26px;margin-bottom:6px;}
@@ -431,11 +453,11 @@ html.no-anim .float-text{display:none;}
       <form id="auth-form" autocomplete="on">
         <div class="auth-field">
           <label id="auth-label-username" for="auth-username"></label>
-          <input id="auth-username" name="username" type="text" autocomplete="username" maxlength="32" required>
+          <input id="auth-username" name="username" type="text" autocomplete="username" maxlength="32">
         </div>
         <div class="auth-field">
           <label id="auth-label-password" for="auth-password"></label>
-          <input id="auth-password" name="password" type="password" autocomplete="current-password" maxlength="72" required>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" maxlength="72">
         </div>
         <div class="auth-error" id="auth-error"></div>
         <button class="primary" type="submit" id="btn-auth-submit" style="width:100%;"></button>
@@ -488,49 +510,61 @@ html.no-anim .float-text{display:none;}
         <span class="gold-badge num" id="leg-embers"></span>
       </div>
     </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-upgrades-h3" style="font-size:15px;"></h3>
-      <div id="leg-upgrades"></div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-recruits-h3" style="font-size:15px;"></h3>
-      <div id="leg-recruits"></div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-march-h3" style="font-size:15px;"></h3>
-      <div>
-        <h4 id="legacy-ascension-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
-        <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
-        <div class="asc-row" id="leg-ascension"></div>
-        <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+    <details class="card" style="margin-top:14px;" open>
+      <summary style="cursor:pointer;"><h3 id="legacy-upgrades-h3" style="font-size:15px;display:inline;"></h3></summary>
+      <div class="stack" style="margin-top:10px;">
+        <div id="leg-upgrades"></div>
       </div>
-      <div class="legacy-subsection">
-        <h4 id="legacy-biome-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
-        <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
-        <div class="biome-row" id="leg-biome"></div>
+    </details>
+    <details class="card" style="margin-top:14px;" open>
+      <summary style="cursor:pointer;"><h3 id="legacy-recruits-h3" style="font-size:15px;display:inline;"></h3></summary>
+      <div class="stack" style="margin-top:10px;">
+        <div id="leg-recruits"></div>
       </div>
-      <div class="legacy-subsection">
-        <h4 id="legacy-modifiers-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
-        <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
-        <div class="mod-row" id="leg-modifiers"></div>
+    </details>
+    <details class="card" style="margin-top:14px;" open>
+      <summary style="cursor:pointer;"><h3 id="legacy-march-h3" style="font-size:15px;display:inline;"></h3></summary>
+      <div class="stack" style="margin-top:10px;">
+        <div>
+          <h4 id="legacy-ascension-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+          <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
+          <div class="asc-row" id="leg-ascension"></div>
+          <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-biome-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+          <div class="eyebrow" id="legacy-biome-eyebrow" style="margin-bottom:8px;"></div>
+          <div class="biome-row" id="leg-biome"></div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-modifiers-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+          <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
+          <div class="mod-row" id="leg-modifiers"></div>
+        </div>
       </div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-stats-h3" style="font-size:15px;"></h3>
-      <div id="leg-stats"></div>
-      <div class="legacy-subsection">
-        <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
-        <div class="stack" id="leg-history"></div>
+    </details>
+    <details class="card" style="margin-top:14px;" open>
+      <summary style="cursor:pointer;"><h3 id="legacy-stats-h3" style="font-size:15px;display:inline;"></h3></summary>
+      <div class="stack" style="margin-top:10px;">
+        <div id="leg-stats"></div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+          <div class="stack" id="leg-history"></div>
+        </div>
       </div>
-    </div>
-    <div class="card stack" style="margin-top:14px;">
-      <div class="row" style="justify-content:space-between;align-items:center;">
-        <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;"></h3>
-        <span id="leg-achievements-summary" style="font-size:12px;color:var(--muted);"></span>
+    </details>
+    <details class="card" style="margin-top:14px;">
+      <summary style="cursor:pointer;">
+        <span class="row" style="justify-content:space-between;align-items:center;display:inline-flex;width:calc(100% - 20px);">
+          <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;display:inline;"></h3>
+          <span id="leg-achievements-summary" style="font-size:12px;color:var(--muted);"></span>
+        </span>
+      </summary>
+      <div class="stack" style="margin-top:10px;">
+        <div id="leg-achievements"></div>
+        <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
       </div>
-      <div id="leg-achievements"></div>
-      <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
-    </div>
+    </details>
     <div class="card stack" style="margin-top:14px;">
       <div class="row" style="justify-content:space-between;align-items:center;">
         <h3 id="legacy-bestiary-h3" style="font-size:15px;margin:0;"></h3>
@@ -539,33 +573,35 @@ html.no-anim .float-text{display:none;}
       <div class="eyebrow" id="legacy-bestiary-eyebrow"></div>
       <button id="btn-open-bestiary" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
     </div>
-    <div class="card stack" style="margin-top:14px;">
-      <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
-      <div class="settings-row">
-        <span id="settings-animations-label"></span>
-        <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
-      </div>
-      <div class="settings-row">
-        <span id="settings-sound-label"></span>
-        <button class="toggle-switch" id="btn-toggle-sound" type="button"><span class="knob"></span></button>
-      </div>
-      <div class="settings-row">
-        <span id="settings-textsize-label"></span>
-        <div class="seg-btns" id="text-size-btns"></div>
-      </div>
-      <div class="legacy-subsection">
-        <h4 id="legacy-save-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
-        <div class="row">
-          <button id="btn-export-save"></button>
-          <button id="btn-import-save"></button>
+    <details class="card" style="margin-top:14px;" open>
+      <summary style="cursor:pointer;"><h3 id="legacy-settings-h3" style="font-size:15px;display:inline;"></h3></summary>
+      <div class="stack" style="margin-top:10px;">
+        <div class="settings-row">
+          <span id="settings-animations-label"></span>
+          <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-sound-label"></span>
+          <button class="toggle-switch" id="btn-toggle-sound" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-textsize-label"></span>
+          <div class="seg-btns" id="text-size-btns"></div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-save-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+          <div class="row">
+            <button id="btn-export-save"></button>
+            <button id="btn-import-save"></button>
+          </div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-account-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+          <div id="legacy-account-user" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
+          <div class="row"><button id="btn-logout"></button></div>
         </div>
       </div>
-      <div class="legacy-subsection">
-        <h4 id="legacy-account-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
-        <div id="legacy-account-user" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
-        <div class="row"><button id="btn-logout"></button></div>
-      </div>
-    </div>
+    </details>
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
   </section>
 
@@ -1362,7 +1398,10 @@ function bestiaryRow(wrap,key,def,isBoss){
       "<br><span style='color:var(--muted);font-size:11px;'>"+statAbbr('hp')+' '+def.hp+' &middot; '+statAbbr('atk')+' '+def.atk+' &middot; '+statAbbr('def')+' '+def.def+' &middot; '+statAbbr('spd')+' '+def.spd+"</span>"+
       (weak?"<br><span style='font-size:11px;color:var(--accent);'>"+weak.icon+' '+weak.label+"</span>":'');
   } else {
-    info.innerHTML="<strong style='color:var(--muted);'>"+M('Undiscovered — meet it in combat first.','Не изучен — сначала встретьте его в бою.')+"</strong>";
+    // Keep this short: the full explanation is shown once at the top of the modal
+    // instead of being repeated on every single undiscovered row, which used to
+    // read as a wall of identical sentences.
+    info.innerHTML="<strong style='color:var(--muted);'>"+M('Undiscovered','Не изучен')+"</strong>";
   }
   row.appendChild(info);
   wrap.appendChild(row);
@@ -1373,6 +1412,12 @@ function openBestiaryModal(){
   const total=Object.keys(ENEMY_DEFS).length+Object.keys(BOSS_DEFS).length;
   const known=Object.keys(META.bestiary||{}).length;
   wrap.appendChild(el('div','eyebrow',known+' / '+total+' '+M('discovered','изучено')));
+  if(known<total){
+    const hint=el('div','',null);
+    hint.style.cssText='font-size:12px;color:var(--muted);margin-bottom:4px;';
+    hint.textContent=M('Undiscovered foes are revealed once you meet them in combat.','Неизученные враги открываются после первой встречи с ними в бою.');
+    wrap.appendChild(hint);
+  }
   Object.keys(BIOME_DEFS).forEach(function(bk){
     const biome=BIOME_DEFS[bk];
     wrap.appendChild(el('div','eyebrow',L(biome.name)));
@@ -3539,7 +3584,10 @@ function nodeLabel(type){
   return {battle:M('BTL','БОЙ'),elite:M('ELT','ЭЛТ'),event:M('EVT','СОБ'),shop:M('SHP','МАГ'),rest:M('RST','ПРВ'),boss:'☠'}[type];
 }
 function nodeIcon(type){
-  return {battle:'⚔',elite:'☠',event:'❓',shop:'⚖',rest:'♨',boss:'♛'}[type];
+  // Plain ASCII/Latin-1 glyphs instead of emoji-presentation dingbats (⚔ ☠ ⚖ ♨ ♛):
+  // those render as blank/"×" boxes on systems without a color-emoji font installed,
+  // while these are guaranteed to be covered by any basic sans-serif font.
+  return {battle:'†',elite:'‡',event:'❓',shop:'$',rest:'+',boss:'!'}[type];
 }
 function nodeTypeName(type){
   return {
@@ -4823,6 +4871,13 @@ $('btn-formation').addEventListener('click',openFormationModal);
 $('btn-auto-battle').addEventListener('click',function(){
   if(!RUN.combat)return;
   RUN.combat.autoBattle=!RUN.combat.autoBattle;
+  if(RUN.combat.autoBattle&&RUN.combat.phase==='hero_target'){
+    // Cancel any pending manual target selection so auto-battle can't get stuck
+    // waiting for a click that will never come.
+    RUN.combat.selectedAbility=null;
+    RUN.combat.phase='hero_choose';
+    renderActionPanel();renderCombat();
+  }
   updateAutoBattleButton();
   saveRun();
   if(RUN.combat.autoBattle&&RUN.combat.phase==='hero_choose'&&RUN.combat.activeHero){
@@ -4889,11 +4944,11 @@ $('btn-daily').addEventListener('click',function(){
 });
 document.addEventListener('keydown',function(e){
   if(!RUN||!RUN.combat||RUN.combat.over)return;
-  if(RUN.combat.autoBattle)return;
   if(e.key==='Escape'&&RUN.combat.phase==='hero_target'){
     RUN.combat.selectedAbility=null;RUN.combat.phase='hero_choose';renderActionPanel();renderCombat();
     return;
   }
+  if(RUN.combat.autoBattle)return;
   if(RUN.combat.phase!=='hero_choose'||!RUN.combat.activeHero)return;
   const n=parseInt(e.key,10);
   if(n>=1&&n<=9){
