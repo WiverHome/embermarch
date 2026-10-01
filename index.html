@@ -154,13 +154,15 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
 .xp-bar{height:5px;border-radius:3px;background:var(--surface3);overflow:hidden;margin-top:2px;}
 .xp-bar-fill{height:100%;background:var(--accent2);}
 .stack{display:flex;flex-direction:column;gap:12px;}
-/* Collapsible Legacy-screen sections: keep the native <summary> marker but make the
-   whole row clearly clickable, so long reference sections (achievements, settings...)
-   can be collapsed instead of forcing one long scroll. */
-details.card{padding:16px;}
-details.card>summary{cursor:pointer;display:block;}
-details.card>summary::-webkit-details-marker{color:var(--muted);}
-details.card[open]>summary{margin-bottom:0;}
+/* Legacy-screen tabs: split a screen that used to be one long stack of cards
+   (upgrades, recruits, march setup, stats, achievements, bestiary, settings)
+   into separate sections, so only one group is visible at a time. */
+.legacy-tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--border);}
+.legacy-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.legacy-tab:hover{color:var(--text);}
+.legacy-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.legacy-tab-panel{margin-top:14px;}
+.legacy-tab-panel[hidden]{display:none;}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 .spread{display:flex;justify-content:space-between;align-items:center;gap:10px;}
 
@@ -510,21 +512,28 @@ html.no-anim .float-text{display:none;}
         <span class="gold-badge num" id="leg-embers"></span>
       </div>
     </div>
-    <details class="card" style="margin-top:14px;" open>
-      <summary style="cursor:pointer;"><h3 id="legacy-upgrades-h3" style="font-size:15px;display:inline;"></h3></summary>
-      <div class="stack" style="margin-top:10px;">
+
+    <div class="legacy-tabs" id="legacy-tabs" role="tablist" style="margin-top:14px;">
+      <button class="legacy-tab" type="button" data-tab="upgrades" id="legacy-tab-upgrades" role="tab"></button>
+      <button class="legacy-tab" type="button" data-tab="march" id="legacy-tab-march" role="tab"></button>
+      <button class="legacy-tab" type="button" data-tab="stats" id="legacy-tab-stats" role="tab"></button>
+      <button class="legacy-tab" type="button" data-tab="settings" id="legacy-tab-settings" role="tab"></button>
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="upgrades">
+      <div class="card stack">
+        <h3 id="legacy-upgrades-h3" style="font-size:15px;"></h3>
         <div id="leg-upgrades"></div>
       </div>
-    </details>
-    <details class="card" style="margin-top:14px;" open>
-      <summary style="cursor:pointer;"><h3 id="legacy-recruits-h3" style="font-size:15px;display:inline;"></h3></summary>
-      <div class="stack" style="margin-top:10px;">
+      <div class="card stack" style="margin-top:14px;">
+        <h3 id="legacy-recruits-h3" style="font-size:15px;"></h3>
         <div id="leg-recruits"></div>
       </div>
-    </details>
-    <details class="card" style="margin-top:14px;" open>
-      <summary style="cursor:pointer;"><h3 id="legacy-march-h3" style="font-size:15px;display:inline;"></h3></summary>
-      <div class="stack" style="margin-top:10px;">
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="march">
+      <div class="card stack">
+        <h3 id="legacy-march-h3" style="font-size:15px;"></h3>
         <div>
           <h4 id="legacy-ascension-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
           <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
@@ -542,40 +551,38 @@ html.no-anim .float-text{display:none;}
           <div class="mod-row" id="leg-modifiers"></div>
         </div>
       </div>
-    </details>
-    <details class="card" style="margin-top:14px;" open>
-      <summary style="cursor:pointer;"><h3 id="legacy-stats-h3" style="font-size:15px;display:inline;"></h3></summary>
-      <div class="stack" style="margin-top:10px;">
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="stats">
+      <div class="card stack">
+        <h3 id="legacy-stats-h3" style="font-size:15px;"></h3>
         <div id="leg-stats"></div>
         <div class="legacy-subsection">
           <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
           <div class="stack" id="leg-history"></div>
         </div>
       </div>
-    </details>
-    <details class="card" style="margin-top:14px;">
-      <summary style="cursor:pointer;">
-        <span class="row" style="justify-content:space-between;align-items:center;display:inline-flex;width:calc(100% - 20px);">
-          <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;display:inline;"></h3>
+      <div class="card stack" style="margin-top:14px;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;"></h3>
           <span id="leg-achievements-summary" style="font-size:12px;color:var(--muted);"></span>
-        </span>
-      </summary>
-      <div class="stack" style="margin-top:10px;">
+        </div>
         <div id="leg-achievements"></div>
         <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
       </div>
-    </details>
-    <div class="card stack" style="margin-top:14px;">
-      <div class="row" style="justify-content:space-between;align-items:center;">
-        <h3 id="legacy-bestiary-h3" style="font-size:15px;margin:0;"></h3>
-        <span id="leg-bestiary-summary" style="font-size:12px;color:var(--muted);"></span>
+      <div class="card stack" style="margin-top:14px;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h3 id="legacy-bestiary-h3" style="font-size:15px;margin:0;"></h3>
+          <span id="leg-bestiary-summary" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div class="eyebrow" id="legacy-bestiary-eyebrow"></div>
+        <button id="btn-open-bestiary" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
       </div>
-      <div class="eyebrow" id="legacy-bestiary-eyebrow"></div>
-      <button id="btn-open-bestiary" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
     </div>
-    <details class="card" style="margin-top:14px;" open>
-      <summary style="cursor:pointer;"><h3 id="legacy-settings-h3" style="font-size:15px;display:inline;"></h3></summary>
-      <div class="stack" style="margin-top:10px;">
+
+    <div class="legacy-tab-panel" data-tab="settings">
+      <div class="card stack">
+        <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
         <div class="settings-row">
           <span id="settings-animations-label"></span>
           <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
@@ -601,7 +608,8 @@ html.no-anim .float-text{display:none;}
           <div class="row"><button id="btn-logout"></button></div>
         </div>
       </div>
-    </details>
+    </div>
+
     <div style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
   </section>
 
@@ -945,6 +953,10 @@ const STATIC_I18N = {
   'legacy-h2':{en:'Legacy Ledger',ru:'Летопись'},
   'legacy-eyebrow':{en:'Embers carry forward even when the company falls',ru:'Угольки сохраняются, даже если отряд погибнет'},
   'legacy-embers-label':{en:'Embers banked',ru:'Накоплено угольков'},
+  'legacy-tab-upgrades':{en:'Upgrades',ru:'Прокачка'},
+  'legacy-tab-march':{en:'March Setup',ru:'Поход'},
+  'legacy-tab-stats':{en:'Records',ru:'Статистика'},
+  'legacy-tab-settings':{en:'Settings',ru:'Настройки'},
   'legacy-upgrades-h3':{en:'Permanent Upgrades',ru:'Постоянные улучшения'},
   'legacy-recruits-h3':{en:'Recruits',ru:'Наёмники'},
   'legacy-march-h3':{en:'March Setup',ru:'Настройка похода'},
@@ -4227,6 +4239,15 @@ function renderTitle(){
    locked ones too. Not persisted — resets to collapsed each visit, which is
    fine since it's a display preference, not progress. */
 let achievementsExpanded=false;
+let legacyActiveTab='upgrades';
+function applyLegacyTabUI(){
+  document.querySelectorAll('#legacy-tabs .legacy-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.dataset.tab===legacyActiveTab);
+  });
+  document.querySelectorAll('.legacy-tab-panel').forEach(function(panel){
+    panel.hidden = panel.dataset.tab!==legacyActiveTab;
+  });
+}
 function renderLegacy(){
   $('leg-embers').textContent=META.embers;
   const acctEl=$('legacy-account-user');
@@ -4423,6 +4444,7 @@ function renderLegacy(){
     });
   }
   renderLangSwitch();
+  applyLegacyTabUI();
   show('screen-legacy');
 }
 
@@ -4846,6 +4868,12 @@ $('btn-continue').addEventListener('click',function(){
   saveRun();show('screen-map');renderTopbar();renderMap();
 });
 $('btn-open-legacy').addEventListener('click',renderLegacy);
+$('legacy-tabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.legacy-tab');
+  if(!btn)return;
+  legacyActiveTab=btn.dataset.tab;
+  applyLegacyTabUI();
+});
 $('btn-open-rules').addEventListener('click',showRulesModal);
 $('btn-save-reminder-export').addEventListener('click',function(){
   META.lastExportNudgeEmbers=META.embers;saveMeta();
