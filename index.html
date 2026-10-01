@@ -278,9 +278,9 @@ textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:
      (not display:contents like .combat-left) so it can be the row container;
      order on its two zones is scoped to it, independent of the outer order
      values used elsewhere in this block. */
-  .combat-right{order:2;display:flex;flex-direction:row;gap:6px;align-items:flex-start;}
-  .combat-right .ally-zone{order:1;flex:1;min-width:0;}
-  .combat-right .enemy-zone{order:2;flex:1;min-width:0;}
+  .combat-right{order:2!important;display:flex!important;flex-direction:row!important;gap:6px!important;align-items:flex-start!important;}
+  .combat-right .ally-zone{order:1!important;flex:1!important;min-width:0!important;}
+  .combat-right .enemy-zone{order:2!important;flex:1!important;min-width:0!important;}
   #action-panel{order:3;}
 }
 .unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
@@ -2861,7 +2861,8 @@ function maybeEndlessWaypoint(){
   if(depth>0&&depth%3===0){
     const kind=(Math.floor(depth/3)%2===0)?'shop':'rest';
     const node={id:'endless-waypoint-'+depth,type:kind,layer:TOTAL_MAP_LAYERS+depth,endless:true,endlessDepth:depth,cleared:false,next:[]};
-    if(kind==='shop')RUN.shopStock=null; // force a fresh, correctly-scaled stock rather than a stale one left from the map
+    // Shop stock is now keyed per node id (see startShop) — this node's id is unique
+    // per depth, so it always gets its own fresh, correctly-scaled stock already.
     enterNode(node);
     return;
   }
@@ -3758,11 +3759,20 @@ function showEventResult(msg,after){
 
 /* ---- shop ---- */
 function startShop(node){
-  RUN.shopStock = RUN.shopStock||buildShopStock(node.layer);
+  /* Stock is keyed per node id (not one shared RUN.shopStock) — a march can have
+     several separate shop nodes, and each needs its own fresh, layer-scaled stock
+     rather than inheriting whatever was left over (already bought / wrong tier)
+     from the first shop the player ever visited this run. A node is marked
+     .cleared on leaving and can't be re-entered (see completeCurrentNode/the map
+     modal), so in practice each key is only ever built once — but keying by node
+     still means a given shop's remaining stock survives being re-rendered while
+     still inside it (e.g. after a purchase calls renderShop() again). */
+  RUN.shopStockByNode = RUN.shopStockByNode||{};
+  RUN.shopStockByNode[node.id] = RUN.shopStockByNode[node.id]||buildShopStock(node.layer);
+  RUN._shopNode=node;
   renderShop();
   show('screen-shop');
   renderTopbar();
-  RUN._shopNode=node;
 }
 /* Shops now carry more stock (4 gear items instead of 2, higher relic odds
    at deeper tiers) so the gold the march hands out actually has somewhere
@@ -3785,7 +3795,8 @@ function goldSuffix(){return M(' gold',' золота');}
 function renderShop(){
   $('shop-gold').textContent=RUN.gold;
   const box=$('shop-items');box.innerHTML='';
-  RUN.shopStock.forEach(function(stock){
+  const stockList=RUN.shopStockByNode[RUN._shopNode.id];
+  stockList.forEach(function(stock){
     if(stock.sold)return;
     const b=el('button','card-choice');
     let label='';
