@@ -1410,7 +1410,13 @@ function checkHeroUnlocks(){
   });
 }
 const CUSTOM_HERO_POINTS = 6;
-const CUSTOM_HERO_MAX = 4;
+/* Capped at 1 by design: the custom hero is meant to read as the account's
+   own personal character (an identity, not a roster slot), not an
+   interchangeable 4th-5th option alongside the 8 fixed heroes. Both places
+   this gates — the "+ Create a Hero" add-card and the save handler's
+   roster-full check — already read this constant, so changing it is the
+   only change needed; nothing else hardcodes the old limit of 4. */
+const CUSTOM_HERO_MAX = 1;
 const CUSTOM_HP_PER_POINT = 3;
 const CUSTOM_PASSIVES = [
   {id:'vitality',name:{en:'Vitality',ru:'Живучесть'},desc:{en:'+15% max HP',ru:'+15% к макс. HP'}},
