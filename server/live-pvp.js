@@ -34,6 +34,25 @@ const MAX_ROUNDS = 60; // hard safety cap so a pathological stalemate (e.g. two 
 const INVITE_CODE_TTL_MS = 10 * 60 * 1000;
 const BOT_THINK_MS = 700; // pause before the arena bot acts, so the client can show each turn
 const ELO_K = 24;
+const MAX_MESSAGE_BYTES = 16 * 1024; // largest client frame accepted; real messages are a few hundred bytes
+const MSG_BURST = 20;                // per-socket token bucket: burst size...
+const MSG_REFILL_PER_SEC = 5;        // ...and sustained rate; a socket that empties it is closed
+const HEARTBEAT_MS = 30 * 1000;      // ping interval; a socket that misses one pong is dropped
+/* The session token travels as a WebSocket subprotocol next to this marker
+   (Sec-WebSocket-Protocol: embermarch, <jwt>), not in the URL, so it never
+   lands in proxy access logs. */
+const WS_PROTOCOL = 'embermarch';
+
+/* Token from the subprotocol header; the ?token= query is the old form, kept
+   only so clients still running a cached older build can connect. */
+function upgradeToken(req, url) {
+  const offered = String(req.headers['sec-websocket-protocol'] || '').split(',').map(function (p) { return p.trim(); });
+  if (offered.indexOf(WS_PROTOCOL) !== -1) {
+    const tok = offered.find(function (p) { return p && p !== WS_PROTOCOL; });
+    if (tok) return tok;
+  }
+  return url.searchParams.get('token');
+}
 
 function eloExpected(a, b) { return 1 / (1 + Math.pow(10, (b - a) / 400)); }
 function eloDelta(myRating, oppRating, didWin) {
@@ -52,7 +71,34 @@ function makeInviteCode() {
 function attachLivePvp(opts) {
   const { server, jwt, JWT_SECRET, stmts, findUserById, fightingSquad, saveReplay } = opts;
 
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({
+    noServer: true,
+    maxPayload: MAX_MESSAGE_BYTES,
+    // Echo the marker only: answering with the token would send it back in a header.
+    handleProtocols: function (protocols) { return protocols.has(WS_PROTOCOL) ? WS_PROTOCOL : false; },
+  });
+
+  // Drop sockets whose peer vanished without a close (sleeping phone, dead
+  // NAT entry): one missed pong and the normal 'close' path takes over.
+  const heartbeat = setInterval(function () {
+    wss.clients.forEach(function (ws) {
+      if (!ws.isAlive) { ws.terminate(); return; }
+      ws.isAlive = false;
+      try { ws.ping(); } catch (e) {}
+    });
+  }, HEARTBEAT_MS);
+  if (heartbeat.unref) heartbeat.unref();
+  wss.on('close', function () { clearInterval(heartbeat); });
+
+  // Token bucket per socket; false once the client floods.
+  function takeMessageToken(ws) {
+    const now = Date.now();
+    ws.msgTokens = Math.min(MSG_BURST, ws.msgTokens + (now - ws.msgAt) / 1000 * MSG_REFILL_PER_SEC);
+    ws.msgAt = now;
+    if (ws.msgTokens < 1) return false;
+    ws.msgTokens -= 1;
+    return true;
+  }
 
   // userId -> { ws, user, queued:boolean, matchId:string|null, inviteCode:string|null }
   const conns = new Map();
@@ -528,7 +574,7 @@ function attachLivePvp(opts) {
     let url;
     try { url = new URL(req.url, 'http://localhost'); } catch (e) { socket.destroy(); return; }
     if (url.pathname !== '/api/arena/live') return; // not ours; let other upgrade handlers (if any) see it
-    const token = url.searchParams.get('token');
+    const token = upgradeToken(req, url);
     let payload;
     try { payload = jwt.verify(token, JWT_SECRET); } catch (e) { socket.destroy(); return; }
     if (!payload || payload.typ || payload.sub == null) { socket.destroy(); return; }
@@ -562,7 +608,14 @@ function attachLivePvp(opts) {
       }
     }
 
-    ws.on('message', function (raw) { handleMessage(user.id, raw); });
+    ws.isAlive = true;
+    ws.msgTokens = MSG_BURST; ws.msgAt = Date.now();
+    ws.on('pong', function () { ws.isAlive = true; });
+    ws.on('message', function (raw) {
+      if (ws.readyState !== ws.OPEN) return; // closing: ws still delivers frames until the close handshake ends
+      if (!takeMessageToken(ws)) { try { ws.close(4008, 'rate_limited'); } catch (e) {} return; }
+      handleMessage(user.id, raw);
+    });
     ws.on('close', function () { handleClose(user.id, ws); });
     ws.on('error', function () { /* 'close' follows; handled there */ });
   });

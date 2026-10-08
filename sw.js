@@ -7,7 +7,7 @@
 //   time the player reaches it.
 // - The API, the admin panel and anything cross-origin (Google Fonts) are never touched.
 // Bump CACHE when the precache list changes.
-const CACHE = 'embermarch-v5';
+const CACHE = 'embermarch-v6';
 const PRECACHE = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/combat-core.js', './js/lang-api.js', './js/data.js', './js/meta.js', './js/util.js', './js/run.js',

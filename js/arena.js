@@ -390,7 +390,10 @@ function startArenaCombat(){
    combat engine section, and liveStateToLocal() below for how server state becomes a
    normal-looking RUN.combat.party/enemies pair. */
 let LIVE=null; // {ws,status,matchId,mySide,you,opponent,inviteCode,pendingPrompt}
-function liveWsUrl(){return API_BASE.replace(/^http/,'ws')+'/arena/live?token='+encodeURIComponent(AUTH_TOKEN);}
+function liveWsUrl(){return API_BASE.replace(/^http/,'ws')+'/arena/live';}
+/* The session token rides as a subprotocol next to the marker the server
+   echoes back, so it stays out of URLs and proxy logs (see server/live-pvp.js). */
+function liveWsProtocols(){return ['embermarch',AUTH_TOKEN];}
 function liveEnsure(onReady){
   if(LIVE&&LIVE.ws&&(LIVE.ws.readyState===WebSocket.OPEN||LIVE.ws.readyState===WebSocket.CONNECTING)){
     if(LIVE.status==='connected'||LIVE.status==='queued'||LIVE.status==='inviting'||LIVE.status==='in_match'){onReady&&onReady();return;}
@@ -399,7 +402,7 @@ function liveEnsure(onReady){
   }
   LIVE={ws:null,status:'connecting',matchId:null,mySide:null,you:null,opponent:null,inviteCode:null,pendingPrompt:null,_onReady:onReady};
   let ws;
-  try{ws=new WebSocket(liveWsUrl());}catch(e){LIVE.status='error';renderLiveDuelPanel();return;}
+  try{ws=new WebSocket(liveWsUrl(),liveWsProtocols());}catch(e){LIVE.status='error';renderLiveDuelPanel();return;}
   LIVE.ws=ws;
   ws.addEventListener('open',function(){});
   ws.addEventListener('close',function(){
