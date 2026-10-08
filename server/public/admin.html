@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Embermarch Admin</title>
+<!--
+  Admin panel. Served by the game server itself at /admin (server/admin.js), so
+  it shares no storage with the game on GitHub Pages. The page holds no secrets:
+  every /api/admin route checks on the server that the session is an admin token
+  of the single ADMIN_USER_ID account and answers 404 to anyone else.
+  Own login (POST /api/admin/login, short-lived token kept in sessionStorage:
+  closing the tab logs out). Any change to the inline script is picked up by the
+  CSP hash automatically (computed when the page is served).
+-->
+<style>
+:root{
+  --bg:#0c0a0d;--surface:#17141a;--surface2:#211c24;--border:#3a3242;
+  --text:#f3ead9;--muted:#a89a86;--accent:#ff8a4c;--good:#6fbb86;--danger:#e2665c;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f7f1e6;--surface:#fffdf9;--surface2:#f2e8d6;--border:#d8c8a4;
+    --text:#2b2117;--muted:#7a6c53;--accent:#c9622e;--good:#3f8a5a;--danger:#b8483f;
+    color-scheme:light;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f7f1e6;--surface:#fffdf9;--surface2:#f2e8d6;--border:#d8c8a4;
+  --text:#2b2117;--muted:#7a6c53;--accent:#c9622e;--good:#3f8a5a;--danger:#b8483f;
+  color-scheme:light;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,'Segoe UI',sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:16px;}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;}
+h1{font-size:20px;margin:0;color:var(--accent);}
+h2{font-size:16px;margin:0 0 10px;}
+h3{font-size:14px;margin:14px 0 6px;color:var(--muted);}
+a{color:var(--accent);}
+button,input,select,textarea{font:inherit;color:var(--text);}
+button{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;cursor:pointer;}
+button:hover{border-color:var(--accent);}
+button.primary{background:var(--accent);border-color:var(--accent);color:#1a0f08;font-weight:600;}
+button.danger{border-color:var(--danger);color:var(--danger);}
+button:disabled{opacity:.5;cursor:default;}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;}
+input[type=number]{width:110px;}
+textarea{width:100%;min-height:260px;font-family:ui-monospace,Consolas,monospace;font-size:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.tile b{display:block;font-size:20px;color:var(--accent);}
+.tile span{font-size:12px;color:var(--muted);}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr);}}
+.checks label{white-space:nowrap;}
+.row > input[type=text]{flex:1;min-width:0;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+th{color:var(--muted);font-weight:500;}
+tr.clickable{cursor:pointer;}
+tr.clickable:hover td{background:var(--surface2);}
+tr.selected td{background:var(--surface2);}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--border);color:var(--muted);}
+.tag.bad{border-color:var(--danger);color:var(--danger);}
+.tag.adm{border-color:var(--accent);color:var(--accent);}
+.muted{color:var(--muted);}
+.msg{min-height:20px;font-size:13px;margin-top:6px;}
+.msg.ok{color:var(--good);}
+.msg.err{color:var(--danger);}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;}
+.fields label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);}
+.checks{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;}
+.tabs{display:flex;gap:6px;margin-bottom:12px;}
+.tabs button.on{border-color:var(--accent);color:var(--accent);}
+.empty{padding:30px;text-align:center;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="t-title"></h1>
+    <div class="row">
+      <span class="muted" id="who"></span>
+      <button id="btn-lang">EN / RU</button>
+      <button id="btn-logout" hidden></button>
+      <a href="/" id="t-back"></a>
+    </div>
+  </header>
+  <div id="gate" class="card empty" hidden></div>
+  <main id="app" hidden>
+    <div class="tiles" id="tiles"></div>
+    <div class="tabs">
+      <button id="tab-users" class="on"></button>
+      <button id="tab-log"></button>
+    </div>
+    <section id="view-users">
+      <div class="grid2">
+        <div class="card">
+          <div class="row" style="margin-bottom:10px;">
+            <input id="search" type="search" maxlength="32" style="flex:1;min-width:160px;">
+            <button id="btn-search"></button>
+          </div>
+          <div class="table-wrap"><table id="users"></table></div>
+          <div class="row" style="justify-content:space-between;margin-top:10px;">
+            <span class="muted" id="page-info"></span>
+            <div class="row"><button id="btn-prev">‹</button><button id="btn-next">›</button></div>
+          </div>
+        </div>
+        <div class="card" id="detail"><div class="empty" id="t-pick"></div></div>
+      </div>
+    </section>
+    <section id="view-log" hidden>
+      <div class="card"><div class="table-wrap"><table id="log"></table></div></div>
+    </section>
+  </main>
+</div>
+<script>
+'use strict';
+/* Same origin as the game server; own session, separate from the game's. */
+const API_BASE='/api';
+const AUTH_STORAGE_KEY='embermarch_admin_token';
+const LANG_KEY='embermarch_lang_v1';
+const PAGE=25;
+
+let LANG='ru';
+try{LANG=localStorage.getItem(LANG_KEY)==='en'?'en':'ru';}catch(e){}
+function M(en,ru){return LANG==='ru'?ru:en;}
+function L(f){return f==null?'':(typeof f==='string'?f:(f[LANG]!==undefined?f[LANG]:f.en));}
+let TOKEN=null;
+try{TOKEN=sessionStorage.getItem(AUTH_STORAGE_KEY);}catch(e){}
+function setToken(t){TOKEN=t||null;try{if(TOKEN)sessionStorage.setItem(AUTH_STORAGE_KEY,TOKEN);else sessionStorage.removeItem(AUTH_STORAGE_KEY);}catch(e){}}
+let REF={upgradeMax:{},heroes:[]};
+let state={q:'',offset:0,total:0,selected:null};
+
+const $=function(id){return document.getElementById(id);};
+/* Text only: everything shown comes from players, never as HTML. */
+function h(tag,attrs,children){
+  const e=document.createElement(tag);
+  if(attrs)Object.keys(attrs).forEach(function(k){
+    if(k==='text')e.textContent=attrs[k];
+    else if(k==='on')Object.keys(attrs.on).forEach(function(ev){e.addEventListener(ev,attrs.on[ev]);});
+    else if(k==='class')e.className=attrs[k];
+    else e.setAttribute(k,attrs[k]);
+  });
+  (children||[]).forEach(function(c){if(c!=null)e.appendChild(typeof c==='string'?document.createTextNode(c):c);});
+  return e;
+}
+function api(path,method,body){
+  return fetch(API_BASE+path,{method:method||'GET',headers:Object.assign({'Content-Type':'application/json'},TOKEN?{Authorization:'Bearer '+TOKEN}:{}),body:body?JSON.stringify(body):undefined})
+    .then(function(r){return r.json().catch(function(){return {};}).then(function(b){
+      if(!r.ok){
+        const e=new Error((b&&b.error)||('HTTP '+r.status));e.status=r.status;
+        /* Expired or revoked admin session in the middle of work: back to the login form. */
+        if(r.status===401&&TOKEN&&path!=='/admin/login'){setToken(null);loginForm(M('Your session expired. Log in again.','Сессия истекла. Войдите снова.'));}
+        throw e;
+      }
+      return b;
+    });});
+}
+function fmtDate(s){if(!s)return '—';const d=new Date(s.replace(' ','T')+'Z');return isNaN(d)?s:d.toLocaleString(LANG==='ru'?'ru-RU':'en-GB');}
+function say(el,ok,text){el.className='msg '+(ok?'ok':'err');el.textContent=text;}
+
+function staticTexts(){
+  document.documentElement.lang=LANG;
+  $('t-title').textContent=M('Embermarch · Admin','Embermarch · Администрирование');
+  $('t-back').textContent=M('← Back to the game','← Вернуться в игру');
+  $('btn-logout').textContent=M('Log out','Выйти');
+  $('tab-users').textContent=M('Players','Игроки');
+  $('tab-log').textContent=M('Admin log','Журнал действий');
+  $('search').placeholder=M('Search by username','Поиск по имени');
+  $('btn-search').textContent=M('Search','Найти');
+  $('t-pick').textContent=M('Pick a player on the left.','Выберите игрока слева.');
+}
+function gate(text){$('app').hidden=true;$('btn-logout').hidden=true;$('who').textContent='';$('gate').hidden=false;$('gate').textContent='';$('gate').appendChild(h('div',{text:text}));}
+function loginForm(note){
+  gate(M('Admin login','Вход администратора'));
+  const user=h('input',{type:'text',autocomplete:'username',placeholder:M('Username','Имя')});
+  const pass=h('input',{type:'password',autocomplete:'current-password',placeholder:M('Password','Пароль')});
+  const msg=h('div',{class:'msg'});
+  const btn=h('button',{type:'submit',class:'primary',text:M('Log in','Войти')});
+  const form=h('form',{style:'display:flex;flex-direction:column;gap:8px;max-width:280px;margin:14px auto 0;'},[user,pass,btn,msg]);
+  if(note)say(msg,false,note);
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault();btn.disabled=true;
+    api('/admin/login','POST',{username:user.value,password:pass.value}).then(function(r){
+      pass.value='';setToken(r.token);boot();
+    }).catch(function(e){
+      btn.disabled=false;
+      say(msg,false,e.status===401?M('Wrong username or password, or this account is not the admin.','Неверное имя или пароль, либо это не аккаунт администратора.')
+        :e.status===429?M('Too many attempts, try later.','Слишком много попыток, попробуйте позже.')
+        :M('Could not reach the server: ','Сервер недоступен: ')+e.message);
+    });
+  });
+  $('gate').appendChild(form);user.focus();
+}
+
+function boot(){
+  staticTexts();
+  if(!TOKEN){loginForm();return;}
+  api('/admin/session').then(function(me){
+    REF={upgradeMax:me.upgradeMax||{},heroes:me.heroes||[]};
+    $('who').textContent=M('Admin: ','Админ: ')+me.username;
+    $('gate').hidden=true;$('app').hidden=false;$('btn-logout').hidden=false;
+    loadStats();loadUsers();
+  }).catch(function(e){
+    if(e.status===404){setToken(null);loginForm();return;}
+    if(e.status===401)return; // api() already showed the login form
+    gate(M('Could not reach the server: ','Сервер недоступен: ')+e.message);
+  });
+}
+
+function loadStats(){
+  api('/admin/stats').then(function(s){
+    const t=$('tiles');t.textContent='';
+    [[s.users,M('Accounts','Аккаунтов')],[s.new7d,M('New in 7 days','Новых за 7 дней')],[s.active24h,M('Active 24h','Активны 24 ч')],
+     [s.active7d,M('Active 7 days','Активны 7 дней')],[s.champions,M('Arena champions','Чемпионов арены')],[s.banned,M('Banned','Заблокировано')],
+     [s.live?s.live.online:'—',M('Online in arena','Онлайн на арене')],[s.live?s.live.matches:'—',M('Matches now','Боёв сейчас')]]
+      .forEach(function(x){t.appendChild(h('div',{class:'tile'},[h('b',{text:String(x[0])}),h('span',{text:x[1]})]));});
+  }).catch(function(){});
+}
+
+function loadUsers(){
+  api('/admin/users?q='+encodeURIComponent(state.q)+'&limit='+PAGE+'&offset='+state.offset).then(function(r){
+    state.total=r.total;
+    const tb=$('users');tb.textContent='';
+    tb.appendChild(h('tr',{},['ID',M('Player','Игрок'),M('Embers','Угольки'),M('Wins','Победы'),M('Best','Лучший'),M('Rating','Рейтинг'),M('Last save','Сохранение')].map(function(c){return h('th',{text:c});})));
+    if(!r.users.length)tb.appendChild(h('tr',{},[h('td',{colspan:'7',class:'muted',text:M('Nobody found.','Никого не найдено.')})]));
+    r.users.forEach(function(u){
+      const name=h('td',{},[u.username,' ',u.isAdmin?h('span',{class:'tag adm',text:'admin'}):null,u.banned?h('span',{class:'tag bad',text:M('banned','бан')}):null]);
+      const tr=h('tr',{class:'clickable'+(state.selected===u.id?' selected':''),on:{click:function(){openUser(u.id);}}},[
+        h('td',{text:String(u.id)}),name,h('td',{text:String(u.summary.embers)}),h('td',{text:String(u.summary.wins)}),
+        h('td',{text:String(u.summary.bestLayer)}),h('td',{text:u.champion?String(u.champion.rating):'—'}),h('td',{text:fmtDate(u.progress_updated_at)})]);
+      tb.appendChild(tr);
+    });
+    $('page-info').textContent=(r.total?(state.offset+1)+'–'+Math.min(state.offset+PAGE,r.total):'0')+M(' of ',' из ')+r.total;
+    $('btn-prev').disabled=state.offset<=0;
+    $('btn-next').disabled=state.offset+PAGE>=r.total;
+  }).catch(function(e){$('page-info').textContent=e.message;});
+}
+
+function openUser(id){
+  state.selected=id;
+  loadUsers();
+  const d=$('detail');d.textContent='';d.appendChild(h('div',{class:'muted',text:M('Loading…','Загрузка…')}));
+  api('/admin/users/'+id).then(renderUser).catch(function(e){d.textContent=e.message;});
+}
+
+function section(title){return h('h3',{text:title});}
+function action(label,cls,fn){return h('button',{class:cls||'',text:label,on:{click:fn}});}
+
+function renderUser(data){
+  const u=data.user,p=data.progress||{},d=$('detail');
+  d.textContent='';
+  const msg=h('div',{class:'msg'});
+  const done=function(text){return function(){say(msg,true,text);loadStats();openUserKeepMsg(u.id,msg);};};
+  const fail=function(e){say(msg,false,e.message);};
+  const base=data.progress_updated_at; // optimistic lock, see staleEdit() in server/admin.js
+  const confirmDo=function(question,fn){return function(){if(window.confirm(question))fn();};};
+
+  d.appendChild(h('h2',{},[u.username+' ',h('span',{class:'muted',text:'#'+u.id}),' ',u.isAdmin?h('span',{class:'tag adm',text:'admin'}):null,u.banned?h('span',{class:'tag bad',text:M('banned','заблокирован')}):null]));
+  d.appendChild(h('div',{class:'muted'},[M('Registered: ','Регистрация: ')+fmtDate(u.created_at)+' · '+M('last save: ','сохранение: ')+fmtDate(data.progress_updated_at)+(data.online?' · '+M('online in arena','онлайн на арене'):'')]));
+  if(data.guard&&data.guard.flags)d.appendChild(h('div',{class:'msg err'},[M('Implausible saves corrected by the server: ','Сервер исправил неправдоподобных сохранений: ')+data.guard.flags+' · '+M('last: ','последнее: ')+fmtDate(data.guard.lastFlagAt)+' ('+(data.guard.lastFlag||'')+')']));
+  d.appendChild(msg);
+
+  /* quick progress fields */
+  d.appendChild(section(M('Progress','Прогресс')));
+  const fields=[['embers',M('Embers','Угольки')],['wins',M('Wins','Победы')],['bestLayer',M('Best layer','Лучший слой')],['ascensionUnlocked',M('Ascension unlocked (0-5)','Открыта сложность (0-5)')]];
+  const inputs={};
+  const fbox=h('div',{class:'fields'});
+  fields.forEach(function(f){inputs[f[0]]=h('input',{type:'number',min:'0',value:String(Number(p[f[0]])||0)});fbox.appendChild(h('label',{},[f[1],inputs[f[0]]]));});
+  d.appendChild(fbox);
+
+  d.appendChild(section(M('Upgrades (ranks)','Улучшения (ранги)')));
+  const up=p.upgrades||{},upIn={};
+  const ubox=h('div',{class:'fields'});
+  Object.keys(REF.upgradeMax).forEach(function(k){
+    upIn[k]=h('input',{type:'number',min:'0',max:String(REF.upgradeMax[k]),value:String(Number(up[k])||0)});
+    ubox.appendChild(h('label',{},[k+' (max '+REF.upgradeMax[k]+')',upIn[k]]));
+  });
+  d.appendChild(ubox);
+
+  d.appendChild(section(M('Unlocked heroes','Открытые герои')));
+  const hu=p.heroesUnlocked||{},heroIn={};
+  const hbox=h('div',{class:'checks'});
+  REF.heroes.forEach(function(hd){
+    heroIn[hd.key]=h('input',{type:'checkbox'});
+    heroIn[hd.key].checked=hd.starter||hu[hd.key]===true;
+    if(hd.starter)heroIn[hd.key].disabled=true;
+    hbox.appendChild(h('label',{},[heroIn[hd.key],' '+L(hd.name)]));
+  });
+  d.appendChild(hbox);
+  d.appendChild(h('div',{class:'row',style:'margin-top:10px;'},[
+    action(M('Save progress fields','Сохранить поля прогресса'),'primary',function(){
+      /* Only fields that differ from what was loaded, so nothing else is rolled back. */
+      const body={baseUpdatedAt:base,upgrades:{},heroesUnlocked:{}};
+      let n=0;
+      fields.forEach(function(f){const v=Number(inputs[f[0]].value);if(v!==(Number(p[f[0]])||0)){body[f[0]]=v;n++;}});
+      Object.keys(upIn).forEach(function(k){const v=Math.min(REF.upgradeMax[k],Math.max(0,Number(upIn[k].value)||0));if(v!==(Number(up[k])||0)){body.upgrades[k]=v;n++;}});
+      REF.heroes.forEach(function(hd){if(!hd.starter&&heroIn[hd.key].checked!==(hu[hd.key]===true)){body.heroesUnlocked[hd.key]=heroIn[hd.key].checked;n++;}});
+      if(!n){say(msg,false,M('Nothing changed.','Ничего не изменено.'));return;}
+      api('/admin/users/'+u.id+'/progress','PATCH',body).then(done(M('Progress saved.','Прогресс сохранён.'))).catch(fail);
+    }),
+    action(M('Reset progress','Сбросить прогресс'),'danger',confirmDo(M('Wipe ALL progress of '+u.username+'?','Стереть ВЕСЬ прогресс игрока '+u.username+'?'),function(){
+      api('/admin/users/'+u.id+'/progress/reset','POST').then(done(M('Progress reset.','Прогресс сброшен.'))).catch(fail);
+    })),
+  ]));
+
+  /* account */
+  d.appendChild(section(M('Account','Аккаунт')));
+  const nameIn=h('input',{type:'text',maxlength:'32',value:u.username});
+  const pwIn=h('input',{type:'text',maxlength:'72',placeholder:M('new password (8+ chars)','новый пароль (8+ символов)'),autocomplete:'off'});
+  d.appendChild(h('div',{class:'row'},[nameIn,action(M('Rename','Переименовать'),'',function(){
+    api('/admin/users/'+u.id+'/username','PUT',{username:nameIn.value.trim()}).then(done(M('Renamed.','Имя изменено.'))).catch(fail);
+  })]));
+  d.appendChild(h('div',{class:'row',style:'margin-top:6px;'},[pwIn,action(M('Set password','Задать пароль'),'',function(){
+    api('/admin/users/'+u.id+'/password','POST',{password:pwIn.value}).then(function(){pwIn.value='';done(M('Password set, sessions ended.','Пароль задан, сеансы завершены.'))();}).catch(fail);
+  })]));
+  d.appendChild(h('div',{class:'row',style:'margin-top:6px;'},[
+    action(u.banned?M('Unban','Разблокировать'):M('Ban','Заблокировать'),u.banned?'':'danger',confirmDo(u.banned?M('Unban '+u.username+'?','Разблокировать '+u.username+'?'):M('Ban '+u.username+'? They will be logged out.','Заблокировать '+u.username+'? Игрок будет разлогинен.'),function(){
+      api('/admin/users/'+u.id+'/ban','POST',{banned:!u.banned}).then(done(u.banned?M('Unbanned.','Разблокирован.'):M('Banned.','Заблокирован.'))).catch(fail);
+    })),
+    action(M('Force logout','Завершить сеансы'),'',function(){
+      api('/admin/users/'+u.id+'/logout','POST').then(done(M('All sessions ended.','Все сеансы завершены.'))).catch(fail);
+    }),
+  ]));
+
+  /* arena */
+  d.appendChild(section(M('Arena','Арена')));
+  const ch=data.champion;
+  d.appendChild(h('div',{class:'muted',text:ch?(ch.name+' · '+M('rating ','рейтинг ')+ch.rating+' · '+ch.wins+'/'+ch.losses):M('No champion saved.','Чемпион не сохранён.')}));
+  if(ch)d.appendChild(h('div',{class:'row',style:'margin-top:6px;'},[
+    action(M('Reset rating','Сбросить рейтинг'),'',confirmDo(M('Reset rating to 1000 and W/L to 0?','Сбросить рейтинг до 1000 и счёт побед/поражений?'),function(){
+      api('/admin/users/'+u.id+'/champion/reset-rating','POST').then(done(M('Rating reset.','Рейтинг сброшен.'))).catch(fail);
+    })),
+    action(M('Delete champion','Удалить чемпиона'),'danger',confirmDo(M('Delete this champion?','Удалить чемпиона?'),function(){
+      api('/admin/users/'+u.id+'/champion','DELETE').then(done(M('Champion deleted.','Чемпион удалён.'))).catch(fail);
+    })),
+  ]));
+
+  /* raw JSON */
+  d.appendChild(section(M('Raw progress JSON','Прогресс целиком (JSON)')));
+  const ta=h('textarea',{spellcheck:'false'});
+  ta.value=JSON.stringify(p,null,2);
+  d.appendChild(ta);
+  d.appendChild(h('div',{class:'row',style:'margin-top:6px;'},[action(M('Save JSON','Сохранить JSON'),'',confirmDo(M('Replace the whole progress with this JSON?','Заменить весь прогресс этим JSON?'),function(){
+    let obj;try{obj=JSON.parse(ta.value);}catch(e){say(msg,false,M('Invalid JSON: ','Ошибка в JSON: ')+e.message);return;}
+    api('/admin/users/'+u.id+'/progress','PUT',{progress:obj,baseUpdatedAt:base}).then(done(M('Progress replaced.','Прогресс заменён.'))).catch(fail);
+  }))]));
+
+  /* delete */
+  if(!u.isAdmin){
+    d.appendChild(section(M('Danger zone','Опасная зона')));
+    d.appendChild(action(M('Delete account…','Удалить аккаунт…'),'danger',function(){
+      const typed=window.prompt(M('Type the username to delete the account permanently:','Введите имя игрока, чтобы удалить аккаунт навсегда:'));
+      if(typed===null)return;
+      api('/admin/users/'+u.id,'DELETE',{confirmUsername:typed}).then(function(){
+        state.selected=null;$('detail').textContent='';$('detail').appendChild(h('div',{class:'empty',text:M('Account deleted.','Аккаунт удалён.')}));loadUsers();loadStats();
+      }).catch(fail);
+    }));
+  }
+}
+/* Re-render after an action but keep the status line visible. */
+function openUserKeepMsg(id,oldMsg){
+  const text=oldMsg.textContent,cls=oldMsg.className;
+  api('/admin/users/'+id).then(function(data){renderUser(data);const m=$('detail').querySelector('.msg');if(m){m.className=cls;m.textContent=text;}loadUsers();}).catch(function(){loadUsers();});
+}
+
+function loadLog(){
+  api('/admin/log?limit=100').then(function(rows){
+    const t=$('log');t.textContent='';
+    t.appendChild(h('tr',{},[M('When','Когда'),M('Player','Игрок'),M('Action','Действие'),M('Details','Подробности')].map(function(c){return h('th',{text:c});})));
+    if(!rows.length)t.appendChild(h('tr',{},[h('td',{colspan:'4',class:'muted',text:M('No actions yet.','Действий пока нет.')})]));
+    rows.forEach(function(r){t.appendChild(h('tr',{},[h('td',{text:fmtDate(r.created_at)}),h('td',{text:(r.target_username||'—')+' #'+(r.target_user_id==null?'':r.target_user_id)}),h('td',{text:r.action}),h('td',{class:'muted',text:r.details||''})]));});
+  }).catch(function(e){$('log').textContent=e.message;});
+}
+
+$('btn-search').addEventListener('click',function(){state.q=$('search').value.trim();state.offset=0;loadUsers();});
+$('search').addEventListener('keydown',function(e){if(e.key==='Enter')$('btn-search').click();});
+$('btn-prev').addEventListener('click',function(){state.offset=Math.max(0,state.offset-PAGE);loadUsers();});
+$('btn-next').addEventListener('click',function(){state.offset+=PAGE;loadUsers();});
+$('tab-users').addEventListener('click',function(){$('tab-users').className='on';$('tab-log').className='';$('view-users').hidden=false;$('view-log').hidden=true;});
+$('tab-log').addEventListener('click',function(){$('tab-log').className='on';$('tab-users').className='';$('view-users').hidden=true;$('view-log').hidden=false;loadLog();});
+$('btn-lang').addEventListener('click',function(){LANG=LANG==='ru'?'en':'ru';try{localStorage.setItem(LANG_KEY,LANG);}catch(e){}boot();if(state.selected)openUser(state.selected);});
+$('btn-logout').addEventListener('click',function(){setToken(null);state.selected=null;loginForm();});
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+_deploy/
+.claude/
+_backup-*/
+setup-embermarch-utf8bom.ps1
+CLAUDE.local.md

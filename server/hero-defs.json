@@ -1,0 +1,985 @@
+{
+ "heroes": {
+  "bram": {
+   "key": "bram",
+   "name": {
+    "en": "Bram",
+    "ru": "Брам"
+   },
+   "cls": {
+    "en": "Warrior",
+    "ru": "Воин"
+   },
+   "icon": "B",
+   "color": "#c98a3b",
+   "baseHp": 36,
+   "baseStr": 8,
+   "baseInt": 0,
+   "baseDef": 6,
+   "baseSpd": 5,
+   "defaultRow": "front",
+   "cost": 0,
+   "abilities": [
+    {
+     "id": "strike",
+     "name": {
+      "en": "Strike",
+      "ru": "Удар"
+     },
+     "cd": 0,
+     "reach": "melee",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1,
+     "desc": {
+      "en": "Nearest-row foe",
+      "ru": "По врагу ближайшего ряда"
+     }
+    },
+    {
+     "id": "shieldwall",
+     "name": {
+      "en": "Shield Wall",
+      "ru": "Стена щитов"
+     },
+     "cd": 3,
+     "reach": "any",
+     "targets": "self",
+     "type": "buff",
+     "stat": "def",
+     "amount": 6,
+     "duration": 2,
+     "desc": {
+      "en": "+6 DEF, 2 turns",
+      "ru": "+6 к защите, 2 хода"
+     }
+    },
+    {
+     "id": "cleave",
+     "name": {
+      "en": "Cleave",
+      "ru": "Рассечение"
+     },
+     "cd": 2,
+     "reach": "melee",
+     "targets": "row",
+     "type": "damage",
+     "mult": 0.65,
+     "desc": {
+      "en": "All foes in nearest row",
+      "ru": "По всем врагам ближайшего ряда"
+     }
+    },
+    {
+     "id": "reckoning",
+     "name": {
+      "en": "Reckoning",
+      "ru": "Расплата"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "melee",
+     "targets": "single",
+     "type": "damage",
+     "mult": 2.1,
+     "desc": {
+      "en": "Ultimate: massive hit on nearest-row foe (Lv7)",
+      "ru": "Ульта: мощнейший удар по врагу ближайшего ряда (Ур.7)"
+     }
+    }
+   ]
+  },
+  "sael": {
+   "key": "sael",
+   "name": {
+    "en": "Sael",
+    "ru": "Саэль"
+   },
+   "cls": {
+    "en": "Ranger",
+    "ru": "Лучник"
+   },
+   "icon": "S",
+   "color": "#5f93ae",
+   "baseHp": 25,
+   "baseStr": 9,
+   "baseInt": 0,
+   "baseDef": 3,
+   "baseSpd": 8,
+   "defaultRow": "back",
+   "cost": 0,
+   "abilities": [
+    {
+     "id": "shot",
+     "name": {
+      "en": "Quick Shot",
+      "ru": "Быстрый выстрел"
+     },
+     "cd": 0,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 0.9,
+     "desc": {
+      "en": "Any foe",
+      "ru": "По любому врагу"
+     }
+    },
+    {
+     "id": "pin",
+     "name": {
+      "en": "Pin Down",
+      "ru": "Пригвоздить"
+     },
+     "cd": 2,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1.3,
+     "debuff": {
+      "stat": "spd",
+      "amount": -3,
+      "duration": 2
+     },
+     "desc": {
+      "en": "Dmg + slows",
+      "ru": "Урон + замедление"
+     }
+    },
+    {
+     "id": "volley",
+     "name": {
+      "en": "Volley",
+      "ru": "Залп"
+     },
+     "cd": 3,
+     "reach": "ranged",
+     "targets": "all",
+     "type": "damage",
+     "mult": 0.5,
+     "desc": {
+      "en": "All foes",
+      "ru": "По всем врагам"
+     }
+    },
+    {
+     "id": "deadeye",
+     "name": {
+      "en": "Deadeye Shot",
+      "ru": "Смертельный выстрел"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 2,
+     "desc": {
+      "en": "Ultimate: precise, devastating shot (Lv7)",
+      "ru": "Ульта: точный смертельный выстрел (Ур.7)"
+     }
+    }
+   ]
+  },
+  "yvana": {
+   "key": "yvana",
+   "name": {
+    "en": "Yvana",
+    "ru": "Ивана"
+   },
+   "cls": {
+    "en": "Cleric",
+    "ru": "Жрица"
+   },
+   "icon": "Y",
+   "color": "#8fb08a",
+   "baseHp": 27,
+   "baseStr": 0,
+   "baseInt": 5,
+   "baseDef": 4,
+   "baseSpd": 6,
+   "defaultRow": "back",
+   "cost": 0,
+   "abilities": [
+    {
+     "id": "smite",
+     "name": {
+      "en": "Smite",
+      "ru": "Кара"
+     },
+     "cd": 0,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 0.85,
+     "desc": {
+      "en": "Any foe",
+      "ru": "По любому врагу"
+     }
+    },
+    {
+     "id": "mend",
+     "name": {
+      "en": "Mend",
+      "ru": "Исцеление"
+     },
+     "cd": 0,
+     "reach": "any",
+     "targets": "single-ally",
+     "type": "heal",
+     "mult": 0.8,
+     "flat": 5,
+     "desc": {
+      "en": "Heal one ally",
+      "ru": "Лечит союзника"
+     }
+    },
+    {
+     "id": "wave",
+     "name": {
+      "en": "Radiant Wave",
+      "ru": "Волна света"
+     },
+     "cd": 3,
+     "reach": "any",
+     "targets": "all-ally",
+     "type": "heal",
+     "mult": 0.35,
+     "flat": 4,
+     "desc": {
+      "en": "Heal company",
+      "ru": "Лечит весь отряд"
+     }
+    },
+    {
+     "id": "sanctuary",
+     "name": {
+      "en": "Sanctuary",
+      "ru": "Святилище"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "any",
+     "targets": "single-ally",
+     "type": "heal",
+     "mult": 1.4,
+     "flat": 14,
+     "desc": {
+      "en": "Ultimate: near-full heal on one ally (Lv7)",
+      "ru": "Ульта: почти полное исцеление союзника (Ур.7)"
+     }
+    }
+   ]
+  },
+  "kest": {
+   "key": "kest",
+   "name": {
+    "en": "Kest",
+    "ru": "Кест"
+   },
+   "cls": {
+    "en": "Rogue",
+    "ru": "Разбойник"
+   },
+   "icon": "K",
+   "color": "#a56bc9",
+   "baseHp": 26,
+   "baseStr": 10,
+   "baseInt": 0,
+   "baseDef": 3,
+   "baseSpd": 9,
+   "defaultRow": "back",
+   "cost": 0,
+   "abilities": [
+    {
+     "id": "quickstab",
+     "name": {
+      "en": "Quickstab",
+      "ru": "Быстрый укол"
+     },
+     "cd": 0,
+     "reach": "melee",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1,
+     "desc": {
+      "en": "Nearest-row foe",
+      "ru": "По врагу ближайшего ряда"
+     }
+    },
+    {
+     "id": "backstab",
+     "name": {
+      "en": "Backstab",
+      "ru": "Удар в спину"
+     },
+     "cd": 2,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1.5,
+     "bonusVsBack": 0.5,
+     "desc": {
+      "en": "+50% vs back row",
+      "ru": "+50% урона по заднему ряду"
+     }
+    },
+    {
+     "id": "shadowstep",
+     "name": {
+      "en": "Shadowstep",
+      "ru": "Шаг тени"
+     },
+     "cd": 3,
+     "reach": "any",
+     "targets": "self",
+     "type": "special",
+     "effect": "dodge",
+     "desc": {
+      "en": "Dodge next hit",
+      "ru": "Уклонение от следующего удара"
+     }
+    },
+    {
+     "id": "assassinate",
+     "name": {
+      "en": "Assassinate",
+      "ru": "Убийство"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1.8,
+     "bonusVsBack": 0.7,
+     "desc": {
+      "en": "Ultimate: brutal strike, +70% vs back row (Lv7)",
+      "ru": "Ульта: смертельный удар, +70% по заднему ряду (Ур.7)"
+     }
+    },
+    {
+     "id": "trip",
+     "name": {
+      "en": "Trip",
+      "ru": "Подножка"
+     },
+     "cd": 2,
+     "reach": "melee",
+     "targets": "single",
+     "type": "swap_row",
+     "desc": {
+      "en": "Melee foe; forces them to the opposite row",
+      "ru": "Ближний враг перемещается в противоположный ряд"
+     }
+    }
+   ]
+  },
+  "ashra": {
+   "key": "ashra",
+   "name": {
+    "en": "Ashra",
+    "ru": "Ашра"
+   },
+   "cls": {
+    "en": "Pyromancer",
+    "ru": "Пиромант"
+   },
+   "icon": "A",
+   "color": "#d9683f",
+   "baseHp": 23,
+   "baseStr": 0,
+   "baseInt": 9,
+   "baseDef": 2,
+   "baseSpd": 7,
+   "defaultRow": "back",
+   "cost": 15,
+   "abilities": [
+    {
+     "id": "flick",
+     "name": {
+      "en": "Ember Flick",
+      "ru": "Всплеск огня"
+     },
+     "cd": 0,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 0.8,
+     "dot": {
+      "amount": 3,
+      "duration": 2
+     },
+     "desc": {
+      "en": "Dmg + burn",
+      "ru": "Урон + поджог"
+     }
+    },
+    {
+     "id": "burst",
+     "name": {
+      "en": "Cinder Burst",
+      "ru": "Взрыв углей"
+     },
+     "cd": 3,
+     "reach": "ranged",
+     "targets": "all",
+     "type": "damage",
+     "mult": 0.5,
+     "dot": {
+      "amount": 2,
+      "duration": 2
+     },
+     "desc": {
+      "en": "All foes + burn",
+      "ru": "По всем врагам + поджог"
+     }
+    },
+    {
+     "id": "flare",
+     "name": {
+      "en": "Flare Guard",
+      "ru": "Огненная защита"
+     },
+     "cd": 2,
+     "reach": "any",
+     "targets": "self",
+     "type": "buff",
+     "stat": "spd",
+     "amount": 3,
+     "duration": 2,
+     "desc": {
+      "en": "+3 SPD, 2 turns",
+      "ru": "+3 к скорости, 2 хода"
+     }
+    },
+    {
+     "id": "inferno",
+     "name": {
+      "en": "Inferno",
+      "ru": "Огненный шторм"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "ranged",
+     "targets": "all",
+     "type": "damage",
+     "mult": 0.9,
+     "dot": {
+      "amount": 4,
+      "duration": 3
+     },
+     "desc": {
+      "en": "Ultimate: all foes take heavy damage + burn (Lv7)",
+      "ru": "Ульта: тяжёлый урон и поджог по всем врагам (Ур.7)"
+     }
+    }
+   ]
+  },
+  "doran": {
+   "key": "doran",
+   "name": {
+    "en": "Doran",
+    "ru": "Доран"
+   },
+   "cls": {
+    "en": "Beastmaster",
+    "ru": "Зверолов"
+   },
+   "icon": "D",
+   "color": "#b0995a",
+   "baseHp": 33,
+   "baseStr": 8,
+   "baseInt": 0,
+   "baseDef": 5,
+   "baseSpd": 6,
+   "defaultRow": "front",
+   "cost": 25,
+   "abilities": [
+    {
+     "id": "claw",
+     "name": {
+      "en": "Claw Strike",
+      "ru": "Удар когтем"
+     },
+     "cd": 0,
+     "reach": "melee",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1.05,
+     "desc": {
+      "en": "Nearest-row foe",
+      "ru": "По врагу ближайшего ряда"
+     }
+    },
+    {
+     "id": "rally",
+     "name": {
+      "en": "Rally Cry",
+      "ru": "Боевой клич"
+     },
+     "cd": 3,
+     "reach": "any",
+     "targets": "all-ally",
+     "type": "buff",
+     "stat": "pow",
+     "amount": 2,
+     "duration": 2,
+     "desc": {
+      "en": "+2 to the primary damage stat (STR/INT) of the whole company",
+      "ru": "+2 к основной характеристике урона (СИЛА/ИНТ) всему отряду"
+     }
+    },
+    {
+     "id": "guard",
+     "name": {
+      "en": "Guard Stance",
+      "ru": "Оборонительная стойка"
+     },
+     "cd": 2,
+     "reach": "any",
+     "targets": "self",
+     "type": "buff",
+     "stat": "def",
+     "amount": 5,
+     "duration": 2,
+     "desc": {
+      "en": "+5 DEF, 2 turns",
+      "ru": "+5 к защите, 2 хода"
+     }
+    },
+    {
+     "id": "ferocity",
+     "name": {
+      "en": "Feral Ferocity",
+      "ru": "Дикая ярость"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "any",
+     "targets": "all-ally",
+     "type": "buff",
+     "stat": "pow",
+     "amount": 5,
+     "duration": 3,
+     "desc": {
+      "en": "Ultimate: +5 to the primary damage stat (STR/INT) of the whole company, 3 turns (Lv7)",
+      "ru": "Ульта: +5 к основной характеристике урона (СИЛА/ИНТ) всему отряду на 3 хода (Ур.7)"
+     }
+    },
+    {
+     "id": "tackle",
+     "name": {
+      "en": "Pack Tackle",
+      "ru": "Стая набрасывается"
+     },
+     "cd": 3,
+     "reach": "melee",
+     "targets": "single",
+     "type": "special",
+     "effect": "stun",
+     "desc": {
+      "en": "Melee foe; stuns them for 1 turn",
+      "ru": "Ближний враг оглушается на 1 ход"
+     }
+    }
+   ]
+  },
+  "morwen": {
+   "key": "morwen",
+   "name": {
+    "en": "Morwen",
+    "ru": "Морвена"
+   },
+   "cls": {
+    "en": "Necromancer",
+    "ru": "Некромант"
+   },
+   "icon": "M",
+   "color": "#7a5aa0",
+   "baseHp": 24,
+   "baseStr": 0,
+   "baseInt": 9,
+   "baseDef": 2,
+   "baseSpd": 6,
+   "defaultRow": "back",
+   "cost": 30,
+   "abilities": [
+    {
+     "id": "wither",
+     "name": {
+      "en": "Withering Touch",
+      "ru": "Иссушающее касание"
+     },
+     "cd": 0,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 0.85,
+     "lifesteal": 0.3,
+     "desc": {
+      "en": "Dmg; heals self for 30% of damage dealt",
+      "ru": "Урон; лечит себя на 30% от нанесённого урона"
+     }
+    },
+    {
+     "id": "frailty",
+     "name": {
+      "en": "Curse of Frailty",
+      "ru": "Проклятие немощи"
+     },
+     "cd": 2,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "debuff",
+     "stat": "def",
+     "amount": -4,
+     "duration": 2,
+     "desc": {
+      "en": "-4 DEF, 2 turns",
+      "ru": "-4 к защите, 2 хода"
+     }
+    },
+    {
+     "id": "siphon",
+     "name": {
+      "en": "Soul Siphon",
+      "ru": "Похищение душ"
+     },
+     "cd": 3,
+     "reach": "ranged",
+     "targets": "all",
+     "type": "damage",
+     "mult": 0.45,
+     "lifesteal": 0.5,
+     "desc": {
+      "en": "All foes; heals self for 50% of total damage dealt",
+      "ru": "По всем врагам; лечит себя на 50% суммарного урона"
+     }
+    },
+    {
+     "id": "embrace",
+     "name": {
+      "en": "Death's Embrace",
+      "ru": "Объятия смерти"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "ranged",
+     "targets": "single",
+     "type": "damage",
+     "mult": 1.6,
+     "dot": {
+      "amount": 5,
+      "duration": 3
+     },
+     "desc": {
+      "en": "Ultimate: heavy damage + strong curse (Lv7)",
+      "ru": "Ульта: тяжёлый урон и мощное проклятие со временем (Ур.7)"
+     }
+    }
+   ]
+  },
+  "torvin": {
+   "key": "torvin",
+   "name": {
+    "en": "Torvin",
+    "ru": "Торвин"
+   },
+   "cls": {
+    "en": "Paladin",
+    "ru": "Паладин"
+   },
+   "icon": "T",
+   "color": "#c9a227",
+   "baseHp": 38,
+   "baseStr": 6,
+   "baseInt": 0,
+   "baseDef": 9,
+   "baseSpd": 4,
+   "defaultRow": "front",
+   "cost": 35,
+   "abilities": [
+    {
+     "id": "shieldbash",
+     "name": {
+      "en": "Shield Bash",
+      "ru": "Удар щитом"
+     },
+     "cd": 0,
+     "reach": "melee",
+     "targets": "single",
+     "type": "damage",
+     "mult": 0.9,
+     "desc": {
+      "en": "Nearest-row foe",
+      "ru": "По врагу ближайшего ряда"
+     }
+    },
+    {
+     "id": "oath",
+     "name": {
+      "en": "Oath of Protection",
+      "ru": "Клятва защиты"
+     },
+     "cd": 2,
+     "reach": "any",
+     "targets": "single-ally",
+     "type": "buff",
+     "stat": "def",
+     "amount": 5,
+     "duration": 2,
+     "desc": {
+      "en": "+5 DEF to an ally, 2 turns",
+      "ru": "+5 к защите союзнику на 2 хода"
+     }
+    },
+    {
+     "id": "light",
+     "name": {
+      "en": "Righteous Light",
+      "ru": "Праведный свет"
+     },
+     "cd": 3,
+     "reach": "any",
+     "targets": "single-ally",
+     "type": "heal",
+     "mult": 0.4,
+     "flat": 6,
+     "desc": {
+      "en": "Heal one ally",
+      "ru": "Лечит союзника"
+     }
+    },
+    {
+     "id": "battlecry",
+     "name": {
+      "en": "Battle Cry",
+      "ru": "Боевой клич"
+     },
+     "cd": 5,
+     "minLevel": 7,
+     "reach": "any",
+     "targets": "all-ally",
+     "type": "buff",
+     "stat": "pow",
+     "amount": 3,
+     "duration": 2,
+     "desc": {
+      "en": "Ultimate: +3 to the primary damage stat (STR/INT) of the whole company, 2 turns (Lv7)",
+      "ru": "Ульта: +3 к основной характеристике урона (СИЛА/ИНТ) всему отряду на 2 хода (Ур.7)"
+     }
+    }
+   ]
+  }
+ },
+ "dmgType": {
+  "bram": "str",
+  "sael": "str",
+  "kest": "str",
+  "doran": "str",
+  "torvin": "str",
+  "ashra": "int",
+  "morwen": "int",
+  "yvana": "int"
+ },
+ "unlockAchievement": {
+  "ashra": "first_win",
+  "doran": "collector",
+  "morwen": "veteran",
+  "torvin": "flawless"
+ },
+ "upgradeMax": {
+  "packs": 3,
+  "bones": 3,
+  "favor": 1,
+  "whetstone": 3,
+  "boots": 3,
+  "aegis": 3,
+  "wardsigils": 3,
+  "caravan": 2,
+  "vitality_rite": 2,
+  "bulwark": 2,
+  "warding_rite": 2,
+  "vanguard": 1,
+  "legacy_ember": 1,
+  "keen_edge": 3,
+  "deadly_precision": 2,
+  "lethal_calling": 1,
+  "fortune": 3,
+  "fortune_rite": 2,
+  "fortune_capstone": 1,
+  "field_dressing": 3,
+  "mending_rite": 2,
+  "second_wind": 1,
+  "tutor": 3,
+  "drill_rite": 2,
+  "old_masters": 1
+ },
+ "upgradeCost": {
+  "packs": [
+   5,
+   9,
+   13
+  ],
+  "bones": [
+   7,
+   12,
+   17
+  ],
+  "favor": [
+   10
+  ],
+  "whetstone": [
+   6,
+   11,
+   16
+  ],
+  "boots": [
+   6,
+   11,
+   16
+  ],
+  "aegis": [
+   6,
+   11,
+   16
+  ],
+  "wardsigils": [
+   6,
+   11,
+   16
+  ],
+  "caravan": [
+   18,
+   28
+  ],
+  "vitality_rite": [
+   20,
+   32
+  ],
+  "bulwark": [
+   20,
+   32
+  ],
+  "warding_rite": [
+   20,
+   32
+  ],
+  "vanguard": [
+   45
+  ],
+  "legacy_ember": [
+   80
+  ],
+  "keen_edge": [
+   6,
+   11,
+   16
+  ],
+  "deadly_precision": [
+   20,
+   32
+  ],
+  "lethal_calling": [
+   45
+  ],
+  "fortune": [
+   6,
+   11,
+   16
+  ],
+  "fortune_rite": [
+   20,
+   32
+  ],
+  "fortune_capstone": [
+   45
+  ],
+  "field_dressing": [
+   6,
+   11,
+   16
+  ],
+  "mending_rite": [
+   20,
+   32
+  ],
+  "second_wind": [
+   50
+  ],
+  "tutor": [
+   6,
+   11,
+   16
+  ],
+  "drill_rite": [
+   20,
+   32
+  ],
+  "old_masters": [
+   50
+  ]
+ },
+ "achievementReward": {
+  "first_win": 20,
+  "flawless": 30,
+  "ascendant": 30,
+  "collector": 15,
+  "veteran": 20,
+  "wanderer": 25,
+  "giant_slayer": 20,
+  "warden_fallen": 20,
+  "vessel_broken": 20,
+  "sovereign_broken": 20,
+  "tidemother_broken": 20,
+  "thornsovereign_broken": 25,
+  "full_roster": 40,
+  "hoarder": 15,
+  "high_ascension": 35,
+  "combo_master": 20,
+  "individualist": 20,
+  "arcane_company": 25,
+  "steel_company": 25,
+  "into_eternity": 35
+ },
+ "custom": {
+  "points": 6,
+  "max": 1,
+  "hpPerPoint": 3,
+  "passives": [
+   "vitality",
+   "ironskin",
+   "swift",
+   "ferocity"
+  ],
+  "colors": [
+   "#c98a3b",
+   "#5f93ae",
+   "#8fb08a",
+   "#a56bc9",
+   "#d9683f",
+   "#b0995a",
+   "#d94f6a",
+   "#4fb0d9",
+   "#e0c341",
+   "#6a6aa0",
+   "#ff3b3b",
+   "#f4d35e",
+   "#7b2cbf",
+   "#e8e8e8"
+  ],
+  "icons": [
+   "★",
+   "♦",
+   "☾",
+   "✦",
+   "●",
+   "▲",
+   "⚔",
+   "♛",
+   "☠",
+   "❖"
+  ]
+ }
+}

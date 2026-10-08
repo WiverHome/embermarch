@@ -1,0 +1,424 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Embermarch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#0c0a0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<button id="btn-theme-toggle" title="Тема" aria-label="Переключить тему" style="position:fixed;top:14px;left:14px;z-index:50;width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);"></button>
+
+<div id="ember-particles" aria-hidden="true"></div>
+
+<div id="sync-status" hidden style="position:fixed;bottom:10px;right:10px;z-index:9999;background:var(--surface2);border:1px solid var(--danger);color:var(--danger);font-size:12px;padding:6px 10px;border-radius:8px;max-width:280px;"></div>
+
+<div id="app">
+
+  <div id="topbar" hidden>
+    <div class="row">
+      <span class="eyebrow">EMBERMARCH</span>
+      <span class="mono" id="tb-layer" style="color:var(--muted);font-size:12px;"></span>
+    </div>
+    <div class="row">
+      <span class="gold-badge" id="tb-gold"></span>
+      <div class="partybit" id="tb-party"></div>
+    </div>
+  </div>
+
+  <section id="screen-auth">
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="ru">Русский</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+    <div class="eyebrow" id="auth-eyebrow" style="margin-bottom:10px;"></div>
+    <h1>EMBERMARCH</h1>
+    <div class="auth-box">
+      <form id="auth-form" autocomplete="on">
+        <div class="auth-field">
+          <label id="auth-label-username" for="auth-username"></label>
+          <input id="auth-username" name="username" type="text" autocomplete="username" maxlength="32">
+        </div>
+        <div class="auth-field">
+          <label id="auth-label-password" for="auth-password"></label>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" maxlength="72">
+        </div>
+        <div class="auth-error" id="auth-error"></div>
+        <button class="primary" type="submit" id="btn-auth-submit" style="width:100%;"></button>
+      </form>
+      <div class="auth-toggle" id="auth-toggle-wrap">
+        <span id="auth-toggle-text"></span> <a id="auth-toggle-link"></a>
+      </div>
+      <button id="btn-play-guest" style="width:100%;margin-top:14px;"></button>
+      <div class="auth-toggle" id="auth-guest-note" style="margin-top:6px;font-size:12px;"></div>
+    </div>
+  </section>
+
+  <section id="screen-title" hidden>
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="ru">Русский</button>
+      <button class="lang-btn" data-lang="en">English</button>
+    </div>
+    <div class="eyebrow" id="title-eyebrow" style="margin-bottom:10px;"></div>
+    <h1>EMBERMARCH</h1>
+    <div class="tagline" id="title-tagline"></div>
+    <button id="btn-open-profile" class="lang-btn" style="margin:4px 0 10px;" hidden></button>
+    <button id="btn-open-admin" class="lang-btn" style="margin:4px 0 10px;" hidden></button>
+    <button id="btn-guest-register" class="lang-btn" style="margin:4px 0 10px;" hidden></button>
+    <div class="title-actions">
+      <button class="primary" id="btn-continue" hidden></button>
+      <button class="primary" id="btn-new-run"></button>
+      <button id="btn-daily"></button>
+      <button id="btn-weekly"></button>
+      <button id="btn-open-arena"></button>
+      <button id="btn-open-legacy"></button>
+      <button id="btn-open-rules"></button>
+      <button id="btn-open-tutorial"></button>
+    </div>
+    <div class="title-foot" id="title-stats"></div>
+    <div class="title-foot" id="title-daily-info" style="margin-top:8px;"></div>
+    <div class="card" id="title-save-reminder" hidden style="margin-top:14px;max-width:420px;margin-inline:auto;text-align:left;padding:12px 14px;">
+      <div style="font-size:13px;color:var(--text);" id="title-save-reminder-text"></div>
+      <div class="row" style="margin-top:8px;">
+        <button class="primary" id="btn-save-reminder-export" style="font-size:12px;padding:6px 12px;"></button>
+        <button id="btn-save-reminder-dismiss" style="font-size:12px;padding:6px 12px;"></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-arena" hidden>
+    <div class="row screen-head" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="arena-h2" style="color:var(--accent);"></h2>
+      <button id="btn-arena-back-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="arena-eyebrow" style="margin-bottom:14px;"></div>
+    <div id="arena-body" class="stack"></div>
+    <div class="screen-foot" style="margin-top:16px;"><button id="btn-arena-back"></button></div>
+  </section>
+
+  <section id="screen-legacy" hidden>
+    <div class="row screen-head" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="legacy-h2" style="color:var(--accent);"></h2>
+      <button id="btn-legacy-back-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="legacy-eyebrow" style="margin-bottom:14px;"></div>
+    <div class="card stack">
+      <div class="spread">
+        <span id="legacy-embers-label"></span>
+        <span class="gold-badge num" id="leg-embers"></span>
+      </div>
+    </div>
+
+    <div class="legacy-tabs" id="legacy-tabs" role="tablist" style="margin-top:14px;">
+      <button class="legacy-tab" type="button" data-tab="upgrades" id="legacy-tab-upgrades" role="tab"></button>
+      <button class="legacy-tab" type="button" data-tab="stats" id="legacy-tab-stats" role="tab"></button>
+      <button class="legacy-tab" type="button" data-tab="settings" id="legacy-tab-settings" role="tab"></button>
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="upgrades">
+      <div class="card stack">
+        <h3 id="legacy-upgrades-h3" style="font-size:15px;"></h3>
+        <div id="leg-upgrades"></div>
+      </div>
+      <div class="card stack" style="margin-top:14px;">
+        <h3 id="legacy-recruits-h3" style="font-size:15px;"></h3>
+        <div id="leg-recruits"></div>
+      </div>
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="stats">
+      <div class="card stack">
+        <h3 id="legacy-stats-h3" style="font-size:15px;"></h3>
+        <div id="leg-stats"></div>
+        <button id="btn-open-stats" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
+        <div class="legacy-subsection">
+          <h4 id="legacy-history-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+          <div class="stack" id="leg-history"></div>
+        </div>
+      </div>
+      <div class="card stack" style="margin-top:14px;">
+        <h3 id="legacy-endless-h3" style="font-size:15px;"></h3>
+        <div class="eyebrow" id="legacy-endless-eyebrow"></div>
+        <div class="stack" id="leg-endless-board"></div>
+      </div>
+      <div class="card stack" style="margin-top:14px;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h3 id="legacy-achievements-h3" style="font-size:15px;margin:0;"></h3>
+          <span id="leg-achievements-summary" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div id="leg-achievements"></div>
+        <button id="btn-toggle-achievements" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
+      </div>
+      <div class="card stack" style="margin-top:14px;">
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <h3 id="legacy-bestiary-h3" style="font-size:15px;margin:0;"></h3>
+          <span id="leg-bestiary-summary" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div class="eyebrow" id="legacy-bestiary-eyebrow"></div>
+        <button id="btn-open-bestiary" style="font-size:12px;padding:6px 12px;align-self:flex-start;"></button>
+      </div>
+    </div>
+
+    <div class="legacy-tab-panel" data-tab="settings">
+      <div class="card stack">
+        <h3 id="legacy-settings-h3" style="font-size:15px;"></h3>
+        <div class="settings-row">
+          <span id="settings-animations-label"></span>
+          <button class="toggle-switch" id="btn-toggle-animations" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-colorblind-label"></span>
+          <button class="toggle-switch" id="btn-toggle-colorblind" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-sound-label"></span>
+          <button class="toggle-switch" id="btn-toggle-sound" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-music-label"></span>
+          <button class="toggle-switch" id="btn-toggle-music" type="button"><span class="knob"></span></button>
+        </div>
+        <div class="settings-row">
+          <span id="settings-musicvol-label"></span>
+          <div class="seg-btns" id="music-volume-btns"></div>
+        </div>
+        <div class="settings-row">
+          <span id="settings-textsize-label"></span>
+          <div class="seg-btns" id="text-size-btns"></div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-save-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+          <div class="row">
+            <button id="btn-export-save"></button>
+            <button id="btn-import-save"></button>
+          </div>
+        </div>
+        <div class="legacy-subsection">
+          <h4 id="legacy-account-h3" style="font-size:13px;margin:0 0 8px;color:var(--muted);"></h4>
+          <div id="legacy-account-user" style="font-size:13px;color:var(--muted);margin-bottom:8px;"></div>
+          <div class="row"><button id="btn-logout"></button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-foot" style="margin-top:16px;"><button id="btn-legacy-back"></button></div>
+  </section>
+
+  <section id="screen-profile" hidden>
+    <div class="row screen-head" style="justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+      <h2 id="profile-h2" style="color:var(--accent);"></h2>
+      <button id="btn-profile-back-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="profile-eyebrow" style="margin-bottom:14px;"></div>
+
+    <div class="card">
+      <h3 id="profile-username-h3" style="font-size:15px;margin:0 0 12px;"></h3>
+      <div class="auth-box" style="margin:0;max-width:none;">
+        <div class="auth-field">
+          <label id="profile-label-new-username" for="profile-new-username"></label>
+          <input id="profile-new-username" type="text" autocomplete="username" maxlength="32">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-username-password" for="profile-username-password"></label>
+          <input id="profile-username-password" type="password" autocomplete="current-password" maxlength="72">
+        </div>
+        <div class="auth-error" id="profile-username-error"></div>
+        <button class="primary" id="btn-profile-save-username"></button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 id="profile-password-h3" style="font-size:15px;margin:0 0 12px;"></h3>
+      <div class="auth-box" style="margin:0;max-width:none;">
+        <div class="auth-field">
+          <label id="profile-label-current-password" for="profile-current-password"></label>
+          <input id="profile-current-password" type="password" autocomplete="current-password" maxlength="72">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-new-password" for="profile-new-password"></label>
+          <input id="profile-new-password" type="password" autocomplete="new-password" maxlength="72">
+        </div>
+        <div class="auth-field">
+          <label id="profile-label-confirm-password" for="profile-confirm-password"></label>
+          <input id="profile-confirm-password" type="password" autocomplete="new-password" maxlength="72">
+        </div>
+        <div class="auth-error" id="profile-password-error"></div>
+        <button class="primary" id="btn-profile-save-password"></button>
+      </div>
+    </div>
+
+    <div class="card stack" style="margin-top:14px;">
+      <button id="btn-profile-logout"></button>
+    </div>
+
+    <div class="screen-foot" style="margin-top:16px;"><button id="btn-profile-back"></button></div>
+  </section>
+
+  <section id="screen-hero-select" hidden>
+    <div class="row screen-head" style="justify-content:space-between;align-items:flex-start;">
+      <h2 id="hero-select-h2" style="color:var(--accent);"></h2>
+      <button id="btn-back-title-top" style="flex-shrink:0;"></button>
+    </div>
+    <div class="eyebrow" id="hero-select-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="card stack" style="margin-bottom:14px;">
+      <h3 id="hero-select-biome-h3" style="font-size:15px;"></h3>
+      <div class="eyebrow" id="hero-select-biome-eyebrow"></div>
+      <div class="biome-row" id="hero-select-biome-row"></div>
+      <div style="color:var(--muted);font-size:11px;" id="hero-select-biome-info"></div>
+    </div>
+    <!-- Difficulty for the next march (Ascension + modifiers), set right before
+         setting out; see renderMarchSettings(). Hidden for Daily/Weekly. -->
+    <div class="card stack" id="march-settings" style="margin-bottom:14px;">
+      <h3 id="legacy-march-h3" style="font-size:15px;"></h3>
+      <div>
+        <h4 id="legacy-ascension-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="eyebrow" id="legacy-ascension-eyebrow" style="margin-bottom:8px;"></div>
+        <div class="asc-row" id="leg-ascension"></div>
+        <div style="color:var(--muted);font-size:11px;margin-top:6px;" id="leg-ascension-info"></div>
+      </div>
+      <div class="legacy-subsection">
+        <h4 id="legacy-modifiers-h3" style="font-size:13px;margin:0 0 4px;color:var(--muted);"></h4>
+        <div class="eyebrow" id="legacy-modifiers-eyebrow" style="margin-bottom:8px;"></div>
+        <div class="mod-row" id="leg-modifiers"></div>
+      </div>
+    </div>
+    <div class="card" id="march-settings-challenge" style="margin-bottom:14px;color:var(--muted);font-size:12px;" hidden></div>
+    <div class="row" id="hero-presets-bar" style="flex-wrap:wrap;margin-bottom:12px;"></div>
+    <div class="stack" id="hero-pick-list"></div>
+    <div class="card stack" id="hero-synergy-box" style="margin-top:12px;gap:6px;"></div>
+    <div class="row screen-foot" style="margin-top:16px;">
+      <button class="primary" id="btn-confirm-heroes" disabled></button>
+      <button id="btn-save-hero-preset" disabled></button>
+      <button id="btn-back-title"></button>
+    </div>
+  </section>
+
+  <section id="screen-map" hidden>
+    <div class="map-wrap">
+      <div class="map-flavor" id="map-flavor"></div>
+      <svg id="map-svg" class="map-svg" viewBox="0 0 400 100"></svg>
+      <div class="map-hint" id="map-hint"></div>
+      <div class="map-legend">
+        <span><span class="legend-dot" style="background:var(--accent)"></span><span id="legend-battle"></span></span>
+        <span><span class="legend-dot" style="background:var(--danger)"></span><span id="legend-elite"></span></span>
+        <span><span class="legend-dot" style="background:var(--accent2)"></span><span id="legend-event"></span></span>
+        <span><span class="legend-dot" style="background:var(--gold)"></span><span id="legend-shop"></span></span>
+        <span><span class="legend-dot" style="background:var(--good)"></span><span id="legend-rest"></span></span>
+      </div>
+    </div>
+    <!-- Mobile-only alternative to the horizontally-scrolling SVG map above:
+         a vertical list of just the currently reachable nodes as large tap
+         targets, plus a compact history strip of the path so far. Built by
+         renderMapMobileList() every time renderMap() runs; which of the two
+         is visible is purely a CSS media-query switch (see max-width:680px
+         rules), so both stay in sync with the same RUN state. -->
+    <div class="map-mobile" id="map-mobile">
+      <div class="map-flavor" id="map-flavor-mobile"></div>
+      <div class="map-mobile-history" id="map-mobile-history"></div>
+      <div class="map-mobile-eyebrow eyebrow" id="map-mobile-eyebrow"></div>
+      <div class="map-mobile-list" id="map-mobile-list"></div>
+    </div>
+    <div class="row screen-foot" style="margin-top:14px;">
+      <button id="btn-formation"></button>
+      <button id="btn-abandon"></button>
+    </div>
+  </section>
+
+  <section id="screen-combat" hidden>
+    <div class="combat-zone">
+      <div class="combat-left">
+        <div class="card" id="combat-turnorder-card" style="padding:10px 12px;">
+          <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="eyebrow" id="turn-order-label" style="margin-bottom:0;"></div>
+            <button id="btn-auto-battle" style="font-size:11px;padding:4px 8px;"></button>
+          </div>
+          <div class="turn-order" id="turn-order"></div>
+        </div>
+        <div id="combat-log"></div>
+        <div class="card" id="action-panel"></div>
+      </div>
+      <div class="combat-right">
+        <div class="enemy-zone">
+          <div class="zone-label" id="zone-foes"></div>
+          <div class="unit-row" id="enemy-row-back"></div>
+          <div class="unit-row" id="enemy-row-front"></div>
+        </div>
+        <div class="ally-zone">
+          <div class="zone-label" id="zone-company"></div>
+          <div class="unit-row" id="hero-row-front"></div>
+          <div class="unit-row" id="hero-row-back"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-reward" hidden>
+    <h2 id="reward-h2" style="color:var(--accent);"></h2>
+    <div class="eyebrow" id="reward-eyebrow" style="margin:6px 0 14px;"></div>
+    <div class="stack" id="reward-cards"></div>
+    <div class="row screen-foot" style="margin-top:14px;"><button class="primary" id="btn-skip-reward"></button><button id="btn-view-combat-log"></button></div>
+  </section>
+
+  <section id="screen-event" hidden>
+    <h2 id="event-title" style="color:var(--accent2);"></h2>
+    <p id="event-text" style="color:var(--muted);line-height:1.6;margin:10px 0 18px;"></p>
+    <div class="stack" id="event-choices"></div>
+  </section>
+
+  <section id="screen-shop" hidden>
+    <h2 id="shop-h2" style="color:var(--gold);"></h2>
+    <div class="eyebrow" style="margin:6px 0 14px;"><span id="shop-gold-label"></span> <span class="gold-badge num" id="shop-gold"></span></div>
+    <div class="stack" id="shop-items"></div>
+    <div class="eyebrow" id="shop-craft-label" style="margin:16px 0 8px;"></div>
+    <div class="stack" id="shop-craft"></div>
+    <div class="row screen-foot" style="margin-top:14px;"><button class="primary" id="btn-leave-shop"></button></div>
+  </section>
+
+  <section id="screen-rest" hidden>
+    <h2 id="rest-h2" style="color:var(--good);"></h2>
+    <div class="eyebrow" id="rest-eyebrow" style="margin:6px 0 18px;"></div>
+    <div class="stack">
+      <button class="card-choice" id="btn-rest-heal">
+        <strong id="rest-heal-title"></strong><br><span id="rest-heal-desc" style="color:var(--muted);font-size:13px;"></span>
+      </button>
+      <button class="card-choice" id="btn-rest-train">
+        <strong id="rest-train-title"></strong><br><span id="rest-train-desc" style="color:var(--muted);font-size:13px;"></span>
+      </button>
+    </div>
+  </section>
+
+  <section id="screen-gameover" hidden>
+    <div class="gameover-banner" id="go-banner"></div>
+    <p id="go-text" style="color:var(--muted);line-height:1.6;"></p>
+    <div class="card" style="margin:16px 0;">
+      <div class="spread"><span id="go-layers-label"></span><span class="num" id="go-layers"></span></div>
+      <div class="spread"><span id="go-embers-label"></span><span class="gold-badge num" id="go-embers"></span></div>
+    </div>
+    <div class="stack" id="go-achievements"></div>
+    <div class="row screen-foot">
+      <button id="btn-go-endless" hidden></button>
+      <button class="primary" id="btn-go-continue"></button>
+      <button id="btn-go-view-log"></button>
+    </div>
+  </section>
+
+</div>
+
+<div id="modal-root"></div>
+
+<script src="js/combat-core.js"></script>
+<script src="js/lang-api.js"></script>
+<script src="js/data.js"></script>
+<script src="js/meta.js"></script>
+<script src="js/util.js"></script>
+<script src="js/run.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/nodes.js"></script>
+<script src="js/render.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/arena.js"></script>
+<script src="js/main.js"></script>

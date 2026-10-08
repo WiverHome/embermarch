@@ -1,0 +1,725 @@
+:root{
+  --bg:#0c0a0d;
+  --surface:#17141a;
+  --surface2:#211c24;
+  --surface3:#2b2430;
+  --border:#3a3242;
+  --text:#f3ead9;
+  --muted:#a89a86;
+  --accent:#ff8a4c;
+  --accent-deep:#c9622e;
+  --accent-soft:#3a2418;
+  --accent2:#7bb0c9;
+  --accent2-soft:#1c2f38;
+  --good:#6fbb86;
+  --good-soft:#1c2e22;
+  --danger:#e2665c;
+  --danger-soft:#331e1c;
+  --gold:#e3b563;
+  --title-glow:rgba(255,138,76,.14);
+  --map-line:#3a3548;
+  --map-line-cleared:#514a2c;
+  --map-locked:#242030;
+  --map-band-a:rgba(255,255,255,.015);
+  --map-band-b:rgba(255,255,255,.045);
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f7f1e6;
+  --surface:#fffdf9;
+  --surface2:#f2e8d6;
+  --surface3:#e9dcc0;
+  --border:#d8c8a4;
+  --text:#2b2117;
+  --muted:#7a6c53;
+  --accent:#c9622e;
+  --accent-deep:#a04d21;
+  --accent-soft:#f3ddbb;
+  --accent2:#3d7791;
+  --accent2-soft:#d9ecf2;
+  --good:#3f8a5a;
+  --good-soft:#dcf0e1;
+  --danger:#b8483f;
+  --danger-soft:#f6dcd8;
+  --gold:#a97a2e;
+  --title-glow:rgba(201,98,46,.10);
+  --map-line:#cdbb98;
+  --map-line-cleared:#b79a58;
+  --map-locked:#e9dcc0;
+  --map-band-a:rgba(43,33,23,.02);
+  --map-band-b:rgba(43,33,23,.055);
+  color-scheme:light;
+}
+*{box-sizing:border-box;}
+html{height:100%;}
+body{
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, var(--title-glow), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 100% 100%, var(--title-glow), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:'Work Sans',system-ui,sans-serif;
+  padding-inline:16px;
+  min-height:100%;
+  margin:0;
+  overflow-x:hidden;
+}
+#ember-particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.ember-spark{position:absolute;bottom:-10px;width:3px;height:3px;border-radius:50%;background:var(--accent);opacity:0;box-shadow:0 0 6px 1px var(--accent);animation:ember-rise linear infinite;}
+@keyframes ember-rise{
+  0%{transform:translateY(0) translateX(0);opacity:0;}
+  8%{opacity:.75;}
+  92%{opacity:.25;}
+  100%{transform:translateY(-104vh) translateX(var(--drift,12px));opacity:0;}
+}
+html.no-anim #ember-particles{display:none;}
+#app{position:relative;z-index:1;}
+#modal-root{position:relative;z-index:21;}
+h1,h2,h3,.display{
+  font-family:'Cormorant Garamond','Marcellus',serif;
+  font-weight:600;
+  letter-spacing:.02em;
+  text-wrap:balance;
+  margin:0;
+}
+/* Screen titles: Cormorant is thin at small sizes, so they get real size. */
+section h2{font-size:clamp(26px,5.5vw,32px);line-height:1.15;}
+/* Card headings: Marcellus reads far better than Cormorant at 15-17px. */
+section h3,.modal-box h3{font-family:'Marcellus',serif;font-weight:400;font-size:17px!important;letter-spacing:.01em;line-height:1.3;}
+.mono, .num{
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-variant-numeric:tabular-nums;
+}
+button{
+  font-family:inherit;
+  cursor:pointer;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  border-radius:8px;
+  padding:10px 16px;
+  font-size:14px;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+button:hover:not(:disabled){background:var(--surface3);border-color:var(--accent);}
+button:active:not(:disabled){transform:translateY(1px);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent-deep));border-color:var(--accent);color:#1a0f07;font-weight:600;box-shadow:0 4px 16px -6px var(--title-glow);}
+button.primary:hover:not(:disabled){background:linear-gradient(135deg,var(--accent),var(--accent-deep));filter:brightness(1.08);transform:translateY(-1px);}
+:root[data-theme="light"] button.primary{color:#fff6e9;}
+button.danger-btn{background:var(--danger-soft);border-color:var(--danger);}
+#app{--app-zoom:1.18;max-width:860px;margin:0 auto;padding:52px 16px 40px;box-sizing:border-box;zoom:calc(var(--app-zoom) * var(--text-scale,1));}
+#modal-root{--modal-zoom:1.18;zoom:calc(var(--modal-zoom) * var(--text-scale,1));}
+@media (max-width:720px){
+  #app{--app-zoom:1;padding:56px 14px 32px;}
+  #modal-root{--modal-zoom:1;}
+  .title-actions{max-width:100%!important;}
+  .title-foot{font-size:12px;padding:10px 14px;gap:10px 14px;}
+  section h2{word-break:break-word;}
+}
+[hidden]{display:none!important;}
+html.no-anim *,html.no-anim *::before,html.no-anim *::after{transition:none!important;animation:none!important;}
+.settings-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.seg-btns{display:flex;gap:4px;}
+.seg-btn{border-radius:7px;padding:6px 11px;font-size:12px;}
+.seg-btn.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+.toggle-switch{width:40px;height:22px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);position:relative;cursor:pointer;padding:0;}
+.toggle-switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:left .15s ease,background .15s ease;}
+.toggle-switch.on{border-color:var(--accent);background:var(--accent-soft);}
+.toggle-switch.on .knob{left:20px;background:var(--accent);}
+.ach-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);}
+.ach-row:last-child{border-bottom:none;}
+.ach-row.locked{opacity:.4;}
+.ach-icon{width:26px;height:26px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--surface2);border:1px solid var(--border);}
+.ach-row:not(.locked) .ach-icon{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);}
+textarea.save-code{width:100%;box-sizing:border-box;min-height:90px;font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;resize:vertical;}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:.1em;
+  line-height:1.55;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+/* Sentence-long subtitles under screen and card titles read better in normal
+   case; short labels (turn order, zones, map steps) keep the caps style. */
+section:not(#screen-combat):not(#screen-title):not(#screen-auth) > .eyebrow,section:not(#screen-combat) .card .eyebrow{
+  font-family:inherit;font-size:13.5px;font-style:italic;letter-spacing:0;text-transform:none;line-height:1.45;
+}
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+}
+.level-up-card{border-color:var(--accent);background:var(--accent-soft);}
+.level-up-card .row{margin-top:8px;}
+.xp-bar{height:5px;border-radius:3px;background:var(--surface3);overflow:hidden;margin-top:2px;}
+.xp-bar-fill{height:100%;background:var(--accent2);}
+.stack{display:flex;flex-direction:column;gap:12px;}
+/* Legacy-screen tabs: split a screen that used to be one long stack of cards
+   (upgrades, recruits, march setup, stats, achievements, bestiary, settings)
+   into separate sections, so only one group is visible at a time. */
+.legacy-tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,max-content);gap:4px;border-bottom:1px solid var(--border);}
+@media (max-width:560px){.legacy-tabs{grid-auto-columns:minmax(0,1fr);gap:0;}.legacy-tab{padding:10px 4px!important;font-size:12.5px!important;text-align:center;overflow:hidden;text-overflow:ellipsis;}}
+.legacy-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:10px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.legacy-tab:hover{color:var(--text);}
+.legacy-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.legacy-tab-panel{margin-top:14px;}
+.legacy-tab-panel[hidden]{display:none;}
+.upgrade-row.just-bought{animation:bought-glow .9s ease-out;}
+@keyframes bought-glow{0%{background:color-mix(in srgb,var(--accent) 28%,transparent);}100%{background:transparent;}}
+#leg-embers.spent{animation:embers-pulse .5s ease-out;}
+@keyframes embers-pulse{0%{transform:scale(1.25);color:var(--accent);}100%{transform:scale(1);}}
+#leg-embers{display:inline-block;}
+.embers-fly{position:absolute;right:18px;top:50%;color:var(--accent);font-weight:700;font-family:'JetBrains Mono',monospace;pointer-events:none;animation:embers-fly .9s ease-out forwards;}
+@keyframes embers-fly{0%{opacity:1;transform:translateY(-50%);}100%{opacity:0;transform:translateY(-180%);}}
+html.no-anim .upgrade-row.just-bought,html.no-anim #leg-embers.spent{animation:none;}
+html.no-anim .embers-fly{display:none;}
+/* Card titles that only repeat the active tab's name. */
+#legacy-stats-h3,#legacy-settings-h3{display:none;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.spread{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+
+/* ---- language switch ---- */
+.lang-switch{display:flex;gap:6px;justify-content:center;margin-bottom:16px;}
+.lang-btn{padding:5px 14px;font-size:11px;border-radius:99px;}
+.lang-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+
+/* ---- title ---- */
+#screen-auth{text-align:center;padding-top:6vh;position:relative;}
+#screen-auth::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:640px;height:420px;max-width:90vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 70%);pointer-events:none;z-index:-1;}
+#screen-auth h1{font-size:clamp(30px,8vw,44px);font-weight:600;letter-spacing:.03em;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 40%,#fff) 0%,var(--gold) 45%,var(--accent-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.auth-box{max-width:340px;margin:18px auto 0;text-align:left;}
+/* One screen = one viewport: the page itself never scrolls. #app is exactly the
+   window height (divided by its zoom, which scales lengths back up), the open
+   screen fills what the topbar leaves and scrolls inside itself when its
+   content is longer; .screen-head / .screen-foot stay pinned while it does. */
+html,body{height:100%;overflow:hidden;}
+body{min-height:0;}
+#app{height:calc(100vh / (var(--app-zoom) * var(--text-scale,1)));height:calc(100dvh / (var(--app-zoom) * var(--text-scale,1)));display:flex;flex-direction:column;}
+#app > #topbar{flex:none;}
+#app{padding-bottom:12px;}
+#app > section:not([hidden]){flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.screen-head{position:sticky;top:0;z-index:5;padding:2px 0 10px;transition:background .15s,box-shadow .15s;}
+.screen-foot{position:sticky;bottom:0;z-index:5;padding:10px 0 2px;margin-top:10px!important;transition:background .15s,box-shadow .15s;}
+/* Only once content actually slides under them (classes set by the scroll
+   listener next to show()): a frosted bar instead of a hard dark box. */
+section.scrolled-top > .screen-head,section.more-below > .screen-foot{
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+}
+section.scrolled-top > .screen-head{box-shadow:0 1px 0 var(--border);}
+section.more-below > .screen-foot{box-shadow:0 -1px 0 var(--border);}
+/* The pinned header already has a back button: no second one at the bottom. */
+#screen-legacy > .screen-foot,#screen-arena > .screen-foot,#screen-profile > .screen-foot,#btn-back-title{display:none;}
+.auth-field{margin-bottom:12px;}
+.auth-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.auth-field input{width:100%;box-sizing:border-box;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 10px;font-size:14px;font-family:inherit;}
+.auth-field input:focus{outline:1px solid var(--accent);}
+.auth-error{color:var(--danger);font-size:12px;min-height:16px;margin-top:6px;}
+.auth-toggle{margin-top:14px;font-size:13px;color:var(--muted);}
+.auth-toggle a{color:var(--accent);cursor:pointer;text-decoration:underline;}
+#screen-title{text-align:center;padding-top:2vh;position:relative;}
+#screen-title::before{content:'';position:absolute;top:-20px;left:50%;transform:translateX(-50%);width:640px;height:420px;max-width:90vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 70%);pointer-events:none;z-index:-1;}
+#screen-title h1{font-size:clamp(38px,10vw,58px);font-weight:600;letter-spacing:.03em;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 40%,#fff) 0%,var(--gold) 45%,var(--accent-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+#screen-title .tagline{color:var(--muted);margin-top:6px;font-size:15px;font-style:italic;}
+.title-actions{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:460px;margin-inline:auto;}
+.title-actions button{padding:13px 10px;font-size:15px;}
+/* Two columns keep the whole menu on one screen; the main actions span both. */
+.title-actions button.primary{grid-column:1/-1;}
+.title-actions .btn-sub{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;line-height:1.2;}
+#title-stats{display:block;width:fit-content;margin-inline:auto;}
+.title-foot b{color:var(--text);font-weight:600;}
+@media (max-width:420px){.title-actions button{font-size:14px;}.title-actions .btn-sub{font-size:10px;}}
+.title-foot{margin-top:20px;color:var(--muted);font-size:12px;line-height:1.6;display:inline-flex;gap:18px;padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap;justify-content:center;}
+/* Short viewports (laptops at 100%, phones with browser bars): the title screen
+   still fits without scrolling. */
+#app:has(> #screen-title:not([hidden])),#app:has(> #screen-auth:not([hidden])){padding-bottom:12px;}
+@media (max-height:860px){
+  #screen-title,#screen-auth{padding-top:0;}
+  #app:has(> #screen-title:not([hidden])),#app:has(> #screen-auth:not([hidden])){padding-top:44px;}
+  #screen-auth .auth-field{margin-bottom:8px;}
+  #screen-auth .auth-toggle{margin-top:8px;}
+  #btn-play-guest{margin-top:8px!important;}
+  #screen-title h1{font-size:clamp(30px,min(7vh,11vw),52px);}
+  #screen-title .tagline{font-size:14px;margin-top:2px;}
+  .title-actions{margin-top:14px;gap:8px;}
+  .title-actions button{padding:10px 8px;}
+  .title-foot{margin-top:12px;padding:8px 16px;}
+}
+@media (max-height:700px){
+  #screen-title .eyebrow,#screen-auth .eyebrow{display:none;}
+  #screen-title .lang-switch,#screen-auth .lang-switch{margin-bottom:4px;}
+  #screen-auth h1{font-size:34px;}
+  .title-actions button{padding:8px 6px;font-size:14px;}
+  .title-foot{margin-top:8px;line-height:1.4;}
+}
+@media (max-height:600px){
+  #screen-title h1{font-size:32px;line-height:1.1;}
+  #screen-title .tagline{display:none;}
+  .title-actions{margin-top:8px;gap:6px;}
+  .title-actions button{padding:7px 6px;font-size:13px;}
+  .title-foot{padding:6px 12px;font-size:11px;}
+}
+
+/* ---- topbar ---- */
+#topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:16px;font-size:13px;gap:10px;flex-wrap:wrap;
+}
+#topbar .partybit{display:flex;gap:8px;}
+.pb-hp{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);}
+.pb-fallen{color:var(--danger);font-weight:600;}
+.pb-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:13px;color:#12141a;font-weight:700;}
+.pb-dot svg,.hero-avatar svg,.unit-avatar svg,.to-item svg{width:62%;height:62%;display:block;}
+.gold-badge{color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+/* ---- map ---- */
+#screen-map{position:relative;}
+#screen-map::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:520px;height:260px;max-width:100vw;background:radial-gradient(ellipse at center, var(--title-glow), transparent 72%);pointer-events:none;z-index:-1;}
+#screen-shop{position:relative;}
+#screen-shop::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--gold) 16%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
+#screen-rest{position:relative;}
+#screen-rest::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:480px;height:240px;max-width:100vw;background:radial-gradient(ellipse at center, color-mix(in srgb,var(--good) 14%,transparent), transparent 72%);pointer-events:none;z-index:-1;}
+.map-wrap{
+  border:1px solid var(--border);border-radius:12px;padding:10px;overflow-x:auto;position:relative;
+  /* CSS-only "scroll shadow": a soft edge shadow that only shows while there is
+     more map content off-screen in that direction, and fades away once scrolled
+     all the way to that edge. Gives a visual hint that the map scrolls horizontally. */
+  background-color:var(--surface);
+  background-image:
+    linear-gradient(to right, var(--surface) 30%, rgba(0,0,0,0)),
+    linear-gradient(to left, var(--surface) 30%, rgba(0,0,0,0)),
+    linear-gradient(to right, rgba(0,0,0,.35), rgba(0,0,0,0) 30%),
+    linear-gradient(to left, rgba(0,0,0,.35), rgba(0,0,0,0) 30%);
+  background-repeat:no-repeat;
+  background-size:24px 100%, 24px 100%, 12px 100%, 12px 100%;
+  background-position:left, right, left, right;
+  background-attachment:local, local, scroll, scroll;
+}
+/* Height follows the window (minus topbar, flavor, hint, legend and buttons),
+   so the whole map screen fits without scrolling; width follows the viewBox. */
+.map-svg{display:block;height:clamp(180px,calc(100dvh / (var(--app-zoom,1) * var(--text-scale,1)) - 340px),320px);width:auto;max-width:none;}
+/* On wide desktop viewports the map screen alone breaks out of #app's normal
+   860px reading-width column (every other screen stays at that width — this
+   is the one screen whose content is a wide branching path, not text, so the
+   extra room actually helps instead of just stretching line length). A plain
+   "full-bleed" trick: width is set from the viewport rather than the parent,
+   then re-centered with a negative auto-margin equivalent (left:50%+translate).
+   The ::before glow pseudo-element on #screen-map is already centered on the
+   section itself, so it re-centers along with it for free. */
+@media (min-width:960px){
+  /* vw inside the zoomed #app is scaled by the zoom too: divide it back out. */
+  #screen-map{width:calc(94vw / (var(--app-zoom) * var(--text-scale,1)));max-width:calc(1360px / var(--app-zoom));position:relative;left:50%;transform:translateX(-50%);}
+  /* The shared #topbar sits outside #screen-map as a sibling, but it looks
+     odd left at the normal 860px column width while the map card below it
+     has broken out to near-full-width. Widen it to match, but only while
+     the map screen is the one actually visible — any other screen's topbar
+     (combat, shop, etc.) stays at the normal reading width. */
+  #app:has(> #screen-map:not([hidden])) #topbar{
+    width:calc(94vw / (var(--app-zoom) * var(--text-scale,1)));max-width:calc(1360px / var(--app-zoom));position:relative;left:50%;transform:translateX(-50%);
+  }
+}
+.map-node{cursor:pointer;}
+.map-node text{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.05em;fill:var(--bg);font-weight:700;pointer-events:none;}
+.map-node text.map-node-icon{font-size:15px;letter-spacing:0;pointer-events:none;}
+.map-tier-label{font-family:'Marcellus',serif;font-size:12px;letter-spacing:.08em;fill:var(--muted);text-transform:uppercase;}
+.map-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center;}
+.map-flavor{font-size:12px;font-style:italic;color:var(--accent2);text-align:center;margin-bottom:8px;min-height:15px;}
+.map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.legend-dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px;}
+/* Mobile node-choice list: hidden on desktop, shown instead of .map-wrap
+   below 680px (see the media query further down). */
+.map-mobile{display:none;}
+.map-mobile-history{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.map-mobile-history .mh-dot{
+  width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--bg);flex-shrink:0;
+}
+.map-mobile-eyebrow{margin-bottom:8px;}
+.map-mobile-list{display:flex;flex-direction:column;gap:10px;}
+.map-mobile-card{
+  display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;background:var(--surface);cursor:pointer;text-align:left;width:100%;
+  font-family:inherit;color:inherit;
+}
+.map-mobile-card:active{opacity:.8;}
+.map-mobile-card .mc-icon{
+  width:42px;height:42px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:19px;color:var(--bg);font-weight:700;
+}
+.map-mobile-card .mc-body{flex:1;min-width:0;}
+.map-mobile-card .mc-title{font-family:'Marcellus',serif;font-size:15px;}
+.map-mobile-card .mc-desc{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35;}
+.map-mobile-empty{font-size:12px;color:var(--muted);text-align:center;padding:10px 0;}
+@media (max-width:680px){
+  .map-wrap{display:none;}
+  .map-mobile{display:block;}
+}
+.node-preview-type{font-family:'Marcellus',serif;font-size:18px;margin-bottom:4px;}
+.node-preview-badge{display:inline-block;align-self:flex-start;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;margin-bottom:10px;color:var(--bg);}
+
+/* ---- hero select / formation ---- */
+#hero-pick-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+@media (max-width:560px){#hero-pick-list{grid-template-columns:1fr;}}
+.hero-pick{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:12px;display:flex;gap:12px;align-items:center;cursor:pointer;min-width:0;}
+.hero-pick.selected{border-color:var(--accent);background:var(--accent-soft);}
+.hero-pick.locked{opacity:.45;cursor:not-allowed;}
+.hero-pick-add{border-style:dashed;justify-content:center;color:var(--accent2);font-family:'Marcellus',serif;font-size:15px;}
+.hero-pick-add:hover{border-color:var(--accent);background:var(--accent-soft);}
+.hero-avatar{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:18px;color:#12141a;font-weight:700;flex-shrink:0;}
+.hero-info{flex:1;min-width:0;}
+.hero-info .name{font-family:'Marcellus',serif;font-size:16px;}
+.hero-info .cls{color:var(--muted);font-size:12px;}
+.hero-stats{display:flex;gap:10px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+
+/* ---- combat ---- */
+.combat-zone{
+  display:grid;
+  grid-template-columns:1fr 1.15fr;
+  grid-template-areas:"left right";
+  gap:14px;
+  align-items:start;
+}
+.combat-left{grid-area:left;display:flex;flex-direction:column;gap:14px;min-width:0;}
+.combat-right{grid-area:right;display:flex;flex-direction:column;gap:14px;min-width:0;}
+@media (min-width:681px) and (max-height:700px){.combat-left{gap:10px;}}
+@media (max-width:680px){
+  /* Mobile reorders the fight top-to-bottom as: turn order strip, then the
+     board (enemies/party — what the player needs to see first), then the
+     ability buttons pinned at the bottom within thumb reach. combat-left/
+     combat-right are just CSS Grid wrappers on desktop; on mobile they're
+     flattened with display:contents so their children become direct flex
+     items of .combat-zone and can be reordered independently of which
+     wrapper they started in. */
+  /* align-items:stretch overrides the desktop grid's align-items:start — without
+     it, each flattened child (turn-order card, board, action panel) shrinks to
+     its own content width instead of filling the column, which is why the turn
+     order icon strip and other cards weren't actually spanning full width. */
+  .combat-zone{display:flex;flex-direction:column;gap:8px;align-items:stretch;}
+  .combat-left{display:contents;}
+  #combat-turnorder-card{order:1;}
+  /* Enemies and party side by side in one row (own company on the left, foes
+     on the right) instead of stacked full-width bands — shorter vertically
+     and easier to compare at a glance. .combat-right stays a real box here
+     (not display:contents like .combat-left) so it can be the row container;
+     order on its two zones is scoped to it, independent of the outer order
+     values used elsewhere in this block. */
+  .combat-right{order:2!important;display:flex!important;flex-direction:row!important;gap:6px!important;align-items:flex-start!important;}
+  .combat-right .ally-zone{order:1!important;flex:1!important;min-width:0!important;}
+  .combat-right .enemy-zone{order:2!important;flex:1!important;min-width:0!important;}
+  #action-panel{order:3;}
+}
+.unit-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+/* Wide desktop: the fight breaks out of the reading column like the map, and
+   the company and the foes face each other across the board (company on the
+   left, foes on the right; within each side the front line is the column
+   nearest the middle), with larger unit cards. */
+@media (min-width:960px){
+  #screen-combat{width:calc(94vw / (var(--app-zoom) * var(--text-scale,1)));max-width:calc(1280px / var(--app-zoom));position:relative;left:50%;transform:translateX(-50%);}
+  #app:has(> #screen-combat:not([hidden])) #topbar{width:calc(94vw / (var(--app-zoom) * var(--text-scale,1)));max-width:calc(1280px / var(--app-zoom));position:relative;left:50%;transform:translateX(-50%);}
+  .combat-zone{grid-template-columns:minmax(300px,.75fr) 1.6fr;}
+  .combat-right{flex-direction:row;align-items:stretch;}
+  .combat-right .ally-zone{order:1;flex:1;min-width:0;}
+  .combat-right .enemy-zone{order:2;flex:1;min-width:0;}
+  .enemy-zone,.ally-zone{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;}
+  .zone-label{flex-basis:100%;}
+  .ally-zone #hero-row-back{order:1;}
+  .ally-zone #hero-row-front{order:2;}
+  .enemy-zone #enemy-row-front{order:1;}
+  .enemy-zone #enemy-row-back{order:2;}
+  .unit-row{flex:1;min-width:0;flex-direction:column;align-items:center;justify-content:center;flex-wrap:nowrap;}
+  .unit-card{width:min(100%,148px);padding:10px 9px;}
+  .unit-avatar{width:42px;height:42px;font-size:18px;}
+  .unit-name{font-size:13px;}
+  .unit-class{font-size:11px;}
+  .unit-row-tag{font-size:10px;}
+  .hpbar{height:7px;}
+  .hp-num{font-size:11px;}
+  .status-icon{font-size:10.5px;padding:1px 4px;}
+}
+.unit-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 8px;width:122px;text-align:center;position:relative;transition:box-shadow .15s,border-color .15s;
+}
+.unit-card.dead{opacity:.35;}
+.unit-card.active-turn{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.unit-card.targetable{border-color:var(--danger);cursor:pointer;box-shadow:0 0 0 2px var(--danger-soft);}
+.unit-card.ally-targetable{border-color:var(--good);cursor:pointer;box-shadow:0 0 0 2px var(--good-soft);}
+/* Colorblind mode (Legacy -> Settings): good/bad pairs move from green/red to
+   blue/orange (Okabe-Ito, safe for protan/deutan/tritan), plus non-color cues:
+   ▲/▼ on buffs/debuffs, striped low HP, dashed outline + glyph on targets. */
+:root.cb{--good:#56b4e9;--good-soft:#14303f;--danger:#e69f00;--danger-soft:#3a2a0c;--accent2:#cc79a7;--accent2-soft:#36202f;}
+:root.cb[data-theme="light"]{--good:#0072b2;--good-soft:#d6e9f5;--danger:#c25e00;--danger-soft:#f7e3cc;--accent2:#a8558a;--accent2-soft:#f3dfeb;}
+:root.cb .status-icon.buff::before{content:'▲ ';}
+:root.cb .status-icon.debuff::before{content:'▼ ';}
+:root.cb .hpbar-fill.low{background-image:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 3px,transparent 3px 6px);}
+:root.cb .unit-card.targetable{outline:2px dashed var(--danger);outline-offset:2px;}
+:root.cb .unit-card.ally-targetable{outline:2px dotted var(--good);outline-offset:2px;}
+:root.cb .unit-card.targetable::after,:root.cb .unit-card.ally-targetable::after{position:absolute;top:4px;right:6px;font-size:13px;pointer-events:none;}
+:root.cb .unit-card.targetable::after{content:'⌖';color:var(--danger);}
+:root.cb .unit-card.ally-targetable::after{content:'✚';color:var(--good);}
+:root.cb .unit-card.targetable,:root.cb .unit-card.ally-targetable{position:relative;}
+:root.cb .enemy-zone{border-color:color-mix(in srgb,var(--danger) 45%,transparent);}
+:root.cb .ally-zone{border-color:color-mix(in srgb,var(--good) 45%,transparent);}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;}
+.stat-tile{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.stat-tile-value{font-size:18px;font-weight:700;color:var(--accent);}
+.stat-tile-label{font-size:11px;color:var(--muted);margin-top:2px;}
+.stat-h4{font-size:13px;margin:10px 0 2px;color:var(--muted);}
+.stat-bar-row{display:grid;grid-template-columns:minmax(80px,120px) 1fr auto auto;gap:8px;align-items:center;font-size:12px;}
+.stat-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.stat-bar-fill{height:100%;background:var(--accent);border-radius:4px;}
+.stat-bar-fill.danger{background:var(--danger);}
+.stat-bar-value,.stat-bar-extra{min-width:28px;text-align:right;}
+.stat-bar-extra{color:var(--muted);}
+.stat-run{border-left:3px solid var(--border);padding:2px 0 2px 8px;font-size:12px;}
+.stat-run.win{border-left-color:var(--good);}
+.stat-run.lose{border-left-color:var(--danger);}
+.stat-run-head{font-weight:600;}
+.stat-run-meta{color:var(--muted);}
+.hotkey-badge{position:absolute;top:4px;left:4px;min-width:16px;height:16px;padding:0 3px;border-radius:4px;background:var(--text);color:var(--bg);font-size:10px;font-weight:700;line-height:16px;text-align:center;pointer-events:none;}
+.map-hotkey{font-size:11px;font-weight:700;fill:var(--text);pointer-events:none;}
+.hotkey-table{width:100%;border-collapse:collapse;font-size:13px;}
+.hotkey-table td{padding:5px 6px;border-bottom:1px solid var(--border);vertical-align:top;}
+.hotkey-table kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);font-family:inherit;font-size:12px;text-align:center;}
+@media (hover:none){.hotkey-badge,.map-hotkey,.hotkey-hint{display:none;}}
+.unit-avatar{width:36px;height:36px;border-radius:8px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;font-size:16px;color:#12141a;font-weight:700;position:relative;}
+.intent-badge{position:absolute;bottom:-4px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text);font-family:inherit;font-weight:400;}
+.unit-card.intent-target{box-shadow:0 0 0 2px var(--gold);}
+.res-badge{position:absolute;top:-4px;left:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-family:inherit;font-weight:400;}
+.res-badge.weak-phys{color:var(--accent);border-color:var(--accent);}
+.res-badge.weak-magic{color:var(--accent2);border-color:var(--accent2);}
+.unit-name{font-size:11.5px;font-weight:600;line-height:1.25;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em;}
+.unit-class{font-size:9.5px;color:var(--accent2);margin-top:1px;}
+.unit-row-tag{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.hpbar{height:6px;border-radius:3px;background:var(--bg);margin-top:4px;overflow:hidden;}
+.hpbar-fill{height:100%;background:var(--good);transition:width .25s;}
+.hpbar-fill.low{background:var(--danger);}
+.hp-num{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.status-icons{display:flex;gap:2px;justify-content:center;margin-top:3px;flex-wrap:wrap;}
+.status-icon{font-size:9px;padding:1px 3px;border-radius:3px;background:var(--surface3);color:var(--muted);}
+.status-icon.buff{color:var(--good);}
+.status-icon.debuff{color:var(--danger);}
+
+/* ---- combat feedback fx ---- */
+@keyframes fx-shake{
+  10%,90%{transform:translateX(-1px);}
+  20%,80%{transform:translateX(2px);}
+  30%,50%,70%{transform:translateX(-4px);}
+  40%,60%{transform:translateX(4px);}
+}
+@keyframes fx-shake-hard{
+  10%,90%{transform:translateX(-2px) rotate(-0.5deg);}
+  20%,80%{transform:translateX(4px) rotate(0.5deg);}
+  30%,50%,70%{transform:translateX(-7px) rotate(-1deg);}
+  40%,60%{transform:translateX(7px) rotate(1deg);}
+}
+@keyframes fx-flash{
+  0%,100%{filter:none;}
+  30%{filter:brightness(1.9) saturate(1.4);}
+}
+@keyframes fx-heal-glow{
+  0%,100%{box-shadow:0 0 0 2px transparent;}
+  40%{box-shadow:0 0 0 3px var(--good),0 0 14px -2px var(--good);}
+}
+@keyframes fx-die{
+  0%{opacity:1;transform:scale(1) rotate(0);}
+  60%{opacity:.5;transform:scale(.94) rotate(-2deg);}
+  100%{opacity:.35;transform:scale(.9) rotate(-4deg);}
+}
+@keyframes float-up{
+  0%{opacity:0;transform:translate(-50%,4px) scale(.85);}
+  15%{opacity:1;transform:translate(-50%,-2px) scale(1.08);}
+  30%{transform:translate(-50%,-6px) scale(1);}
+  100%{opacity:0;transform:translate(-50%,-34px) scale(1);}
+}
+.unit-card.fx-hit{animation:fx-shake .32s ease;}
+.unit-card.fx-crit{animation:fx-shake-hard .42s ease,fx-flash .42s ease;}
+.unit-card.fx-heal{animation:fx-heal-glow .7s ease;}
+.unit-card.fx-die{animation:fx-die .5s ease forwards;}
+html.no-anim .unit-card.fx-hit,html.no-anim .unit-card.fx-crit,html.no-anim .unit-card.fx-heal,html.no-anim .unit-card.fx-die{animation:none!important;}
+.float-text{
+  position:absolute;top:34%;left:50%;pointer-events:none;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;
+  text-shadow:0 1px 3px rgba(0,0,0,.6);white-space:nowrap;z-index:5;
+  animation:float-up .9s ease-out forwards;
+}
+.float-text.dmg{color:var(--danger);}
+.float-text.crit{color:#ff5a4a;font-size:19px;}
+.float-text.heal{color:var(--good);}
+.float-text.combo{color:var(--gold);font-size:12px;top:16%;}
+.float-text.dodge{color:var(--accent2);font-size:12px;}
+html.no-anim .float-text{display:none;}
+
+.enemy-zone{background:radial-gradient(ellipse 100% 60% at 50% 0%, color-mix(in srgb,var(--danger) 10%,transparent), transparent 75%),var(--danger-soft);border:1px solid #4a2f2e;border-radius:12px;padding:12px;}
+.ally-zone{background:radial-gradient(ellipse 100% 60% at 50% 100%, color-mix(in srgb,var(--good) 10%,transparent), transparent 75%),var(--good-soft);border:1px solid #2c4636;border-radius:12px;padding:12px;}
+.zone-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace;}
+
+#combat-log{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-size:12.5px;color:var(--muted);max-height:180px;min-height:60px;overflow-y:auto;
+  display:flex;flex-direction:column-reverse;gap:5px;line-height:1.4;
+}
+#combat-log .l-new{color:var(--text);}
+
+.turn-order{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;}
+.to-item{
+  width:30px;height:30px;border-radius:8px;flex-shrink:0;position:relative;
+  display:flex;align-items:center;justify-content:center;font-family:'Marcellus',serif;
+  font-size:13px;font-weight:700;color:#12141a;opacity:.4;transition:opacity .15s;
+}
+.to-item.current{opacity:1;box-shadow:0 0 0 2px var(--accent);}
+.to-item.dead{opacity:.15;text-decoration:line-through;}
+.to-badge{
+  position:absolute;bottom:-3px;right:-3px;background:var(--bg);border:1px solid var(--border);
+  border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:8px;line-height:1;
+  padding:1px 2px;color:var(--text);font-weight:700;
+}
+
+.ability-bar{display:flex;gap:8px;flex-wrap:wrap;}
+.ability-btn{
+  flex:1;min-width:90px;text-align:left;padding:8px 10px;font-size:12px;position:relative;
+}
+.ability-btn .a-name{font-weight:600;display:block;}
+.ability-btn .a-meta{font-size:10px;color:var(--muted);display:block;margin-top:2px;}
+.ability-btn.selected{border-color:var(--accent);background:var(--accent-soft);}
+.cd-badge{position:absolute;top:4px;right:6px;font-size:10px;color:var(--danger);font-family:'JetBrains Mono',monospace;}
+.ult-tag{font-size:8px;color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:middle;}
+
+/* Compact combat (mobile): the whole fight (turn order, log, actions, both unit
+   rows) needs to fit one phone screen with no scrolling. Everything below is
+   shrunk toward "just enough to read". The log itself is dropped entirely on
+   mobile — at this width even one collapsed line ate space the board needed
+   more, and a one-line ellipsis wasn't actually readable — the player can
+   review the full log from a button on the screen after combat ends instead
+   (see #btn-view-combat-log / #btn-go-view-log / the arena "view log" link).
+   Placed after the base combat rules above (not inside the earlier
+   combat-zone media query) so these overrides actually win the cascade
+   instead of being shadowed by them. */
+@media (max-width:680px){
+  /* Sized conservatively — a real phone's visible viewport is shorter than its
+     reported height once the browser's own address bar/nav chrome is counted,
+     so "fits at full window height in a headless test" isn't enough margin.
+     The turn-order strip stretches its items with flex so the row fills the
+     card's full width instead of a handful of small icons with blank space
+     next to them. Unit cards/fonts are a notch smaller than a first pass at
+     this so the two side-by-side zones (see .combat-right above) plus the
+     ability buttons reliably fit with room to spare, not just exactly. */
+  #topbar{padding:6px 10px;margin-bottom:7px;font-size:11px;}
+  #screen-combat .card{padding:8px 10px;}
+  #turn-order-label{font-size:10px;}
+  #btn-auto-battle{font-size:10px;padding:3px 7px;}
+  .turn-order{gap:8px;}
+  .turn-order .to-item{flex:1 1 0;width:auto;min-width:0;height:38px;border-radius:9px;font-size:14px;}
+  .to-badge{font-size:8px;}
+  #combat-log{display:none;}
+  .ability-bar{gap:6px;}
+  .ability-btn{min-width:47%;padding:7px 8px;font-size:11.5px;}
+  .ability-btn .a-name{font-size:11.5px;}
+  .ability-btn .a-meta{display:none;}
+  .enemy-zone,.ally-zone{padding:8px;border-radius:9px;}
+  .zone-label{margin-bottom:5px;font-size:9.5px;}
+  /* Face-to-face formation: within each zone the front/back unit-rows become
+     columns side by side (zone-label stays a full-width heading above them
+     via flex-basis:100%) instead of stacked rows, and the front column is
+     ordered toward the zone boundary in the middle of the screen, back
+     column toward the outer edge — so the two front lines end up facing
+     each other across the ally/enemy gap, like a real battle line. */
+  .enemy-zone,.ally-zone{display:flex;flex-wrap:wrap;gap:6px;}
+  .zone-label{flex-basis:100%;}
+  .ally-zone #hero-row-back{order:1;}
+  .ally-zone #hero-row-front{order:2;}
+  .enemy-zone #enemy-row-front{order:1;}
+  .enemy-zone #enemy-row-back{order:2;}
+  .unit-row{gap:6px;flex:1;min-width:0;flex-direction:column;align-items:center;}
+  .unit-card{width:100%;max-width:76px;padding:6px 4px;border-radius:9px;}
+  .unit-avatar{width:26px;height:26px;margin-bottom:3px;font-size:11px;border-radius:6px;}
+  .unit-name{font-size:10.5px;min-height:2.2em;line-height:1.1;}
+  .unit-class{display:none;}
+  .unit-row-tag{font-size:8.5px;margin-top:0;}
+  .hpbar{height:5px;margin-top:3px;}
+  .hp-num{font-size:9px;margin-top:1px;}
+  .status-icons{margin-top:2px;}
+  .status-icon{font-size:8.5px;padding:0 2px;}
+}
+@media (max-width:360px){
+  .unit-card{width:60px;}
+}
+
+/* ---- reward / shop / event ---- */
+.card-choice{border:1px solid var(--border);background:var(--surface2);border-radius:10px;padding:14px;text-align:left;width:100%;}
+.card-choice:hover:not(:disabled){border-color:var(--accent);}
+.item-tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;background:var(--surface3);color:var(--muted);margin-top:6px;}
+.rarity-common{color:var(--muted);}
+.rarity-rare{color:var(--accent2);}
+.rarity-epic{color:var(--accent);}
+
+/* Close button: sticks to the top-right corner while a long modal scrolls; the
+   negative bottom margin keeps it from pushing the content down. */
+.modal-close{position:sticky;top:-6px;float:right;margin:-8px -8px -30px 8px;z-index:2;width:32px;height:32px;padding:0;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--muted);}
+.modal-close:hover{color:var(--text);}
+.modal-box:has(.rules-wrap){max-width:560px;}
+.rules-sec{border:1px solid var(--border);border-radius:10px;background:var(--surface2);}
+.rules-sec summary{cursor:pointer;padding:10px 12px;font-weight:600;color:var(--accent2);list-style:none;display:flex;justify-content:space-between;align-items:center;}
+.rules-sec summary::-webkit-details-marker{display:none;}
+.rules-sec summary::after{content:'+';color:var(--muted);font-size:18px;line-height:1;}
+.rules-sec[open] summary::after{content:'−';}
+.rules-body{padding:0 12px 12px;color:var(--muted);font-size:13.5px;line-height:1.55;}
+.rules-body b{color:var(--text);font-weight:600;}
+.rules-body i{color:var(--accent);font-style:normal;}
+.rules-list{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(10,11,15,.78);backdrop-filter:blur(3px) saturate(85%);-webkit-backdrop-filter:blur(3px) saturate(85%);display:flex;align-items:center;justify-content:center;padding:20px;z-index:20;}
+.modal-box{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:85vh;max-height:calc(90dvh / (var(--modal-zoom,1) * var(--text-scale,1)));overflow-y:auto;overscroll-behavior:contain;}
+
+.gameover-banner{font-size:26px;margin-bottom:6px;}
+.gameover-banner.win{color:var(--gold);}
+.gameover-banner.lose{color:var(--danger);}
+
+.upgrade-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.legacy-subsection{border-top:1px solid var(--border);padding-top:12px;margin-top:4px;}
+.upgrade-row:last-child{border-bottom:none;}
+.stack-dots{display:flex;gap:4px;}
+.stack-dot{width:8px;height:8px;border-radius:50%;background:var(--border);}
+.stack-dot.filled{background:var(--accent);}
+
+.asc-row{display:flex;gap:6px;}
+.asc-pip{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'JetBrains Mono',monospace;background:var(--surface2);}
+.asc-pip.locked{opacity:.35;}
+.asc-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+
+.biome-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+@media (max-width:560px){.biome-pip-arrow{display:none;}.biome-row{gap:6px;}}
+.biome-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
+.biome-pip.selected{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+.biome-pip-story{cursor:default;}
+.biome-pip-arrow{color:var(--muted);font-size:13px;}
+.mod-row{display:flex;gap:8px;flex-wrap:wrap;}
+.mod-pip{padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:12px;background:var(--surface2);cursor:pointer;}
+.mod-pip.selected{border-color:var(--accent2);background:var(--accent2-soft);color:var(--accent2);}
+
+/* Frost biome tint: scoped to the map/combat screens only via a class toggled in show(),
+   so the title/legacy/menu screens keep the warm ashfall palette. */
+#screen-map.biome-frost,#screen-combat.biome-frost{
+  --accent:#7ec8e3;
+  --accent-deep:#4a92b0;
+  --accent-soft:#16323c;
+}
+/* Drowned Barrows tint: murky sea-green. */
+#screen-map.biome-drowned,#screen-combat.biome-drowned{
+  --accent:#6fc2b4;
+  --accent-deep:#3f8a7e;
+  --accent-soft:#143430;
+}
+.biome-fork{display:flex;flex-direction:column;gap:4px;}
+/* Thornwild biome tint, same pattern as the frost tint above. */
+#screen-map.biome-verdant,#screen-combat.biome-verdant{
+  --accent:#8fc96a;
+  --accent-deep:#5a8f3a;
+  --accent-soft:#1f3418;
+}
