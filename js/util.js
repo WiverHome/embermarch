@@ -122,31 +122,35 @@ const SFX_FALLBACK={
   equip:function(){sfxTone(220,0.04,{type:'square',vol:0.06});setTimeout(function(){sfxTone(660,0.05,{type:'triangle',vol:0.05});},30);},
   page:function(){},chest:function(){},roar:function(){},step:function(){},
 };
-/* name -> [files, volume]. Files are peak-normalised, so the volume here is
-   what balances them against each other. 'step' is per biome (see SFX.step). */
+/* name -> [files, volume, fx?]. Files are peak-normalised, so the volume here is
+   what balances them against each other. 'step' is per biome (see SFX.step).
+   fx {rate, lowpass} reshapes a borrowed recording into a sound of its own. */
 const SFX_DEFS={
   hit:[['sfx/hit_1','sfx/hit_2','sfx/hit_3','sfx/hit_4','sfx/hit_5'],0.55],
   hit_magic:[['sfx/hit_magic_1','sfx/hit_magic_2','sfx/hit_magic_3'],0.5],
   crit:[['sfx/crit_1','sfx/crit_2','sfx/crit_3'],0.75],
   heal:[['sfx/heal_1','sfx/heal_2'],0.45],
-  buff:[['sfx/buff_1','sfx/buff_2'],0.4],
-  dodge:[['sfx/dodge_1','sfx/dodge_2'],0.5],
+  buff:[['sfx/buff_1','sfx/buff_2'],0.8],
+  dodge:[['sfx/dodge_1','sfx/dodge_2'],0.7],
   death:[['sfx/death_1','sfx/death_2'],0.6],
   click:[['sfx/click'],0.3],
-  coin:[['sfx/coin_1','sfx/coin_2','sfx/coin_3'],0.5],
+  coin:[['sfx/coin_1','sfx/coin_2','sfx/coin_3'],0.6],
   equip:[['sfx/equip_1','sfx/equip_2','sfx/equip_3'],0.5],
   page:[['sfx/page_1','sfx/page_2'],0.4],
   chest:[['sfx/chest'],0.5],
   roar:[['sfx/roar_1','sfx/roar_2'],0.5],
   step_ashfall:[['sfx/step_ashfall_1','sfx/step_ashfall_2'],0.35],
-  step_frost:[['sfx/step_frost_1','sfx/step_frost_2'],0.35],
-  step_verdant:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.35],
-  /* Drowned Barrows: no own recording yet, the damp Thornwild steps fit. */
-  step_drowned:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.35],
+  step_frost:[['sfx/step_frost_1','sfx/step_frost_2'],0.3],
+  step_verdant:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.55],
+  /* Drowned Barrows: the grass steps slowed and muffled into wading through mire. */
+  step_drowned:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.45,{rate:0.7,lowpass:900}],
   levelup:[['levelup'],0.85],
   victory:[['victory'],0.85],
   defeat:[['defeat'],0.85],
 };
+/* Per-file trim for variants much louder or quieter than their siblings
+   (measured short-term loudness), so a random pick doesn't jump in level. */
+const SFX_FILE_TRIM={'sfx/hit_magic_2':0.6,'sfx/hit_magic_3':1.3,'sfx/equip_3':0.55,'sfx/death_1':0.6,'sfx/step_frost_2':0.7};
 /* file -> undefined (not requested yet) | 'loading' | 'failed' | AudioBuffer */
 const SFX_BUFFERS={};
 function sfxLoadAll(){
@@ -176,10 +180,16 @@ function sfxPlayBuffer(name){
   if(!ready.length)return false;
   try{
     if(ctx.state==='suspended')ctx.resume();
-    const src=ctx.createBufferSource();src.buffer=SFX_BUFFERS[ready[Math.floor(Math.random()*ready.length)]];
-    src.playbackRate.value=0.94+Math.random()*0.12; // slight pitch spread against repetition
-    const gain=ctx.createGain();gain.gain.value=def[1];
-    src.connect(gain);gain.connect(ctx.destination);
+    const file=ready[Math.floor(Math.random()*ready.length)];
+    const src=ctx.createBufferSource();src.buffer=SFX_BUFFERS[file];
+    const fx=def[2]||{};
+    src.playbackRate.value=(fx.rate||1)*(0.94+Math.random()*0.12); // slight pitch spread against repetition
+    const gain=ctx.createGain();gain.gain.value=def[1]*(SFX_FILE_TRIM[file]||1);
+    if(fx.lowpass){
+      const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=fx.lowpass;
+      src.connect(lp);lp.connect(gain);
+    } else src.connect(gain);
+    gain.connect(ctx.destination);
     src.start();
     return true;
   }catch(e){return false;}
@@ -205,24 +215,29 @@ SFX.step=function(){
    and a phone doesn't keep a range request open), handed to an <audio>
    element as a blob URL and routed through Web Audio for the fades. Only
    the tracks actually reached get downloaded. Nothing plays before the first
-   click/tap (browser autoplay rules), when music is off, or without Web Audio. */
+   click/tap (browser autoplay rules), when music is off, or without Web Audio.
+   gain: per-mood level evening out the measured loudness of the tracks. */
 const MUSIC_TRACKS={
-  title:{files:['title']},
+  title:{files:['title'],gain:0.8},
   ashfall_map:{files:['ashfall_map']},
-  frost_map:{files:['frost_map'],loop:true},
-  verdant_map:{files:['verdant_map']},
-  drowned_map:{files:['frost_map'],loop:true}, // Drowned Barrows reuse the Frozen Reach tracks for now
-  ashfall_battle:{files:['ashfall_battle']},
-  frost_battle:{files:['frost_battle']},
+  frost_map:{files:['frost_map'],loop:true,gain:1.1},
+  verdant_map:{files:['verdant_map'],gain:1.25},
+  /* Drowned Barrows: the Frozen Reach tracks (the other second chapter, so
+     never both in one march) played slower, lower and muffled, as if heard
+     from under the water. fx: playback rate (pitch drops with it), lowpass Hz. */
+  drowned_map:{files:['frost_map'],loop:true,gain:1.1,fx:{rate:0.85,lowpass:1100}},
+  ashfall_battle:{files:['ashfall_battle'],gain:0.9},
+  frost_battle:{files:['frost_battle'],gain:1.15},
   verdant_battle:{files:['verdant_battle']},
-  drowned_battle:{files:['frost_battle']},
+  drowned_battle:{files:['frost_battle'],gain:1.15,fx:{rate:0.92,lowpass:2400}},
   boss:{files:['boss1','boss2']},
-  arena:{files:['arena']},
+  arena:{files:['arena'],gain:0.8},
   /* plays once over the run-won screen, then the menu theme takes over */
   victory:{files:['victory'],then:'title'},
 };
 const MUSIC_GAP=1.2;      // seconds of silence before a playlist repeats/advances
 const MUSIC_FADE=1.2;     // crossfade between moods, seconds
+const MUSIC_LP_OPEN=20000; // deck lowpass when the mood has no fx: effectively off
 const MUSIC_LEVEL=0.55;   // master level at "High"; the tracks are loudness-normalised
 const MUSIC_VOLUMES=[{k:0.35,en:'Low',ru:'Тихо'},{k:0.65,en:'Mid',ru:'Средне'},{k:1,en:'High',ru:'Громко'}];
 /* Two persistent decks (<audio> element -> MediaElementSource -> gain ->
@@ -241,9 +256,10 @@ function musicCtx(){
     MUSIC.master.connect(ctx.destination);
     MUSIC.decks=[0,1].map(function(){
       const el=new Audio();el.preload='auto';
-      const d={el:el,gain:ctx.createGain(),mood:null,idx:0,token:0,gapTimer:null};
+      const d={el:el,gain:ctx.createGain(),lp:ctx.createBiquadFilter(),mood:null,idx:0,token:0,gapTimer:null};
       d.gain.gain.value=0;
-      ctx.createMediaElementSource(el).connect(d.gain);d.gain.connect(MUSIC.master);
+      d.lp.type='lowpass';d.lp.frequency.value=MUSIC_LP_OPEN;
+      ctx.createMediaElementSource(el).connect(d.lp);d.lp.connect(d.gain);d.gain.connect(MUSIC.master);
       el.addEventListener('ended',function(){musicOnEnded(d);});
       el.addEventListener('error',function(){if(el.getAttribute('src'))musicOnFail(d);});
       return d;
@@ -283,8 +299,16 @@ function musicPlayIndex(d,idx){
     if(d.token!==token)return;
     d.el.loop=!!def.loop&&def.files.length===1;
     d.el.src=url;
+    musicApplyFx(d,def.fx||{});
     const p=d.el.play();if(p&&p.catch)p.catch(function(){}); // blocked: the next gesture retries
   }).catch(function(){if(d.token===token)musicOnFail(d);});
+}
+/* Set after src: loading a new source resets playbackRate to the default. */
+function musicApplyFx(d,fx){
+  const el=d.el,rate=fx.rate||1;
+  el.preservesPitch=el.webkitPreservesPitch=el.mozPreservesPitch=false; // pitch follows the rate
+  el.defaultPlaybackRate=rate;el.playbackRate=rate;
+  d.lp.frequency.setValueAtTime(fx.lowpass||MUSIC_LP_OPEN,MUSIC.ctx.currentTime);
 }
 function musicAfterGap(d,fn){
   const token=d.token;
@@ -318,7 +342,7 @@ function musicStart(mood){
   d.token++;clearTimeout(d.gapTimer);
   d.mood=mood;
   MUSIC.cur=d;
-  musicRamp(d,1);
+  musicRamp(d,MUSIC_TRACKS[mood].gain||1);
   musicPlayIndex(d,0);
   return true;
 }

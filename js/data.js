@@ -679,6 +679,17 @@ const ITEM_POOL = [
   {id:'b_thorn1',slot:'trinket',biome:'verdant',name:{en:'Thorn Sprig',ru:'Терновая веточка'},rarity:'common',mods:{atk:1,spd:1,hp:1}},
   {id:'b_thorn2',slot:'trinket',biome:'verdant',name:{en:'Venom Gland',ru:'Ядовитая железа'},rarity:'rare',mods:{atk:3,spd:1}},
   {id:'b_thorn3',slot:'trinket',biome:'verdant',name:{en:'Crown of Brambles',ru:'Терновый венец'},rarity:'epic',mods:{atk:4,spd:2,def:1,hp:2}},
+  /* ---- biome weapons and armor: one of each per land, rare, a step above the
+     generic rare of their archetype. Each land favours different classes, so
+     every archetype has a land worth reaching. ---- */
+  {id:'b_ash_w',slot:'weapon',biome:'ashfall',classes:GEAR_ARCHETYPES.heavy,name:{en:'Slagbreaker Maul',ru:'Шлакобойный молот'},rarity:'rare',mods:{str:5,hp:3}},
+  {id:'b_ash_a',slot:'armor',biome:'ashfall',classes:ARMOR_ARCHETYPES.arcaneLight,name:{en:'Soot-veiled Robe',ru:'Закопчённое одеяние'},rarity:'rare',mods:{mdef:3,hp:4}},
+  {id:'b_frost_w',slot:'weapon',biome:'frost',classes:GEAR_ARCHETYPES.finesse,name:{en:'Icicle Fang Knives',ru:'Ножи-сосульки'},rarity:'rare',mods:{str:4,spd:2}},
+  {id:'b_frost_a',slot:'armor',biome:'frost',classes:ARMOR_ARCHETYPES.heavy,name:{en:'Rimebound Hauberk',ru:'Заиндевелый хауберк'},rarity:'rare',mods:{def:4,mdef:1,hp:3}},
+  {id:'b_drown_w',slot:'weapon',biome:'drowned',classes:GEAR_ARCHETYPES.arcane,name:{en:'Drowned Tome',ru:'Утопленный фолиант'},rarity:'rare',mods:{int:4,hp:5}},
+  {id:'b_drown_a',slot:'armor',biome:'drowned',classes:ARMOR_ARCHETYPES.light,name:{en:'Sharkskin Jerkin',ru:'Куртка из акульей кожи'},rarity:'rare',mods:{def:2,mdef:1,hp:5}},
+  {id:'b_thorn_w',slot:'weapon',biome:'verdant',classes:GEAR_ARCHETYPES.holy,name:{en:'Briar Censer',ru:'Терновая кадильница'},rarity:'rare',mods:{int:4,hp:4}},
+  {id:'b_thorn_a',slot:'armor',biome:'verdant',classes:ARMOR_ARCHETYPES.arcaneLight,name:{en:'Mossweave Shawl',ru:'Шаль из мохового плетения'},rarity:'rare',mods:{mdef:3,spd:2}},
 ];
 
 /* Each relic's passive hook is implemented once in the combat engine (see
