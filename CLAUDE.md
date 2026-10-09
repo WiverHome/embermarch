@@ -27,6 +27,7 @@
 - `js/arena.js`: ARENA (асинхронный PvP) и LIVE PvP (WebSocket, исход решает сервер)
 - `js/main.js`: WIRE UP: обработчики, старт, регистрация sw.js
 - Рядом: `sw.js` (service worker, PWA; новый файл клиента - добавь в PRECACHE и подними CACHE), `manifest.webmanifest`, `icons/`, `audio/`; `tools/` (симулятор баланса, паритет, сборка архива деплоя; только для разработки)
+- `docs/`: рекламный одностраничник на GitHub Pages (не часть игры, в архив деплоя не входит). Править шаблон `tools/landing.template.html`, затем `node tools/build-landing.js` (герои и описания краёв берутся из кода, сборщик предупреждает, если цифры на странице устарели)
 
 ## Карта backend (server/)
 - `server.js`: REST /api/register, login, logout, account/username, account/password, progress (GET/PUT, лимит 600 КБ), arena/champion, opponent, report, leaderboard; JWT, bcrypt, rate limit, SQLite

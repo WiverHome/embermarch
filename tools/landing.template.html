@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ru" data-lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Embermarch — браузерная roguelite-RPG</title>
+<meta name="description" content="Embermarch — бесплатная браузерная roguelite-RPG: отряд из трёх героев, пошаговые бои, четыре края, прокачка между походами, арена и живые PvP-дуэли. Без установки, на телефоне и ПК.">
+<meta name="theme-color" content="#0c0a0d">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Embermarch — браузерная roguelite-RPG">
+<meta property="og:description" content="Соберите отряд, пройдите сквозь пепел, лёд, затопленные курганы и терновую чащу. Бесплатно, прямо в браузере.">
+<meta property="og:image" content="https://embermarch.lapochka.online/icons/icon-512.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Cormorant+Garamond:ital,wght@0,600;1,500&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#0c0a0d;--surface:#17141a;--surface2:#211c24;--surface3:#2b2430;--border:#3a3242;
+  --text:#f3ead9;--muted:#a89a86;--accent:#ff8a4c;--accent-deep:#c9622e;--accent-soft:#3a2418;
+  --accent2:#7bb0c9;--good:#6fbb86;--danger:#e2665c;--gold:#e3b563;
+  --display:'Marcellus',Georgia,serif;--serif:'Cormorant Garamond',Georgia,serif;--sans:'Work Sans',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--text);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--accent)}
+img,svg{display:block;max-width:100%}
+html[data-lang="ru"] [lang="en"],html[data-lang="en"] [lang="ru"]{display:none!important}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+@media (max-width:600px){.wrap{padding:0 16px}body{font-size:16px}}
+
+/* top bar */
+.bar{position:sticky;top:0;z-index:20;background:rgba(12,10,13,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(58,50,66,.6)}
+.bar .wrap{display:flex;align-items:center;gap:16px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font:20px var(--display);color:var(--text);text-decoration:none;letter-spacing:.04em}
+.brand img{width:30px;height:30px;border-radius:7px}
+.bar nav{display:flex;gap:22px;margin-left:auto}
+.bar nav a{color:var(--muted);text-decoration:none;font-size:15px}
+.bar nav a:hover{color:var(--text)}
+.lang{display:flex;border:1px solid var(--border);border-radius:999px;overflow:hidden}
+.lang button{background:none;border:0;color:var(--muted);font:600 13px var(--sans);padding:6px 11px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--surface3);color:var(--text)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:14px 26px;font:600 17px var(--sans);text-decoration:none;transition:transform .15s,box-shadow .15s,background .15s;white-space:nowrap}
+.btn-primary{background:linear-gradient(180deg,var(--accent),var(--accent-deep));color:#1a0d06;box-shadow:0 8px 30px rgba(255,138,76,.28)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(255,138,76,.4)}
+.btn-ghost{border:1px solid var(--border);color:var(--text);background:rgba(255,255,255,.02)}
+.btn-ghost:hover{border-color:var(--muted)}
+.bar .btn{padding:8px 16px;font-size:15px;border-radius:10px}
+@media (max-width:820px){.bar nav{display:none}.bar .lang{margin-left:auto}}
+
+/* hero */
+.hero{position:relative;padding:88px 0 72px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;background:radial-gradient(ellipse 60% 50% at 50% 38%,rgba(255,138,76,.20),transparent 70%);pointer-events:none}
+.embers{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.embers i{position:absolute;bottom:-10px;width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px 2px rgba(255,138,76,.6);opacity:0;animation:rise linear infinite}
+@keyframes rise{0%{transform:translate(0,0);opacity:0}10%{opacity:.9}100%{transform:translate(var(--dx),-110vh);opacity:0}}
+@media (prefers-reduced-motion:reduce){.embers{display:none}.btn{transition:none}}
+.hero-grid{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:56px;align-items:center}
+@media (max-width:920px){.hero-grid{grid-template-columns:1fr;gap:44px}.hero{padding-top:56px}}
+.kicker{display:inline-block;font:600 13px var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+h1{font:clamp(48px,8vw,84px)/1 var(--display);margin:0 0 20px;letter-spacing:.02em;background:linear-gradient(180deg,#fff4df 30%,#ffb27f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font:500 clamp(22px,2.6vw,27px)/1.35 var(--serif);font-style:italic;color:#e9dcc4;margin:0 0 18px;max-width:34ch}
+.sub{color:var(--muted);margin:0 0 30px;max-width:52ch}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:26px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0;list-style:none}
+.chips li{font-size:14px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:5px 12px;background:rgba(255,255,255,.02)}
+
+/* battle mock */
+.battle{position:relative;background:linear-gradient(180deg,var(--surface),#120f14);border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,138,76,.06) inset}
+.battle-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:14px}
+.battle-head b{color:var(--gold);font-weight:600}
+.sides{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.side-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.unit{position:relative;display:flex;gap:10px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:9px 10px;margin-bottom:8px}
+.unit.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 22px rgba(255,138,76,.25)}
+.unit.back{margin-left:14px}
+@media (max-width:1100px){.unit.back{margin-left:8px}.battle{padding:16px}}
+@media (max-width:420px){.sides{grid-template-columns:1fr}.unit.back{margin-left:0}}
+.av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;overflow:hidden}
+.av svg{width:28px;height:28px}
+.foe{font:18px var(--display);color:#e9dcc4}
+.u-body{flex:1;min-width:0}
+.u-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hp{height:6px;border-radius:3px;background:#2a1d1d;margin-top:5px;overflow:hidden}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,#5fae78,#86cf98);border-radius:3px}
+.hp.low i{background:linear-gradient(90deg,#c4473d,#e2665c)}
+.tag{position:absolute;top:-9px;right:8px;font:600 10px var(--sans);letter-spacing:.06em;padding:2px 7px;border-radius:999px}
+.tag.burn{background:var(--accent-soft);color:var(--accent);border:1px solid #6b3a20}
+.tag.stun{background:#1c2f38;color:var(--accent2);border:1px solid #2f5163}
+.float{position:absolute;right:14px;bottom:2px;font:700 18px var(--sans);color:#ffb27f;text-shadow:0 2px 10px rgba(255,90,42,.7);animation:pop 2.4s ease-out infinite}
+@keyframes pop{0%,10%{opacity:0;transform:translateY(6px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.15)}60%{opacity:1;transform:translateY(-10px)}80%,100%{opacity:0;transform:translateY(-16px)}}
+.abilities{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ab{flex:1 1 0;min-width:96px;text-align:center;font-size:12.5px;padding:9px 6px;border-radius:10px;background:var(--surface3);border:1px solid var(--border);color:var(--text)}
+.ab.sel{background:var(--accent-soft);border-color:var(--accent);color:#ffd1b3}
+.ab small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.combo{margin-top:12px;font-size:13px;color:var(--gold);text-align:center;font-family:var(--serif);font-style:italic;font-size:16px}
+
+/* stats strip */
+.stats{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:linear-gradient(180deg,#110e13,#0e0c10)}
+.stats ul{list-style:none;margin:0;padding:26px 0;display:grid;grid-template-columns:repeat(8,1fr);gap:10px;text-align:center}
+.stats b{display:block;font:clamp(28px,3.4vw,38px)/1.1 var(--display);color:var(--gold)}
+.stats span{font-size:13.5px;color:var(--muted)}
+@media (max-width:900px){.stats ul{grid-template-columns:repeat(4,1fr);row-gap:22px}}
+
+/* sections */
+section{padding:96px 0}
+@media (max-width:600px){section{padding:68px 0}}
+.sec-head{max-width:720px;margin-bottom:44px}
+.sec-head .kicker{margin-bottom:12px}
+h2{font:clamp(32px,4.4vw,46px)/1.12 var(--display);margin:0 0 14px;letter-spacing:.01em}
+.sec-head p{color:var(--muted);margin:0;font-size:18px}
+h3{font:22px/1.25 var(--display);margin:0 0 10px}
+
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media (max-width:960px){.features{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.features{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;transition:border-color .2s,transform .2s}
+.card:hover{border-color:#5a4b5e;transform:translateY(-2px)}
+.ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-bottom:16px}
+.ico svg{width:24px;height:24px}
+.card p{color:var(--muted);margin:0 0 12px;font-size:15.5px}
+.card ul{margin:0;padding-left:18px;color:#d7cbb7;font-size:15px}
+.card li{margin:4px 0}
+
+/* heroes */
+.heroes{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media (max-width:960px){.heroes{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:480px){.heroes{grid-template-columns:1fr}}
+.hcard{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;overflow:hidden}
+.hcard::before{content:"";position:absolute;inset:0 0 auto;height:90px;background:radial-gradient(ellipse at 50% 0,var(--c),transparent 72%);opacity:.28}
+.hcard .av{position:relative;width:64px;height:64px;margin-bottom:14px;box-shadow:0 0 0 3px rgba(0,0,0,.35),0 0 24px var(--c)}
+.hcard .av svg{width:44px;height:44px}
+.hcard h3{margin:0;font-size:24px}
+.hcard .cls{color:var(--gold);font-size:14px;margin-bottom:12px}
+.hcard .row{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.hcard ul{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.hcard li{font-size:12.5px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px 8px;color:#d7cbb7}
+.custom{margin-top:18px;display:flex;gap:16px;align-items:center;background:linear-gradient(90deg,var(--accent-soft),transparent);border:1px dashed #6b3a20;border-radius:16px;padding:18px 22px;color:#e9dcc4}
+.custom b{color:var(--accent)}
+
+/* lands */
+.lands{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative}
+@media (max-width:960px){.lands{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.lands{grid-template-columns:1fr}}
+.land{border-radius:16px;padding:24px 22px 22px;border:1px solid var(--border);position:relative;overflow:hidden;min-height:250px;display:flex;flex-direction:column}
+.land .ch{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:auto}
+.land h3{font-size:24px;margin:58px 0 8px}
+.land p{margin:0;font-size:14.5px;color:rgba(243,234,217,.78)}
+.land.ash{background:linear-gradient(160deg,#3a1d12,#170f0d 70%)}
+.land.frost{background:linear-gradient(160deg,#16303d,#0d1418 70%)}
+.land.drown{background:linear-gradient(160deg,#14302f,#0a1414 70%)}
+.land.thorn{background:linear-gradient(160deg,#1f3216,#0e140b 70%)}
+.land .glyph{position:absolute;right:-16px;top:-16px;width:120px;height:120px;opacity:.16}
+.fork{grid-column:2 / span 2;text-align:center;font-size:13px;color:var(--muted);margin-top:-4px}
+@media (max-width:960px){.fork{grid-column:1 / -1}}
+
+/* arena */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+@media (max-width:900px){.split{grid-template-columns:1fr;gap:36px}}
+.checks{list-style:none;padding:0;margin:24px 0 0}
+.checks li{position:relative;padding-left:34px;margin:14px 0;color:#d7cbb7}
+.checks li::before{content:"";position:absolute;left:0;top:3px;width:22px;height:22px;border-radius:50%;background:var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12l4 4 8-8' fill='none' stroke='%23ff8a4c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.checks b{color:var(--text)}
+.ladder{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:22px}
+.ladder h4{margin:0 0 14px;font:18px var(--display);display:flex;justify-content:space-between;align-items:baseline}
+.ladder h4 span{font:500 13px var(--sans);color:var(--muted)}
+.rank{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border-radius:10px}
+.rank:nth-child(odd){background:var(--surface2)}
+.rank .n{font:18px var(--display);color:var(--muted);text-align:center}
+.rank:nth-of-type(1) .n{color:var(--gold)}
+.rank .who{display:flex;gap:6px;align-items:center;font-weight:500;font-size:15px}
+.rank .who .av{width:24px;height:24px}.rank .who .av svg{width:17px;height:17px}
+.rank .elo{font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600}
+.live{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--muted)}
+.live i{width:9px;height:9px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 rgba(111,187,134,.6);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(111,187,134,0)}100%{box-shadow:0 0 0 0 rgba(111,187,134,0)}}
+
+/* comfort */
+.comfort{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media (max-width:900px){.comfort{grid-template-columns:repeat(2,1fr)}}
+.mini{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.mini b{display:block;font-size:16px;margin-bottom:6px}
+.mini span{color:var(--muted);font-size:14.5px}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+@media (max-width:800px){.steps{grid-template-columns:1fr}}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px;position:relative}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#1a0d06;font:22px var(--display);margin-bottom:14px}
+.step p{color:var(--muted);margin:0}
+
+/* final cta */
+.final{text-align:center;position:relative;overflow:hidden;padding:110px 0}
+.final::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 50% 60%,rgba(255,138,76,.18),transparent 70%)}
+.final .wrap{position:relative}
+.final img{width:84px;height:84px;margin:0 auto 22px;border-radius:18px;box-shadow:0 0 50px rgba(255,138,76,.35)}
+.final p{color:var(--muted);max-width:560px;margin:0 auto 30px;font-size:18px}
+footer{border-top:1px solid var(--border);padding:28px 0;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="icon.svg" alt="">Embermarch</a>
+    <nav>
+      <a href="#features"><span lang="ru">Возможности</span><span lang="en">Features</span></a>
+      <a href="#heroes"><span lang="ru">Герои</span><span lang="en">Heroes</span></a>
+      <a href="#lands"><span lang="ru">Края</span><span lang="en">Lands</span></a>
+      <a href="#arena"><span lang="ru">Арена</span><span lang="en">Arena</span></a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-set-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <a class="btn btn-primary" href="https://embermarch.lapochka.online/"><span lang="ru">Играть</span><span lang="en">Play</span></a>
+  </div>
+</header>
+
+<main id="top">
+<div class="hero">
+  <div class="embers" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="kicker"><span lang="ru">Roguelite-RPG в браузере</span><span lang="en">A browser roguelite RPG</span></span>
+      <h1>Embermarch</h1>
+      <p class="lede">
+        <span lang="ru">Последний отряд несёт угасающий огонь через пепел, лёд и затопленные курганы.</span>
+        <span lang="en">The last company carries a dying flame through ash, ice and drowned barrows.</span>
+      </p>
+      <p class="sub">
+        <span lang="ru">Соберите троих героев, выстройте их в два ряда и ведите сквозь пошаговые бои, события и боссов. Каждый поход заново собирает карту и добычу, а прогресс между походами делает отряд сильнее.</span>
+        <span lang="en">Pick three heroes, set them in two rows and lead them through turn-based battles, events and bosses. Every march rolls a new map and new loot, and progress between marches makes the company stronger.</span>
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://embermarch.lapochka.online/">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg>
+          <span lang="ru">Играть бесплатно</span><span lang="en">Play for free</span>
+        </a>
+        <a class="btn btn-ghost" href="#features"><span lang="ru">Что внутри</span><span lang="en">What's inside</span></a>
+      </div>
+      <ul class="chips">
+        <li><span lang="ru">Без установки и регистрации</span><span lang="en">No install, no sign-up</span></li>
+        <li><span lang="ru">Телефон и ПК</span><span lang="en">Phone and desktop</span></li>
+        <li><span lang="ru">Русский и английский</span><span lang="en">English and Russian</span></li>
+        <li><span lang="ru">Без рекламы и доната</span><span lang="en">No ads, no payments</span></li>
+      </ul>
+    </div>
+
+    <div class="battle" aria-label="Battle preview">
+      <div class="battle-head">
+        <span><span lang="ru">Пепельный поход · шаг 7 из 20</span><span lang="en">The Ashfall March · step 7 of 20</span></span>
+        <b><span lang="ru">Раунд 3</span><span lang="en">Round 3</span></b>
+      </div>
+      <div class="sides">
+        <div>
+          <div class="side-label"><span lang="ru">Отряд</span><span lang="en">Company</span></div>
+          <div class="unit" data-hero="bram"><div class="av"></div><div class="u-body"><div class="u-name" data-hero-name="bram"></div><div class="hp"><i style="width:72%"></i></div></div></div>
+          <div class="unit back active" data-hero="sael"><div class="av"></div><div class="u-body"><div class="u-name" data-hero-name="sael"></div><div class="hp"><i style="width:90%"></i></div></div></div>
+          <div class="unit back" data-hero="ashra"><div class="av"></div><div class="u-body"><div class="u-name" data-hero-name="ashra"></div><div class="hp low"><i style="width:28%"></i></div></div></div>
+        </div>
+        <div>
+          <div class="side-label"><span lang="ru">Враги</span><span lang="en">Foes</span></div>
+          <div class="unit"><span class="tag burn"><span lang="ru">ОПАЛЁН</span><span lang="en">SCORCHED</span></span><div class="av foe" style="background:#8a6a55">G</div><div class="u-body"><div class="u-name"><span lang="ru">Пепельный головорез</span><span lang="en">Ashling Grunt</span></div><div class="hp low"><i style="width:22%"></i></div></div><span class="float">−17</span></div>
+          <div class="unit"><span class="tag stun"><span lang="ru">ОГЛУШЕНИЕ</span><span lang="en">STUN</span></span><div class="av foe" style="background:#7a4a4a">H</div><div class="u-body"><div class="u-name"><span lang="ru">Проклятый пёс</span><span lang="en">Cursed Hound</span></div><div class="hp"><i style="width:64%"></i></div></div></div>
+          <div class="unit back"><div class="av foe" style="background:#9a9578">R</div><div class="u-body"><div class="u-name"><span lang="ru">Костяной лучник</span><span lang="en">Bone Archer</span></div><div class="hp"><i style="width:100%"></i></div></div></div>
+        </div>
+      </div>
+      <div class="abilities" data-abilities="sael"></div>
+      <div class="combo"><span lang="ru">Комбо: Ашра опалила врага, выстрел Саэль бьёт на 35% сильнее</span><span lang="en">Combo: Ashra scorched the foe, so Sael's shot hits 35% harder</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="stats">
+  <ul class="wrap">
+    <li><b>8</b><span lang="ru">героев</span><span lang="en">heroes</span></li>
+    <li><b>4</b><span lang="ru">края</span><span lang="en">lands</span></li>
+    <li><b>37</b><span lang="ru">врагов</span><span lang="en">enemies</span></li>
+    <li><b>6</b><span lang="ru">боссов</span><span lang="en">bosses</span></li>
+    <li><b>65</b><span lang="ru">предметов</span><span lang="en">items</span></li>
+    <li><b>25</b><span lang="ru">реликвий</span><span lang="en">relics</span></li>
+    <li><b>32</b><span lang="ru">события</span><span lang="en">events</span></li>
+    <li><b>20</b><span lang="ru">достижений</span><span lang="en">achievements</span></li>
+  </ul>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker"><span lang="ru">Возможности</span><span lang="en">Features</span></span>
+      <h2><span lang="ru">Короткие походы, глубокие решения</span><span lang="en">Short marches, deep decisions</span></h2>
+      <p><span lang="ru">Поход проходится за один присест, но решать есть что на каждом шаге: кого поставить вперёд, какую тропу выбрать, что купить, кого вылечить и когда рискнуть.</span><span lang="en">A march fits in one sitting, yet every step asks something of you: who stands in front, which path to take, what to buy, whom to heal and when to gamble.</span></p>
+    </div>
+    <div class="features">
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/></svg></div>
+        <h3><span lang="ru">Тактические бои</span><span lang="en">Tactical battles</span></h3>
+        <p><span lang="ru">Пошаговые бои отрядом из трёх героев против групп врагов.</span><span lang="en">Turn-based fights, three heroes against packs of foes.</span></p>
+        <ul>
+          <li><span lang="ru">Передний и задний ряд: кто держит удар, а кто бьёт издалека</span><span lang="en">Front and back rows: who tanks, who strikes from afar</span></li>
+          <li><span lang="ru">Порядок ходов по скорости, по 4–5 способностей у каждого героя</span><span lang="en">Speed-based turn order, 4–5 abilities per hero</span></li>
+          <li><span lang="ru">Горение, кровотечение, оглушение, метки и комбо между героями</span><span lang="en">Burn, bleed, stun, marks and combos between heroes</span></li>
+          <li><span lang="ru">Физический и магический урон, у врагов свои уязвимости</span><span lang="en">Physical and magic damage, enemies with weaknesses</span></li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M8 19h8M6 17V9a4 4 0 0 1 4-4h6M18 7v10"/></svg></div>
+        <h3><span lang="ru">Поход по карте</span><span lang="en">A branching march</span></h3>
+        <p><span lang="ru">20 шагов по карте с развилками, каждый раз новой.</span><span lang="en">Twenty steps across a branching map, new every time.</span></p>
+        <ul>
+          <li><span lang="ru">Бои, элиты, события, магазины, привалы и сундуки</span><span lang="en">Fights, elites, events, shops, rests and chests</span></li>
+          <li><span lang="ru">32 события с выбором и последствиями</span><span lang="en">32 events with choices and consequences</span></li>
+          <li><span lang="ru">Кузница: крафт и улучшение снаряжения</span><span lang="en">The forge: craft and upgrade gear</span></li>
+          <li><span lang="ru">Главы-края, у каждого свой финальный босс</span><span lang="en">Chapters set in different lands, each with its own boss</span></li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.2L12 16.6 6.5 19.5l1-6.2L3 8.9 9 8z"/></svg></div>
+        <h3><span lang="ru">Добыча и реликвии</span><span lang="en">Loot and relics</span></h3>
+        <p><span lang="ru">Оружие, броня и аксессуары трёх редкостей под свой класс.</span><span lang="en">Weapons, armour and trinkets of three rarities, made for each class.</span></p>
+        <ul>
+          <li><span lang="ru">65 предметов, часть выпадает только в своём крае</span><span lang="en">65 items, some found only in their own land</span></li>
+          <li><span lang="ru">25 реликвий с пассивными эффектами: вампиризм, шипы, криты</span><span lang="en">25 relics with passives: lifesteal, thorns, crits</span></li>
+          <li><span lang="ru">5 синергий отряда за удачный состав</span><span lang="en">5 party synergies for the right line-up</span></li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12M12 12 7 7M12 12l5-5M7 7V3M17 7V3M12 12V8"/><circle cx="12" cy="22" r="0.5"/></svg></div>
+        <h3><span lang="ru">Прогресс между походами</span><span lang="en">Progress between runs</span></h3>
+        <p><span lang="ru">Каждый поход приносит угольки, даже неудачный.</span><span lang="en">Every march earns embers, even a failed one.</span></p>
+        <ul>
+          <li><span lang="ru">Дерево из 25 улучшений в пяти ветках</span><span lang="en">A tree of 25 upgrades across five branches</span></li>
+          <li><span lang="ru">Уровни героев и перки на выбор</span><span lang="en">Hero levels with perks to choose</span></li>
+          <li><span lang="ru">20 достижений, бестиарий, подробная статистика</span><span lang="en">20 achievements, a bestiary, detailed stats</span></li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h4v-6H3zM10 20h4V9h-4zM17 20h4V4h-4z"/></svg></div>
+        <h3><span lang="ru">Сложность на выбор</span><span lang="en">Difficulty your way</span></h3>
+        <p><span lang="ru">От спокойного сюжета до испытания для ветеранов.</span><span lang="en">From a gentle story to a test for veterans.</span></p>
+        <ul>
+          <li><span lang="ru">Режим истории для новичков</span><span lang="en">Story mode for newcomers</span></li>
+          <li><span lang="ru">6 ступеней сложности и 3 модификатора</span><span lang="en">6 difficulty tiers and 3 modifiers</span></li>
+          <li><span lang="ru">Испытания дня и недели: один поход на всех</span><span lang="en">Daily and weekly challenges: the same march for everyone</span></li>
+          <li><span lang="ru">Бесконечный поход: сколько выдержит отряд</span><span lang="en">Endless march: how far can you go</span></li>
+        </ul>
+      </article>
+      <article class="card">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 20 4M4 4l16 16"/><circle cx="4" cy="4" r="1.5"/><circle cx="20" cy="4" r="1.5"/></svg></div>
+        <h3><span lang="ru">Арена и живые дуэли</span><span lang="en">Arena and live duels</span></h3>
+        <p><span lang="ru">Ваш лучший отряд сражается с отрядами других игроков.</span><span lang="en">Your best squad fights the squads of other players.</span></p>
+        <ul>
+          <li><span lang="ru">Асинхронная арена с чемпионами</span><span lang="en">An asynchronous champion arena</span></li>
+          <li><span lang="ru">Живой PvP: очередь или дуэль по коду</span><span lang="en">Live PvP: matchmaking or a duel by code</span></li>
+          <li><span lang="ru">Рейтинг Эло, сезоны с наградами, повторы боёв</span><span lang="en">Elo rating, seasons with rewards, replays</span></li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="heroes" style="background:linear-gradient(180deg,transparent,#100d12 20%,#100d12 80%,transparent)">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker"><span lang="ru">Герои</span><span lang="en">Heroes</span></span>
+      <h2><span lang="ru">Восемь героев, у каждого своя роль</span><span lang="en">Eight heroes, each with a role</span></h2>
+      <p><span lang="ru">Танки, стрелки, целители и заклинатели. Состав отряда меняет весь поход, а удачные сочетания дают синергии.</span><span lang="en">Tanks, marksmen, healers and casters. Your line-up shapes the whole march, and the right mix unlocks synergies.</span></p>
+    </div>
+    <div class="heroes" id="hero-grid"></div>
+    <div class="custom">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ff8a4c" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6M18 14v6M15 17h6"/></svg>
+      <div><span lang="ru"><b>Свой герой.</b> Создайте собственного персонажа: класс, имя и портрет, и возьмите его в поход наравне с остальными.</span><span lang="en"><b>Your own hero.</b> Create a character of your own (class, name, portrait) and take them on the march like any other.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="lands">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker"><span lang="ru">Края</span><span lang="en">Lands</span></span>
+      <h2><span lang="ru">Четыре края, четыре финальных босса</span><span lang="en">Four lands, four final bosses</span></h2>
+      <p><span lang="ru">Поход идёт по главам. Во второй главе путь раздваивается: ледяной рубеж или затопленные курганы. Свои враги, предметы, события, музыка и даже звук шагов.</span><span lang="en">A march runs in chapters, and the second one forks: the frozen reach or the drowned barrows. Each land has its own foes, gear, events, music, even footsteps.</span></p>
+    </div>
+    <div class="lands" id="land-grid">
+      <article class="land ash"><svg class="glyph" viewBox="0 0 24 24" fill="#ff8a4c"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-7 0 2 1 3 2 3-.5-3 0-6 1-8z"/></svg><span class="ch"><span lang="ru">Глава I</span><span lang="en">Chapter I</span></span><h3 data-biome="ashfall"></h3><p data-flavor="ashfall"></p></article>
+      <article class="land frost"><svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="#7bb0c9" stroke-width="2"><path d="M12 2v20M3 7l18 10M21 7 3 17"/></svg><span class="ch"><span lang="ru">Глава II · путь А</span><span lang="en">Chapter II · path A</span></span><h3 data-biome="frost"></h3><p data-flavor="frost"></p></article>
+      <article class="land drown"><svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="#6fb8b0" stroke-width="2"><path d="M2 8c3-2 5 2 8 0s5 2 8 0 3 0 4 0M2 14c3-2 5 2 8 0s5 2 8 0 3 0 4 0M2 20c3-2 5 2 8 0s5 2 8 0"/></svg><span class="ch"><span lang="ru">Глава II · путь Б</span><span lang="en">Chapter II · path B</span></span><h3 data-biome="drowned"></h3><p data-flavor="drowned"></p></article>
+      <article class="land thorn"><svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="#8fc46a" stroke-width="2"><path d="M12 22V8M12 14l-5-4M12 11l5-4M7 10l-2 1M17 7l2-1"/></svg><span class="ch"><span lang="ru">Глава III</span><span lang="en">Chapter III</span></span><h3 data-biome="verdant"></h3><p data-flavor="verdant"></p></article>
+    </div>
+  </div>
+</section>
+
+<section id="arena" style="background:linear-gradient(180deg,transparent,#100d12 20%,#100d12 80%,transparent)">
+  <div class="wrap split">
+    <div>
+      <span class="kicker"><span lang="ru">Арена</span><span lang="en">Arena</span></span>
+      <h2><span lang="ru">Проверьте свой отряд против чужого</span><span lang="en">Test your squad against theirs</span></h2>
+      <p style="color:var(--muted);font-size:18px;margin:0"><span lang="ru">Выставьте чемпионов и поднимайтесь в рейтинге, даже когда вас нет в сети. А если хочется настоящего соперника, вызовите его на живую дуэль.</span><span lang="en">Field your champions and climb the ladder even while offline. Want a real opponent? Challenge one to a live duel.</span></p>
+      <ul class="checks">
+        <li><span lang="ru"><b>Честный бой.</b> Исход каждой схватки считает сервер, а не браузер игрока.</span><span lang="en"><b>Fair fights.</b> The server decides every outcome, not the player's browser.</span></li>
+        <li><span lang="ru"><b>Живой PvP.</b> Очередь подбора или дуэль с другом по шестизначному коду.</span><span lang="en"><b>Live PvP.</b> Matchmaking queue or a duel with a friend by a six-letter code.</span></li>
+        <li><span lang="ru"><b>Сезоны.</b> Награды в конце сезона и мягкий сброс рейтинга.</span><span lang="en"><b>Seasons.</b> End-of-season rewards and a soft rating reset.</span></li>
+        <li><span lang="ru"><b>Повторы.</b> Пересмотрите любой бой ход за ходом.</span><span lang="en"><b>Replays.</b> Rewatch any fight turn by turn.</span></li>
+      </ul>
+    </div>
+    <div class="ladder" aria-label="Example ladder">
+      <h4><span lang="ru">Таблица арены</span><span lang="en">Arena ladder</span><span><span lang="ru">пример</span><span lang="en">example</span></span></h4>
+      <div class="rank"><span class="n">1</span><span class="who" data-squad="torvin,yvana,sael">Emberlord</span><span class="elo">1684</span></div>
+      <div class="rank"><span class="n">2</span><span class="who" data-squad="bram,morwen,ashra">Ashwalker</span><span class="elo">1612</span></div>
+      <div class="rank"><span class="n">3</span><span class="who" data-squad="kest,doran,yvana">NightOwl</span><span class="elo">1570</span></div>
+      <div class="rank"><span class="n">4</span><span class="who" data-squad="bram,sael,ashra">RimeFox</span><span class="elo">1533</span></div>
+      <div class="rank"><span class="n">5</span><span class="who" data-squad="doran,morwen,kest">Barrowkin</span><span class="elo">1498</span></div>
+      <div class="live"><i></i><span lang="ru">Живые дуэли в реальном времени</span><span lang="en">Live real-time duels</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="comfort">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker"><span lang="ru">Удобство</span><span lang="en">Comfort</span></span>
+      <h2><span lang="ru">Играйте где угодно</span><span lang="en">Play anywhere</span></h2>
+      <p><span lang="ru">Игра открывается по ссылке и одинаково удобна на телефоне и за компьютером.</span><span lang="en">The game opens from a link and plays just as well on a phone as on a desktop.</span></p>
+    </div>
+    <div class="comfort">
+      <div class="mini"><b><span lang="ru">Установка как приложение</span><span lang="en">Installs like an app</span></b><span lang="ru">Добавьте на главный экран: иконка, полный экран, быстрый запуск.</span><span lang="en">Add it to your home screen: icon, full screen, instant start.</span></div>
+      <div class="mini"><b><span lang="ru">Облачное сохранение</span><span lang="en">Cloud saves</span></b><span lang="ru">С аккаунтом прогресс доступен с любого устройства.</span><span lang="en">With an account your progress follows you to any device.</span></div>
+      <div class="mini"><b><span lang="ru">Гостевой режим</span><span lang="en">Guest mode</span></b><span lang="ru">Можно начать без регистрации и играть даже офлайн.</span><span lang="en">Start without signing up and keep playing offline.</span></div>
+      <div class="mini"><b><span lang="ru">Автобой</span><span lang="en">Auto-battle</span></b><span lang="ru">Пролистайте простые схватки и думайте над важными.</span><span lang="en">Breeze through easy fights, think hard on the ones that matter.</span></div>
+      <div class="mini"><b><span lang="ru">Обучение</span><span lang="en">Tutorial</span></b><span lang="ru">Пошаговое знакомство с боем и подробные правила игры.</span><span lang="en">A step-by-step intro to combat and full in-game rules.</span></div>
+      <div class="mini"><b><span lang="ru">Режим для дальтоников</span><span lang="en">Colour-blind mode</span></b><span lang="ru">Состояния и полоски различимы не только по цвету.</span><span lang="en">Statuses and bars readable without relying on colour.</span></div>
+      <div class="mini"><b><span lang="ru">Горячие клавиши</span><span lang="en">Hotkeys</span></b><span lang="ru">На компьютере весь бой можно вести с клавиатуры.</span><span lang="en">On desktop you can run a whole battle from the keyboard.</span></div>
+      <div class="mini"><b><span lang="ru">Музыка и звук</span><span lang="en">Music and sound</span></b><span lang="ru">Свои темы у каждого края, у боя и у боссов.</span><span lang="en">Separate themes for every land, for battles and for bosses.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="start" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="kicker"><span lang="ru">Как начать</span><span lang="en">Getting started</span></span>
+      <h2><span lang="ru">В бою через минуту</span><span lang="en">In battle within a minute</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step"><h3><span lang="ru">Откройте игру</span><span lang="en">Open the game</span></h3><p><span lang="ru">Прямо в браузере, на телефоне или компьютере. Скачивать ничего не нужно.</span><span lang="en">Right in your browser, on phone or desktop. Nothing to download.</span></p></div>
+      <div class="step"><h3><span lang="ru">Соберите отряд</span><span lang="en">Build your company</span></h3><p><span lang="ru">Выберите трёх героев и их ряды. Обучение подскажет, как устроен бой.</span><span lang="en">Choose three heroes and their rows. The tutorial shows you how combat works.</span></p></div>
+      <div class="step"><h3><span lang="ru">Выступайте в поход</span><span lang="en">Set out on the march</span></h3><p><span lang="ru">Пройдите 20 шагов до финального босса. Не вышло? Улучшения ждут, огонь горит дальше.</span><span lang="en">Fight through 20 steps to the final boss. Fell short? Upgrades await, and the flame burns on.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <img src="icon.svg" alt="">
+    <h2><span lang="ru">Огонь не должен погаснуть</span><span lang="en">The flame must not go out</span></h2>
+    <p><span lang="ru">Бесплатно, без рекламы, без установки. Отряд уже ждёт у костра.</span><span lang="en">Free, no ads, no install. Your company is waiting by the fire.</span></p>
+    <a class="btn btn-primary" href="https://embermarch.lapochka.online/"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><span lang="ru">Начать поход</span><span lang="en">Start your march</span></a>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Embermarch</span>
+    <span><span lang="ru">Музыка и звуки: CC0, авторы указаны в</span><span lang="en">Music and sound: CC0, credited in</span> <a href="https://github.com/WiverHome/embermarch/blob/main/audio/CREDITS.md">CREDITS.md</a></span>
+    <a href="https://github.com/WiverHome/embermarch">GitHub</a>
+  </div>
+</footer>
+
+<script>
+var HEROES=/*HEROES*/;
+var BIOMES={ashfall:{en:'The Ashfall March',ru:'Пепельный поход'},frost:{en:'The Frozen Reach',ru:'Морозный рубеж'},drowned:{en:'The Drowned Barrows',ru:'Затопленные курганы'},verdant:{en:'The Thornwild',ru:'Терновая чаща'}};
+var FLAVOR=/*FLAVOR*/;
+var ROW={front:{en:'Front row',ru:'Передний ряд'},back:{en:'Back row',ru:'Задний ряд'}};
+var byKey={};HEROES.forEach(function(h){byKey[h.k]=h;});
+function bi(o){return '<span lang="ru">'+o.ru+'</span><span lang="en">'+o.en+'</span>';}
+function avatar(h){return '<div class="av" style="background:'+h.color+'">'+h.svg+'</div>';}
+document.getElementById('hero-grid').innerHTML=HEROES.map(function(h){
+  return '<article class="hcard" style="--c:'+h.color+'">'+avatar(h)+'<h3>'+bi(h.name)+'</h3><div class="cls">'+bi(h.cls)+'</div><div class="row">'+bi(ROW[h.row]||ROW.front)+'</div><ul>'+h.ab.map(function(a){return '<li>'+bi(a)+'</li>';}).join('')+'</ul></article>';
+}).join('');
+document.querySelectorAll('[data-hero]').forEach(function(el){var h=byKey[el.getAttribute('data-hero')];var av=el.querySelector('.av');av.style.background=h.color;av.innerHTML=h.svg;});
+document.querySelectorAll('[data-hero-name]').forEach(function(el){var h=byKey[el.getAttribute('data-hero-name')];el.innerHTML=bi(h.name)+' · '+bi(h.cls);});
+document.querySelectorAll('[data-abilities]').forEach(function(el){var h=byKey[el.getAttribute('data-abilities')];el.innerHTML=h.ab.slice(0,4).map(function(a,i){return '<div class="ab'+(i===0?' sel':'')+'">'+bi(a)+'</div>';}).join('');});
+document.querySelectorAll('[data-biome]').forEach(function(el){el.innerHTML=bi(BIOMES[el.getAttribute('data-biome')]);});
+document.querySelectorAll('[data-flavor]').forEach(function(el){el.innerHTML=bi(FLAVOR[el.getAttribute('data-flavor')]);});
+document.querySelectorAll('[data-squad]').forEach(function(el){var name=el.textContent;el.innerHTML=el.getAttribute('data-squad').split(',').map(function(k){return avatar(byKey[k]);}).join('')+'<span style="margin-left:6px">'+name+'</span>';});
+
+function setLang(l){
+  document.documentElement.setAttribute('data-lang',l);document.documentElement.lang=l;
+  document.querySelectorAll('[data-set-lang]').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-set-lang')===l));});
+  document.title=l==='ru'?'Embermarch — браузерная roguelite-RPG':'Embermarch — a browser roguelite RPG';
+  try{localStorage.setItem('em-landing-lang',l);}catch(e){}
+}
+var saved=null;try{saved=localStorage.getItem('em-landing-lang');}catch(e){}
+setLang(saved||((navigator.language||'').toLowerCase().indexOf('ru')===0?'ru':'en'));
+document.querySelectorAll('[data-set-lang]').forEach(function(b){b.addEventListener('click',function(){setLang(b.getAttribute('data-set-lang'));});});
+
+(function(){var box=document.querySelector('.embers');for(var i=0;i<26;i++){var e=document.createElement('i');e.style.left=(Math.random()*100)+'%';e.style.setProperty('--dx',(Math.random()*120-60)+'px');e.style.animationDuration=(7+Math.random()*9)+'s';e.style.animationDelay=(-Math.random()*14)+'s';var s=2+Math.random()*3;e.style.width=e.style.height=s+'px';box.appendChild(e);}})();
+</script>
+</body>
+</html>
