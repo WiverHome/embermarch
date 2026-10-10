@@ -17,6 +17,10 @@
 ![RU / EN](https://img.shields.io/badge/языки-RU%20%2F%20EN-3a2a1a?style=flat-square)
 ![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
 
+[![Версия](https://img.shields.io/github/v/release/WiverHome/embermarch?style=flat-square&label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=f0a860)](../../releases/latest)
+[![Скачиваний](https://img.shields.io/github/downloads/WiverHome/embermarch/total?style=flat-square&label=%D1%81%D0%BA%D0%B0%D1%87%D0%B8%D0%B2%D0%B0%D0%BD%D0%B8%D0%B9&color=FF8A3D)](../../releases)
+[![Лицензия MIT](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-3a2a1a?style=flat-square)](LICENSE)
+
 **[⬇ Скачать APK](../../releases/latest/download/Embermarch.apk)** &nbsp;·&nbsp; [Как установить](#на-телефоне) &nbsp;·&nbsp; [Все версии](../../releases)
 
 </div>
@@ -43,6 +47,7 @@
 - [Локальный запуск](#локальный-запуск)
 - [Инструменты разработчика](#инструменты-разработчика)
 - [История разработки](#история-разработки)
+- [Лицензия](#лицензия)
 
 ## Как играть
 
@@ -258,3 +263,9 @@ node tools/gen-hero-defs.js
 ## История разработки
 
 Подробный список изменений по датам: [CHANGELOG.md](CHANGELOG.md). Планы и известные ограничения: [ROADMAP.md](ROADMAP.md).
+
+## Лицензия
+
+Код игры, сервера и Android-обёртки распространяется по лицензии [MIT](LICENSE).
+
+Музыка и звуки - CC0 (общественное достояние), авторы и источники перечислены в [audio/CREDITS.md](audio/CREDITS.md). Шрифты (Marcellus, Cormorant Garamond, Work Sans, JetBrains Mono) подключаются с Google Fonts и распространяются по SIL Open Font License; в репозитории их нет.
