@@ -15,6 +15,9 @@
 ![SQLite](https://img.shields.io/badge/база-SQLite-3a2a1a?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-устанавливается-3a2a1a?style=flat-square)
 ![RU / EN](https://img.shields.io/badge/языки-RU%20%2F%20EN-3a2a1a?style=flat-square)
+![Android 7.0+](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
+
+**[⬇ Скачать APK](../../releases/latest/download/Embermarch.apk)** &nbsp;·&nbsp; [Как установить](#на-телефоне) &nbsp;·&nbsp; [Все версии](../../releases)
 
 </div>
 
@@ -147,6 +150,13 @@ flowchart LR
   &nbsp;
   <img src="screenshots/mobile-combat.png" width="28%" alt="Бой на телефоне">
 </p>
+
+### Приложение для Android
+
+1. Скачайте **[Embermarch.apk](../../releases/latest/download/Embermarch.apk)** на телефон (Android 7.0+).
+2. Откройте файл и разрешите установку из этого источника. Если Google Play Защита предупредит о незнакомом приложении: «Подробнее» → «Всё равно установить».
+
+Игра целиком лежит в APK: гостевой режим работает без сети, аккаунт, синхронизация и арена подключаются к серверу игры. Сборка: [android/](android/) (`./gradlew assembleRelease`, адрес сервера - в `android/game.properties` по образцу `game.properties.example`).
 
 ## Архитектура
 
