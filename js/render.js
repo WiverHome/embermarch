@@ -196,9 +196,9 @@ function renderMap(){
 /* Mobile node-choice list (see .map-mobile in the CSS): instead of the full
    branching SVG map, show only the nodes the player can actually walk into
    right now as big tappable cards, plus a compact strip of the path already
-   cleared for context. Tapping a card reuses the same preview modal as a
-   desktop SVG node, so the "Enter"/"Close" flow and all its copy stay shared
-   between both layouts. */
+   cleared for context. The card already shows the node's name and
+   description, so tapping it enters the node straight away (no preview
+   modal, unlike a desktop SVG node). */
 function renderMapMobileList(allNodes){
   const flavorSrc=$('map-flavor');
   const flavorDst=$('map-flavor-mobile');
@@ -219,6 +219,7 @@ function renderMapMobileList(allNodes){
   const eyebrow=$('map-mobile-eyebrow');
   if(!list)return;
   list.innerHTML='';
+  delete list.dataset.entering;
   const choices=allNodes.filter(function(n){
     return !n.cleared && RUN.availableNodeIds && RUN.availableNodeIds.indexOf(n.id)>=0;
   });
@@ -240,7 +241,11 @@ function renderMapMobileList(allNodes){
     body.appendChild(el('div','mc-title',nodeTypeName(n)));
     body.appendChild(el('div','mc-desc',nodeDescription(n)));
     card.appendChild(body);
-    card.addEventListener('click',function(){showNodePreviewModal(n,true);});
+    card.addEventListener('click',function(){
+      if(list.dataset.entering)return; // a double tap must not enter twice
+      list.dataset.entering='1';
+      enterNode(n);
+    });
     list.appendChild(card);
   });
 }
