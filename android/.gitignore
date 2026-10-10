@@ -1,0 +1,11 @@
+# Локальные настройки и секреты: в git не попадают
+local.properties
+game.properties
+keystore.properties
+*.jks
+*.keystore
+.gradle/
+build/
+app/build/
+.idea/
+*.iml

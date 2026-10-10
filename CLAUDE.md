@@ -27,6 +27,7 @@
 - `js/arena.js`: ARENA (асинхронный PvP) и LIVE PvP (WebSocket, исход решает сервер)
 - `js/main.js`: WIRE UP: обработчики, старт, регистрация sw.js
 - Рядом: `sw.js` (service worker, PWA; новый файл клиента - добавь в PRECACHE и подними CACHE), `manifest.webmanifest`, `icons/`, `audio/`; `tools/` (симулятор баланса, паритет, сборка архива деплоя; только для разработки)
+- `android/`: APK-обёртка (Java, без зависимостей). Клиент копируется в assets при сборке и отдаётся из APK под происхождением сервера, в сеть идут только `/api` и WebSocket; sw.js не используется. Адрес сервера - `android/game.properties`, подпись - `keystore.properties` + `.jks` (всё в .gitignore, ключ не терять). Сборка: `cd android && ./gradlew assembleRelease -PversionCode=N -PversionName=X.Y` → `app/build/outputs/apk/release/app-release.apk`. Новую версию клиента игроки APK получают только с пересборкой
 - `docs/`: рекламный одностраничник на GitHub Pages (не часть игры, в архив деплоя не входит). Править шаблон `tools/landing.template.html`, затем `node tools/build-landing.js` (герои и описания краёв берутся из кода, сборщик предупреждает, если цифры на странице устарели)
 
 ## Карта backend (server/)

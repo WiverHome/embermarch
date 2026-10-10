@@ -1,0 +1,84 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Адрес сервера игры не хранится в git: android/game.properties (см. game.properties.example)
+def gameProps = new Properties()
+def gamePropsFile = rootProject.file('game.properties')
+if (gamePropsFile.exists()) gamePropsFile.withInputStream { gameProps.load(it) }
+def gameOrigin = (gameProps.getProperty('gameOrigin') ?: '').trim().replaceAll('/+$', '')
+if (!gameOrigin.startsWith('https://')) {
+    throw new GradleException('android/game.properties: укажите gameOrigin=https://... (см. game.properties.example)')
+}
+
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) keystorePropsFile.withInputStream { keystoreProps.load(it) }
+
+// Версия приложения: -PversionCode=N -PversionName=X.Y (по умолчанию 1 / 1.0)
+def appVersionCode = (project.findProperty('versionCode') ?: '1') as int
+def appVersionName = (project.findProperty('versionName') ?: '1.0') as String
+
+android {
+    namespace 'com.embermarch.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.embermarch.game'
+        minSdk 24
+        targetSdk 35
+        versionCode appVersionCode
+        versionName appVersionName
+        buildConfigField 'String', 'GAME_ORIGIN', "\"${gameOrigin}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePropsFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main.assets.srcDirs += layout.buildDirectory.dir('generated/clientAssets')
+    }
+
+    // mp3 и png уже сжаты
+    androidResources {
+        noCompress += ['mp3', 'png']
+    }
+}
+
+// Клиент игры (корень репозитория) копируется в assets/www при каждой сборке.
+// sw.js не нужен: файлы и так лежат в APK.
+def copyClient = tasks.register('copyClient', Sync) {
+    def root = rootProject.projectDir.parentFile
+    from(root) {
+        include 'index.html', 'style.css', 'manifest.webmanifest'
+        include 'js/*.js'
+        include 'icons/*'
+        include 'audio/*.mp3', 'audio/sfx/*.mp3', 'audio/music/*.mp3'
+    }
+    into layout.buildDirectory.dir('generated/clientAssets/www')
+}
+tasks.named('preBuild') { dependsOn copyClient }

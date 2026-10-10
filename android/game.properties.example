@@ -1,0 +1,3 @@
+# Скопируйте в game.properties (он в .gitignore) и укажите адрес сервера игры.
+# Клиент из APK работает под этим происхождением, /api и WebSocket идут на сервер.
+gameOrigin=https://game.example.com
