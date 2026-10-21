@@ -3,9 +3,11 @@
    background music -> audio/music/*.mp3, sound effects -> audio/sfx/*.mp3.
    Development only; the game ships the built mp3 files, never the sources.
 
-   Usage: node tools/build-audio.js <source-dir>
+   Usage: node tools/build-audio.js <source-dir> [--only=name,name]
      <source-dir> holds the original files under the names in MUSIC/SFX below
-     (packs unzipped into kenney_rpg/, kenney_impact/, rpg80/).
+     (packs unzipped into kenney_rpg/, kenney_impact/, rpg80/, rubberduck_water/).
+     --only rebuilds just the listed MUSIC/SFX entries (e.g. one new land)
+     when the rest of the sources aren't at hand.
    ffmpeg: $FFMPEG, else the `ffmpeg-static` npm package if resolvable, else
    `ffmpeg` from PATH. */
 const fs = require('fs');
@@ -14,7 +16,10 @@ const { execFileSync, spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const SRC = process.argv[2];
-if (!SRC || !fs.existsSync(SRC)) { console.error('usage: node tools/build-audio.js <source-dir>'); process.exit(1); }
+if (!SRC || !fs.existsSync(SRC)) { console.error('usage: node tools/build-audio.js <source-dir> [--only=name,name]'); process.exit(1); }
+const ONLY_ARG = process.argv.slice(3).find(function (a) { return a.indexOf('--only=') === 0; });
+const ONLY = ONLY_ARG ? ONLY_ARG.slice(7).split(',').filter(Boolean) : null;
+function wanted(name) { return !ONLY || ONLY.indexOf(name) >= 0; }
 
 function ffmpegPath() {
   if (process.env.FFMPEG) return process.env.FFMPEG;
@@ -45,6 +50,8 @@ const MUSIC = {
   ashfall_battle: { src: 'ashfall_battle.mp3' },
   frost_battle:   { src: 'frost_battle.wav' },
   verdant_battle: { src: 'verdant_battle.mp3' },
+  drowned_map:    { src: 'dungeon_ambient_1.ogg', loop: true },
+  drowned_battle: { src: 'ZombiesAreComing.ogg', loop: true },
   arena:          { src: 'arena.flac' },
   boss1:          { src: 'boss1.wav' },
   boss2:          { src: 'boss2.wav' },
@@ -53,7 +60,7 @@ const MUSIC = {
 
 /* Sound effects: name -> source files (variants are picked at random in
    game, see SFX_FILES in js/util.js). Peak-normalised mono 64 kbit/s. */
-const K = 'kenney_rpg', I = 'kenney_impact', R = 'rpg80';
+const K = 'kenney_rpg', I = 'kenney_impact', R = 'rpg80', W = 'rubberduck_water';
 function find(dir, name) {
   const stack = [path.join(SRC, dir)];
   while (stack.length) {
@@ -82,6 +89,7 @@ const SFX = {
   step_ashfall: [[I, 'footstep_concrete_000.ogg'], [I, 'footstep_concrete_001.ogg']],
   step_frost:   [[I, 'footstep_snow_000.ogg'], [I, 'footstep_snow_001.ogg']],
   step_verdant: [[I, 'footstep_grass_000.ogg'], [I, 'footstep_grass_001.ogg']],
+  step_drowned: [[W, 'splash_10.ogg'], [W, 'splash_06.ogg']],
 };
 
 const musicDir = path.join(ROOT, 'audio', 'music');
@@ -90,6 +98,7 @@ fs.mkdirSync(musicDir, { recursive: true });
 fs.mkdirSync(sfxDir, { recursive: true });
 
 for (const [name, m] of Object.entries(MUSIC)) {
+  if (!wanted(name)) continue;
   const src = path.join(SRC, m.src);
   const dur = duration(src);
   let af = 'loudnorm=I=-18:TP=-1.5:LRA=11';
@@ -100,6 +109,7 @@ for (const [name, m] of Object.entries(MUSIC)) {
 
 const manifest = {};
 for (const [name, list] of Object.entries(SFX)) {
+  if (!wanted(name)) continue;
   manifest[name] = list.map(function (pair, i) {
     const out = name + (list.length > 1 ? '_' + (i + 1) : '') + '.mp3';
     const src = find(pair[0], pair[1]);
