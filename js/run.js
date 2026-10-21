@@ -442,7 +442,7 @@ function startNewRun(heroKeys,dailySeed){
     pendingChainEvent:null,
     inventory:[],
     comboCount:0,
-    shards:0,
+    shards:startingShards(),
     endless:false,
     endlessDepth:0,
     stats:newRunStats(),

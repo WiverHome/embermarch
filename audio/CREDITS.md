@@ -16,6 +16,8 @@ by `tools/build-audio.js` from the originals.
 | frost_battle.mp3 | Evil Approach | nene | https://opengameart.org/content/evil-approach |
 | verdant_battle.mp3 | Fantasy - Battlegrounds (remastered) | Doge | https://opengameart.org/content/fantasy-battlegrounds |
 | arena.mp3 | Laments of the War | Cethiel | https://opengameart.org/content/laments-of-the-war |
+| drowned_map.mp3 | Loopable Dungeon Ambience | JaggedStone | https://opengameart.org/content/loopable-dungeon-ambience |
+| drowned_battle.mp3 | Zombies' March | yd | https://opengameart.org/content/zombies-march |
 | boss1.mp3 | Sinister Boss Appears! | cynicmusic | https://opengameart.org/content/sinister-boss-appears |
 | boss2.mp3 | Dramatic Boss Encounter | cynicmusic | https://opengameart.org/content/dramatic-boss-encounter |
 | victory.mp3 | Victory Theme for RPG | cynicmusic | https://opengameart.org/content/victory-theme-for-rpg |
@@ -25,5 +27,7 @@ by `tools/build-audio.js` from the originals.
 - RPG Audio and Impact Sounds by Kenney (https://kenney.nl):
   https://opengameart.org/content/50-rpg-sound-effects, https://kenney.nl/assets/impact-sounds
 - 80 CC0 RPG SFX by rubberduck: https://opengameart.org/content/80-cc0-rpg-sfx
+- 40 CC0 water / splash / slime SFX by rubberduck (Drowned Barrows footsteps `step_drowned_*`):
+  https://opengameart.org/content/40-cc0-water-splash-slime-sfx
 
 `audio/levelup.mp3`, `victory.mp3`, `defeat.mp3` are the game's own synthesised stingers.

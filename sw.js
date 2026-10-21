@@ -7,7 +7,7 @@
 //   time the player reaches it.
 // - The API, the admin panel and anything cross-origin (Google Fonts) are never touched.
 // Bump CACHE when the precache list changes.
-const CACHE = 'embermarch-v7';
+const CACHE = 'embermarch-v8';
 const PRECACHE = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/combat-core.js', './js/lang-api.js', './js/data.js', './js/meta.js', './js/util.js', './js/run.js',
@@ -20,7 +20,7 @@ const PRECACHE = [
   './audio/sfx/equip_2.mp3', './audio/sfx/equip_3.mp3', './audio/sfx/heal_1.mp3', './audio/sfx/heal_2.mp3', './audio/sfx/hit_1.mp3',
   './audio/sfx/hit_2.mp3', './audio/sfx/hit_3.mp3', './audio/sfx/hit_4.mp3', './audio/sfx/hit_5.mp3', './audio/sfx/hit_magic_1.mp3',
   './audio/sfx/hit_magic_2.mp3', './audio/sfx/hit_magic_3.mp3', './audio/sfx/page_1.mp3', './audio/sfx/page_2.mp3', './audio/sfx/roar_1.mp3',
-  './audio/sfx/roar_2.mp3', './audio/sfx/step_ashfall_1.mp3', './audio/sfx/step_ashfall_2.mp3', './audio/sfx/step_frost_1.mp3', './audio/sfx/step_frost_2.mp3',
+  './audio/sfx/roar_2.mp3', './audio/sfx/step_ashfall_1.mp3', './audio/sfx/step_ashfall_2.mp3', './audio/sfx/step_frost_1.mp3', './audio/sfx/step_frost_2.mp3', './audio/sfx/step_drowned_1.mp3', './audio/sfx/step_drowned_2.mp3',
   './audio/sfx/step_verdant_1.mp3', './audio/sfx/step_verdant_2.mp3',
 ];
 

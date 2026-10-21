@@ -45,6 +45,23 @@ function enterNode(node){
 
 /* ---- events ---- */
 let currentEvent=null;
+/* Biome-tagged events only fire in their own land; untagged ones anywhere.
+   The event of a node is a hash of the march and the node id, not a draw from
+   the shared RNG: the Pathfinder capstone can name it on the map without
+   shifting the seeded stream of a Daily/Weekly, and it survives a reload. */
+function pickEventFor(node){
+  const curBiome=biomeKeyForLayer(node.layer);
+  const pool=EVENTS.filter(function(e){return !e.chainOnly&&(!e.biome||e.biome===curBiome);});
+  const salt=RUN.daily||runStats().startedAt;
+  return pool[xmur3('event:'+salt+':'+node.id)()%pool.length];
+}
+/* Pathfinder capstone: name the event waiting at a node. A chain already in
+   flight comes first at the next event node, so that's what is shown. */
+function scoutedEvent(node){
+  if(!META.upgrades.pathfinder||!RUN||!node||node.type!=='event')return null;
+  if(RUN.pendingChainEvent)return EVENTS.find(function(e){return e.id===RUN.pendingChainEvent;})||null;
+  return pickEventFor(node);
+}
 function startEvent(node){
   let def=null;
   if(RUN.pendingChainEvent){
@@ -52,12 +69,10 @@ function startEvent(node){
     RUN.pendingChainEvent=null;
   }
   if(!def){
-    /* Biome-tagged events (see CHAPTER_ARRIVAL/BIOME_ACT_ORDER above) only
-       fire in their own act; untagged events are generic and can fire
-       anywhere. A chain already in flight (looked up by id above) always
-       continues regardless of which biome it started in. */
-    const curBiome=biomeKeyForLayer(node.layer);
-    def=pick(EVENTS.filter(function(e){return !e.chainOnly&&(!e.biome||e.biome===curBiome);}));
+    /* A chain already in flight (looked up by id above) always continues
+       regardless of which biome it started in; otherwise the node's own
+       event for this land (the one the Pathfinder shows). */
+    def=pickEventFor(node);
   }
   currentEvent={node:node,def:def};
   SFX.page();
@@ -68,7 +83,11 @@ function startEvent(node){
     const b=el('button','card-choice',L(choice.label));
     b.addEventListener('click',function(){
       RUN.pendingItemPickup=null;
-      const msg=choice.resolve(RUN);
+      const goldBefore=RUN.gold;
+      let msg=choice.resolve(RUN);
+      /* Rite of the Lookout: a share on top of any gold the event handed out. */
+      const bonus=Math.round(Math.max(0,RUN.gold-goldBefore)*(eventGoldMult()-1));
+      if(bonus>0){RUN.gold+=bonus;if(msg)msg+=' '+M('(+'+bonus+' gold from your lookouts)','(+'+bonus+' золота благодаря дозорным)');}
       completeCurrentNode(node);
       if(choice.special==='item'&&RUN.pendingItemPickup){
         const item=RUN.pendingItemPickup;RUN.pendingItemPickup=null;
@@ -121,9 +140,15 @@ function buildShopStock(layer){
     {kind:'elixir',price:20},
     {kind:'vigor',price:32},
   ];
+  if(META.upgrades.guild_charter)stock.splice(4,0,{kind:'item',item:randomItem(tier),price:0});
   const relicChance=(tier>=3?0.6:(tier===2?0.4:0.25))+relicChanceBonus();
   if(Math.random()<relicChance)stock.push({kind:'item',item:randomRelic(tier),price:0});
-  return stock.map(function(s){if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];return s;});
+  const mult=shopPriceMult();
+  return stock.map(function(s){
+    if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];
+    s.price=Math.max(1,Math.round(s.price*mult));
+    return s;
+  });
 }
 function goldSuffix(){return M(' gold',' золота');}
 function renderShop(){
@@ -179,12 +204,13 @@ function renderShopCraft(){
   const shardsLine=el('div','',"<span style='color:var(--muted);font-size:12px;'>"+M('Shards: ','Осколки: ')+'<strong>'+(RUN.shards||0)+'</strong> · '+M('earned by salvaging gear in the backpack (Formation & Gear).','получены разбором снаряжения в рюкзаке (Строй и снаряжение).')+"</span>");
   box.appendChild(shardsLine);
   CRAFT_RECIPES.forEach(function(r){
+    const cost=craftCost(r.cost);
     const b=el('button','card-choice');
-    b.innerHTML='<strong>'+M('Craft ','Скрафтить ')+slotName(r.slot)+'</strong> <span class="item-tag rarity-'+r.rarity+'">'+rarityLabel(r.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('Random item of this slot &amp; rarity.','Случайный предмет этого слота и редкости.')+'</span><br><span class="gold-badge" style="font-size:13px;">'+r.cost+' '+M('shards','осколков')+'</span>';
-    b.disabled=(RUN.shards||0)<r.cost;
+    b.innerHTML='<strong>'+M('Craft ','Скрафтить ')+slotName(r.slot)+'</strong> <span class="item-tag rarity-'+r.rarity+'">'+rarityLabel(r.rarity)+'</span><br><span style="color:var(--muted);font-size:12px;">'+M('Random item of this slot &amp; rarity.','Случайный предмет этого слота и редкости.')+'</span><br><span class="gold-badge" style="font-size:13px;">'+cost+' '+M('shards','осколков')+'</span>';
+    b.disabled=(RUN.shards||0)<cost;
     b.addEventListener('click',function(){
-      if((RUN.shards||0)<r.cost)return;
-      RUN.shards-=r.cost;SFX.coin();
+      if((RUN.shards||0)<cost)return;
+      RUN.shards-=cost;SFX.coin();
       const item=craftItemFromRecipe(r);
       promptEquip(item,function(){renderShop();saveRun();});
     });

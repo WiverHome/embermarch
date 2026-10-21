@@ -142,8 +142,8 @@ const SFX_DEFS={
   step_ashfall:[['sfx/step_ashfall_1','sfx/step_ashfall_2'],0.35],
   step_frost:[['sfx/step_frost_1','sfx/step_frost_2'],0.3],
   step_verdant:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.55],
-  /* Drowned Barrows: the grass steps slowed and muffled into wading through mire. */
-  step_drowned:[['sfx/step_verdant_1','sfx/step_verdant_2'],0.45,{rate:0.7,lowpass:900}],
+  /* Drowned Barrows: short water splashes, wading through the mire. */
+  step_drowned:[['sfx/step_drowned_1','sfx/step_drowned_2'],0.35],
   levelup:[['levelup'],0.85],
   victory:[['victory'],0.85],
   defeat:[['defeat'],0.85],
@@ -222,14 +222,12 @@ const MUSIC_TRACKS={
   ashfall_map:{files:['ashfall_map']},
   frost_map:{files:['frost_map'],loop:true,gain:1.1},
   verdant_map:{files:['verdant_map'],gain:1.25},
-  /* Drowned Barrows: the Frozen Reach tracks (the other second chapter, so
-     never both in one march) played slower, lower and muffled, as if heard
-     from under the water. fx: playback rate (pitch drops with it), lowpass Hz. */
-  drowned_map:{files:['frost_map'],loop:true,gain:1.1,fx:{rate:0.85,lowpass:1100}},
+  /* Drowned Barrows: their own tracks (see audio/CREDITS.md). */
+  drowned_map:{files:['drowned_map'],loop:true},
   ashfall_battle:{files:['ashfall_battle'],gain:0.9},
   frost_battle:{files:['frost_battle'],gain:1.15},
   verdant_battle:{files:['verdant_battle']},
-  drowned_battle:{files:['frost_battle'],gain:1.15,fx:{rate:0.92,lowpass:2400}},
+  drowned_battle:{files:['drowned_battle'],loop:true},
   boss:{files:['boss1','boss2']},
   arena:{files:['arena'],gain:0.8},
   /* plays once over the run-won screen, then the menu theme takes over */

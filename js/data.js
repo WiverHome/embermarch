@@ -830,12 +830,12 @@ const EVENTS = [
           ru:'Треснувшее святилище наполовину скрыто пеплом, его подношения давно остыли. Но камень всё ещё гудит.'},
     choices:[
       {label:{en:'Pray at the shrine',ru:'Помолиться у святилища'},resolve(run){
-        if(Math.random()<0.5){const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;return h.name+M(' feels the old blessing settle in. (+2 '+statAbbr(dt)+' this march)',' чувствует, как его коснулось старое благословение. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');}
+        if(eventRoll(0.5)){const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;return h.name+M(' feels the old blessing settle in. (+2 '+statAbbr(dt)+' this march)',' чувствует, как его коснулось старое благословение. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');}
         return M('Nothing answers. The shrine stays silent.','Никто не отвечает. Святилище молчит.');
       }},
       {label:{en:'Take what remains',ru:'Забрать оставшееся'},resolve(run){
         const g=15+Math.floor(Math.random()*16);run.gold+=g;
-        if(Math.random()<0.3){const h=randAlive(run.party);const dmg=5;h.hp=Math.max(1,h.hp-dmg);
+        if(eventMishap(0.3)){const h=randAlive(run.party);const dmg=5;h.hp=Math.max(1,h.hp-dmg);
           run.pendingChainEvent='shrine_ward';
           return M('A ward snaps. '+h.name+' takes '+dmg+' damage, but you found '+g+' gold. The broken ward leaves a lingering unease.','Оберег срабатывает. '+h.name+' получает '+dmg+' урона, но вы нашли '+g+' золота. Разбитый оберег оставляет тревожное чувство.');}
         return M('You gather '+g+' gold from the offering bowl.','Вы собираете '+g+' золота из чаши для подношений.');
@@ -1026,7 +1026,7 @@ const EVENTS = [
           ru:'Окованный железом сундук застрял между камнями, его замок давно проржавел.'},
     choices:[
       {label:{en:'Force it open',ru:'Взломать силой'},resolve(run){
-        if(Math.random()<0.6){
+        if(eventRoll(0.6)){
           const item=Math.random()<0.25?randomRelic():randomItem();
           run.pendingItemPickup=item;
           run.pendingChainEvent='cache_rival';
@@ -1050,7 +1050,7 @@ const EVENTS = [
         return M('The scavenger takes their cut and leaves without trouble.','Мародёр забирает свою долю и уходит без проблем.');
       }},
       {label:{en:'Stand your ground',ru:'Не уступать'},resolve(run){
-        if(Math.random()<0.5){
+        if(eventRoll(0.5)){
           const g=15+Math.floor(Math.random()*16);run.gold+=g;
           return M('The scavenger backs down and drops a purse in the scuffle. +'+g+' gold.','Мародёр отступает, роняя в потасовке кошель. +'+g+' золота.');
         }
@@ -1312,10 +1312,152 @@ const EVENTS = [
                  'Колокол уходит под воду с последним глухим звоном. Холодная вода жжёт, но '+h.name+' выходит из неё твёрже перед тем, что в ней шепчет. (+2 к маг. защите в этом походе)');
       }},
       {label:{en:'Search the barrow while the dead are distracted',ru:'Обыскать курган, пока мертвецы отвлечены'},resolve(run){
-        if(Math.random()<0.6){const g=22+Math.floor(Math.random()*16);run.gold+=g;return M('Grave-goods, still bright under the silt. +'+g+' gold.','Погребальные дары, всё ещё блестящие под илом. +'+g+' золота.');}
+        if(eventRoll(0.6)){const g=22+Math.floor(Math.random()*16);run.gold+=g;return M('Grave-goods, still bright under the silt. +'+g+' gold.','Погребальные дары, всё ещё блестящие под илом. +'+g+' золота.');}
         const h=randAlive(run.party);h.hp=Math.max(1,h.hp-8);
         return M('A drowned hand closes on '+h.name+"'s ankle before they tear free. -8 HP.",'Мёртвая рука смыкается на лодыжке героя '+h.name+', но он вырывается. -8 HP.');
       }},
       {label:{en:'Wade on quietly',ru:'Тихо пройти мимо'},resolve(){return M('You leave the bell to its tolling.','Вы оставляете колокол звонить дальше.');}},
+    ]},
+  /* Land-specific single events (no chains, by the owner's call): three more
+     each for the Frozen Reach, Drowned Barrows and Thornwild, so every land
+     has its own handful of encounters like Ashfall does. */
+  {id:'thinice',biome:'frost',title:{en:'Thin Ice',ru:'Тонкий лёд'},
+    text:{en:'Under the clear ice of a frozen lake lies a merchant\'s sled, its cargo still lashed down. The ice around it is cracked and grey.',
+          ru:'Под прозрачным льдом замёрзшего озера лежат купеческие сани, груз всё ещё привязан. Лёд вокруг них потрескался и посерел.'},
+    choices:[
+      {label:{en:'Break through to the sled (one hero, -7 HP)',ru:'Пробиться к саням (один герой, -7 HP)'},special:'item',resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-7);
+        run.pendingItemPickup=randomItem();
+        return null;
+      }},
+      {label:{en:'Cut a fishing hole and eat hot',ru:'Пробить лунку и поесть горячего'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.12));});
+        return M('Fish from under the ice and a fire on the shore. The party eats well for once. (+12% HP to everyone)','Рыба из-подо льда и костёр на берегу. Отряд наконец сытно ест. (+12% здоровья всем)');
+      }},
+      {label:{en:'Keep to the shore',ru:'Держаться берега'},resolve(){return M('You leave the sled to the lake.','Вы оставляете сани озеру.');}},
+    ]},
+  {id:'trapper',biome:'frost',title:{en:"Trapper's Hut",ru:'Хижина зверолова'},
+    text:{en:'Smoke rises from a hut buried to the eaves in snow. An old trapper waves you in, wolf pelts drying over the fire.',
+          ru:'Из занесённой по самую крышу хижины поднимается дым. Старый зверолов машет вам рукой, над огнём сохнут волчьи шкуры.'},
+    choices:[
+      {label:{en:'Buy a wolfskin cloak (-20 gold)',ru:'Купить плащ из волчьей шкуры (-20 золота)'},resolve(run){
+        if(run.gold<20)return M('You can\'t afford the cloak. The trapper shrugs and pours you tea anyway.','На плащ не хватает золота. Зверолов пожимает плечами и всё равно наливает вам чаю.');
+        run.gold-=20;const h=randAlive(run.party);h.def+=2;
+        return M(h.name+' pulls on the heavy cloak. The wind stops biting. (+2 DEF this march)',h.name+' надевает тяжёлый плащ. Ветер перестаёт кусаться. (+2 к защите в этом походе)');
+      }},
+      {label:{en:'Trade stories by the fire',ru:'Обменяться историями у огня'},resolve(run){
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.15));});
+        return M('A warm night under a roof. Everyone wakes rested. (+15% HP to everyone)','Тёплая ночь под крышей. Все просыпаются отдохнувшими. (+15% здоровья всем)');
+      }},
+      {label:{en:'Wave back and press on',ru:'Помахать в ответ и идти дальше'},resolve(){return M('The hut\'s smoke fades behind you.','Дым хижины тает позади.');}},
+    ]},
+  {id:'aurora',biome:'frost',title:{en:'Green Lights',ru:'Зелёные огни'},
+    text:{en:'The night sky burns green. Under the lights, a trail of footprints that were not there a moment ago leads away across the snow.',
+          ru:'Ночное небо горит зелёным. Под сиянием по снегу уходит цепочка следов, которой мгновение назад здесь не было.'},
+    choices:[
+      {label:{en:'Follow the footprints',ru:'Пойти по следам'},special:'item',resolve(run){
+        if(eventRoll(0.5)){run.pendingItemPickup=randomRelic();return null;}
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-10);
+        return M('The trail ends at a cliff edge. '+h.name+' slips on the way back. -10 HP.','Следы обрываются у края обрыва. '+h.name+' срывается на обратном пути. -10 HP.');
+      }},
+      {label:{en:'Keep watch until the lights fade',ru:'Нести дозор, пока огни не погаснут'},resolve(run){
+        const h=randAlive(run.party);h.spd+=1;
+        return M(h.name+' stays awake all night and learns to read the snow. (+1 SPD this march)',h.name+' не спит всю ночь и учится читать снег. (+1 к скорости в этом походе)');
+      }},
+      {label:{en:'Look away and sleep',ru:'Отвернуться и спать'},resolve(){return M('By morning the footprints are gone.','К утру следы исчезают.');}},
+    ]},
+  {id:'ferryman',biome:'drowned',title:{en:'The Mire Ferryman',ru:'Перевозчик через топь'},
+    text:{en:'A hooded figure poles a flat boat out of the fog and holds out a hand, palm up. Behind it, the barrows rise from black water.',
+          ru:'Из тумана выплывает плоскодонка, фигура в капюшоне протягивает ладонь. За ней из чёрной воды поднимаются курганы.'},
+    choices:[
+      {label:{en:'Pay the toll (-15 gold)',ru:'Заплатить за перевоз (-15 золота)'},resolve(run){
+        if(run.gold<15)return M('Your purse is too light. The ferryman pushes off into the fog without a word.','Кошелёк слишком лёгкий. Перевозчик молча отталкивается в туман.');
+        run.gold-=15;
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.18));});
+        return M('The party rests on the slow crossing, dry for the first time in days. (+18% HP to everyone)','Отряд отдыхает на медленной переправе, впервые за много дней в сухости. (+18% здоровья всем)');
+      }},
+      {label:{en:'Wade through the reeds (one hero, -6 HP)',ru:'Идти вброд через камыш (один герой, -6 HP)'},resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-6);
+        const g=10+Math.floor(Math.random()*12);run.gold+=g;
+        return M('Leeches and cold water, but '+h.name+' finds a drowned purse in the mud. +'+g+' gold.','Пиявки и ледяная вода, зато '+h.name+' находит в иле утопленный кошелёк. +'+g+' золота.');
+      }},
+      {label:{en:'Wait for the fog to lift',ru:'Переждать туман'},resolve(){return M('The boat drifts off. You find another way around.','Лодка уплывает. Вы находите обходной путь.');}},
+    ]},
+  {id:'candles',biome:'drowned',title:{en:'Candles on the Water',ru:'Свечи на воде'},
+    text:{en:'Dozens of grave candles float on the still water before a barrow door, each set on a little dish of offerings.',
+          ru:'Перед дверью кургана по стоячей воде плывут десятки поминальных свечей, каждая на блюдце с подношениями.'},
+    choices:[
+      {label:{en:'Light a candle for your own dead',ru:'Зажечь свечу за своих павших'},resolve(run){
+        const h=randAlive(run.party);h.mdef=(h.mdef||0)+2;
+        return M('The flame burns steady. '+h.name+' feels the whispers in the water fall quiet around them. (+2 MDEF this march)',h.name+' смотрит на ровное пламя, и шёпот в воде вокруг стихает. (+2 к маг. защите в этом походе)');
+      }},
+      {label:{en:'Take the offerings',ru:'Забрать подношения'},resolve(run){
+        const g=20+Math.floor(Math.random()*16);run.gold+=g;
+        const h=randAlive(run.party);h.maxHp=Math.max(6,h.maxHp-4);h.hp=Math.min(h.hp,h.maxHp);
+        return M('+'+g+' gold. That night '+h.name+' dreams of cold hands, and wakes weaker. (-4 max HP this march)','+'+g+' золота. Ночью '+h.name+' видит во сне холодные руки и просыпается без сил. (-4 к макс. здоровью в этом походе)');
+      }},
+      {label:{en:'Pass by in silence',ru:'Молча пройти мимо'},resolve(){return M('The candles bob gently as you go.','Свечи тихо покачиваются вам вслед.');}},
+    ]},
+  {id:'sinkchest',biome:'drowned',title:{en:'Sinking Chest',ru:'Тонущий сундук'},
+    text:{en:'A barrow chest is sliding slowly into the mire, bubbles rising around its lid. In a minute it will be gone.',
+          ru:'Курганный сундук медленно сползает в трясину, вокруг крышки поднимаются пузыри. Через минуту он скроется.'},
+    choices:[
+      {label:{en:'Dive in after it',ru:'Нырнуть за ним'},special:'item',resolve(run){
+        if(eventRoll(0.55)){run.pendingItemPickup=randomItem();return null;}
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-9);
+        return M('The mud swallows the chest and nearly '+h.name+' with it. -9 HP.','Трясина проглатывает сундук и едва не утягивает героя '+h.name+'. -9 HP.');
+      }},
+      {label:{en:'Hook the handle with a rope',ru:'Зацепить ручку верёвкой'},resolve(run){
+        const g=10+Math.floor(Math.random()*10);run.gold+=g;
+        return M('The handle tears off, but a few coins spill out with it. +'+g+' gold.','Ручка отрывается, но вместе с ней высыпается немного монет. +'+g+' золота.');
+      }},
+      {label:{en:'Let the mire have it',ru:'Оставить его трясине'},resolve(){return M('The last bubble pops, and the water goes still.','Лопается последний пузырь, и вода затихает.');}},
+    ]},
+  {id:'herbalist',biome:'verdant',title:{en:'The Thorn Hermit',ru:'Отшельник в терновнике'},
+    text:{en:'Deep in the brambles, a hermit grinds herbs in a stone bowl. They have clearly learned which thorns heal and which kill.',
+          ru:'В глубине терновника отшельник растирает травы в каменной чаше. Видно, что он давно знает, какие шипы лечат, а какие убивают.'},
+    choices:[
+      {label:{en:'Buy a salve for everyone (-22 gold)',ru:'Купить мазь на всех (-22 золота)'},resolve(run){
+        if(run.gold<22)return M('You can\'t pay. The hermit goes back to the bowl.','Заплатить нечем. Отшельник возвращается к своей чаше.');
+        run.gold-=22;
+        run.party.forEach(function(h){if(h.alive)h.hp=Math.min(h.maxHp,h.hp+Math.round(h.maxHp*0.22));});
+        return M('The salve stings, then soothes. (+22% HP to everyone)','Мазь жжёт, потом успокаивает. (+22% здоровья всем)');
+      }},
+      {label:{en:'Ask to learn the thorn cure',ru:'Попросить научить лечению шипами'},resolve(run){
+        const h=randAlive(run.party);h.maxHp+=4;h.hp+=4;h.spd=Math.max(1,h.spd-1);
+        return M(h.name+' spends a day pricking their own skin with thorns. Tougher now, if a little stiff. (+4 max HP / -1 SPD this march)',h.name+' целый день колет себя шипами. Теперь выносливее, хоть и скованнее. (+4 к макс. здоровью / -1 к скорости в этом походе)');
+      }},
+      {label:{en:'Leave the hermit be',ru:'Не мешать отшельнику'},resolve(){return M('The grinding stone keeps its slow rhythm behind you.','Позади не смолкает мерный стук пестика.');}},
+    ]},
+  {id:'hive',biome:'verdant',title:{en:'Wild Hive',ru:'Дикий улей'},
+    text:{en:'A hive the size of a barrel hangs from a thorn tree, heavy with dark honey. The bees are big, and they are watching.',
+          ru:'С тернового дерева свисает улей размером с бочку, полный тёмного мёда. Пчёлы крупные, и они следят за вами.'},
+    choices:[
+      {label:{en:'Smoke it out (one hero, -5 HP)',ru:'Выкурить пчёл (один герой, -5 HP)'},resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-5);
+        run.party.forEach(function(x){if(x.alive)x.hp=Math.min(x.maxHp,x.hp+Math.round(x.maxHp*0.15));});
+        return M(h.name+' gets stung for the trouble, but the honey is worth it. (+15% HP to everyone)',h.name+' получает пару укусов, но мёд того стоит. (+15% здоровья всем)');
+      }},
+      {label:{en:'Cut out the comb to sell',ru:'Вырезать соты на продажу'},resolve(run){
+        const g=14+Math.floor(Math.random()*13);run.gold+=g;
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-3);
+        return M('Thornwild honey sells well. +'+g+' gold, and a few stings for '+h.name+' (-3 HP).','Мёд из терновой чащи хорошо продаётся. +'+g+' золота, а '+h.name+' получает пару укусов (-3 HP).');
+      }},
+      {label:{en:'Back away slowly',ru:'Медленно отступить'},resolve(){return M('The buzzing fades as you leave.','Жужжание стихает за спиной.');}},
+    ]},
+  {id:'greenshrine',biome:'verdant',title:{en:'Overgrown Shrine',ru:'Заросшее святилище'},
+    text:{en:'Vines have swallowed a shrine to some forest power. Only a carved face shows through the leaves, and a bowl of old offerings at its feet.',
+          ru:'Лоза поглотила святилище какой-то лесной силы. Сквозь листья видно лишь резное лицо, а у его подножия стоит чаша со старыми подношениями.'},
+    choices:[
+      {label:{en:'Offer blood (one hero, -6 HP)',ru:'Поднести кровь (один герой, -6 HP)'},resolve(run){
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-6);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;
+        return M('The leaves shiver. '+h.name+' feels the forest\'s hunger in their hands. (+2 '+statAbbr(dt)+' this march)','Листья вздрагивают. '+h.name+' чувствует в руках голод леса. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');
+      }},
+      {label:{en:'Take the offering bowl',ru:'Забрать чашу с подношениями'},special:'item',resolve(run){
+        if(eventRoll(0.6)){run.pendingItemPickup=Math.random()<0.3?randomRelic():randomItem();return null;}
+        const h=randAlive(run.party);h.hp=Math.max(1,h.hp-8);
+        return M('The vines lash out as you reach in. '+h.name+' tears free, empty-handed. -8 HP.','Лоза хлещет, едва вы тянетесь к чаше. '+h.name+' вырывается с пустыми руками. -8 HP.');
+      }},
+      {label:{en:'Bow and walk on',ru:'Поклониться и идти дальше'},resolve(){return M('The carved face watches you go.','Резное лицо провожает вас взглядом.');}},
     ]},
 ];

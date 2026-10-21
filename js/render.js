@@ -60,6 +60,10 @@ function nodeTypeName(node){
 }
 function nodeDescription(node){
   const type=(node&&typeof node==='object')?node.type:node;
+  if(type==='event'&&typeof node==='object'){
+    const ev=scoutedEvent(node);
+    if(ev)return M('Your pathfinder has scouted ahead: ','Следопыт разведал путь: ')+'«'+L(ev.title)+'». '+L(ev.text);
+  }
   if(type==='boss'){
     const li=(node&&typeof node==='object'&&typeof node.layer==='number')?node.layer:TOTAL_MAP_LAYERS;
     return li===TOTAL_MAP_LAYERS
