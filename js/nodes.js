@@ -45,19 +45,22 @@ function enterNode(node){
 
 /* ---- events ---- */
 let currentEvent=null;
-/* Biome-tagged events only fire in their own land; untagged ones anywhere. */
+/* Biome-tagged events only fire in their own land; untagged ones anywhere.
+   The event of a node is a hash of the march and the node id, not a draw from
+   the shared RNG: the Pathfinder capstone can name it on the map without
+   shifting the seeded stream of a Daily/Weekly, and it survives a reload. */
 function pickEventFor(node){
   const curBiome=biomeKeyForLayer(node.layer);
-  return pick(EVENTS.filter(function(e){return !e.chainOnly&&(!e.biome||e.biome===curBiome);}));
+  const pool=EVENTS.filter(function(e){return !e.chainOnly&&(!e.biome||e.biome===curBiome);});
+  const salt=RUN.daily||runStats().startedAt;
+  return pool[xmur3('event:'+salt+':'+node.id)()%pool.length];
 }
-/* Pathfinder capstone: the event at an event node is chosen when the map first
-   shows it and kept on the node, so the map can name it. A chain already in
-   flight still comes first at the next event node, so that's what is shown. */
+/* Pathfinder capstone: name the event waiting at a node. A chain already in
+   flight comes first at the next event node, so that's what is shown. */
 function scoutedEvent(node){
   if(!META.upgrades.pathfinder||!RUN||!node||node.type!=='event')return null;
   if(RUN.pendingChainEvent)return EVENTS.find(function(e){return e.id===RUN.pendingChainEvent;})||null;
-  if(!node.eventId)node.eventId=pickEventFor(node).id;
-  return EVENTS.find(function(e){return e.id===node.eventId;})||null;
+  return pickEventFor(node);
 }
 function startEvent(node){
   let def=null;
@@ -67,9 +70,9 @@ function startEvent(node){
   }
   if(!def){
     /* A chain already in flight (looked up by id above) always continues
-       regardless of which biome it started in; otherwise the node's scouted
-       event (Pathfinder) or a fresh pick for this land. */
-    def=(node.eventId&&EVENTS.find(function(e){return e.id===node.eventId;}))||pickEventFor(node);
+       regardless of which biome it started in; otherwise the node's own
+       event for this land (the one the Pathfinder shows). */
+    def=pickEventFor(node);
   }
   currentEvent={node:node,def:def};
   SFX.page();

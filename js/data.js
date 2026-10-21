@@ -1394,7 +1394,7 @@ const EVENTS = [
       {label:{en:'Take the offerings',ru:'Забрать подношения'},resolve(run){
         const g=20+Math.floor(Math.random()*16);run.gold+=g;
         const h=randAlive(run.party);h.maxHp=Math.max(6,h.maxHp-4);h.hp=Math.min(h.hp,h.maxHp);
-        return M('+'+g+' gold. That night '+h.name+' dreams of cold hands, and wakes weaker. (-4 max HP this march)','+'+g+' золота. Ночью '+h.name+' видит во сне холодные руки и просыпается ослабевшим. (-4 к макс. здоровью в этом походе)');
+        return M('+'+g+' gold. That night '+h.name+' dreams of cold hands, and wakes weaker. (-4 max HP this march)','+'+g+' золота. Ночью '+h.name+' видит во сне холодные руки и просыпается без сил. (-4 к макс. здоровью в этом походе)');
       }},
       {label:{en:'Pass by in silence',ru:'Молча пройти мимо'},resolve(){return M('The candles bob gently as you go.','Свечи тихо покачиваются вам вслед.');}},
     ]},
