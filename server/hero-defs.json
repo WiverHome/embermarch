@@ -817,7 +817,13 @@
   "old_masters": 1,
   "haggler": 3,
   "spoils_rite": 2,
-  "guild_charter": 1
+  "guild_charter": 1,
+  "smithing": 3,
+  "forge_rite": 2,
+  "master_forge": 1,
+  "scouting": 3,
+  "lookout_rite": 2,
+  "pathfinder": 1
  },
  "upgradeCost": {
   "packs": [
@@ -934,6 +940,30 @@
   ],
   "guild_charter": [
    45
+  ],
+  "smithing": [
+   6,
+   11,
+   16
+  ],
+  "forge_rite": [
+   20,
+   32
+  ],
+  "master_forge": [
+   45
+  ],
+  "scouting": [
+   6,
+   11,
+   16
+  ],
+  "lookout_rite": [
+   20,
+   32
+  ],
+  "pathfinder": [
+   50
   ]
  },
  "achievementReward": {

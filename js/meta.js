@@ -9,7 +9,7 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0,fortune:0,fortune_rite:0,fortune_capstone:0,field_dressing:0,mending_rite:0,second_wind:0,tutor:0,drill_rite:0,old_masters:0,haggler:0,spoils_rite:0,guild_charter:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0,fortune:0,fortune_rite:0,fortune_capstone:0,field_dressing:0,mending_rite:0,second_wind:0,tutor:0,drill_rite:0,old_masters:0,haggler:0,spoils_rite:0,guild_charter:0,smithing:0,forge_rite:0,master_forge:0,scouting:0,lookout_rite:0,pathfinder:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
@@ -127,12 +127,36 @@ const UPGRADE_DEFS = [
     requires:{key:'haggler',rank:3}},
   {key:'guild_charter',name:{en:'Guild Charter',ru:'Грамота гильдии'},desc:{en:'Capstone: every shop has one more item, and its prices drop another 10%',ru:'Вершина ветки: в каждой лавке на один предмет больше, а цены ниже ещё на 10%'},max:1,cost:function(){return 45;},
     requires:{key:'spoils_rite',rank:2}},
+  /* Ninth branch, Forge: cheaper crafting and more shards. March-only. */
+  {key:'smithing',name:{en:'Smithing',ru:'Кузнечное дело'},desc:{en:'Crafting costs 8% fewer shards per rank',ru:'Крафт дешевле на 8% осколков за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'forge_rite',name:{en:'Rite of the Forge',ru:'Обряд горна'},desc:{en:'+8 shards at the start of each march per rank',ru:'+8 осколков в начале каждого похода за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'smithing',rank:3}},
+  {key:'master_forge',name:{en:'Master Smith',ru:'Мастер-кузнец'},desc:{en:'Capstone: +6 shards for every elite battle won',ru:'Вершина ветки: +6 осколков за каждую победу над элитой'},max:1,cost:function(){return 45;},
+    requires:{key:'forge_rite',rank:2}},
+  /* Tenth branch, Scouting: luck and gold in events, and the capstone shows
+     on the map which event waits at an event node. March-only. */
+  {key:'scouting',name:{en:'Scouts',ru:'Разведчики'},desc:{en:'Risky choices in events succeed 6% more often per rank',ru:'Рискованные выборы в событиях удаются на 6% чаще за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'lookout_rite',name:{en:'Rite of the Lookout',ru:'Обряд дозора'},desc:{en:'+15% gold from events per rank',ru:'+15% золота из событий за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'scouting',rank:3}},
+  {key:'pathfinder',name:{en:'Pathfinder',ru:'Следопыт'},desc:{en:'Capstone: the map shows which event waits at each event node, and risky choices succeed another 10% more often',ru:'Вершина ветки: на карте видно, какое событие ждёт в узле, а рискованные выборы удаются ещё на 10% чаще'},max:1,cost:function(){return 50;},
+    requires:{key:'lookout_rite',rank:2}},
 ];
 const UPGRADE_TUNING={fieldDressingPerRank:0.03,restBase:0.35,mendingPerRank:0.10,secondWindHp:0.30,tutorPerRank:0.08,drillPerRank:0.12,
-  hagglerPerRank:0.05,spoilsPerRank:0.10,charterDiscount:0.10};
+  hagglerPerRank:0.05,spoilsPerRank:0.10,charterDiscount:0.10,
+  smithingPerRank:0.08,forgeShardsPerRank:8,masterForgeShards:6,
+  scoutLuckPerRank:0.06,pathfinderLuck:0.10,lookoutGoldPerRank:0.15,eventLuckCap:0.95};
 /* Trade branch: shop price multiplier and battle gold multiplier. */
 function shopPriceMult(){return 1-(META.upgrades.haggler||0)*UPGRADE_TUNING.hagglerPerRank-((META.upgrades.guild_charter||0)?UPGRADE_TUNING.charterDiscount:0);}
 function battleGoldMult(){return 1+(META.upgrades.spoils_rite||0)*UPGRADE_TUNING.spoilsPerRank;}
+/* Forge branch. */
+function craftCost(base){return Math.max(1,Math.round(base*(1-(META.upgrades.smithing||0)*UPGRADE_TUNING.smithingPerRank)));}
+function startingShards(){return (META.upgrades.forge_rite||0)*UPGRADE_TUNING.forgeShardsPerRank;}
+/* Scouting branch. Events roll their risky outcomes through eventRoll (good
+   outcome with chance p) and eventMishap (bad outcome with chance p). */
+function eventLuckBonus(){return (META.upgrades.scouting||0)*UPGRADE_TUNING.scoutLuckPerRank+((META.upgrades.pathfinder||0)?UPGRADE_TUNING.pathfinderLuck:0);}
+function eventRoll(p){return Math.random()<Math.min(UPGRADE_TUNING.eventLuckCap,p+eventLuckBonus());}
+function eventMishap(p){return Math.random()<Math.max(0,p-eventLuckBonus());}
+function eventGoldMult(){return 1+(META.upgrades.lookout_rite||0)*UPGRADE_TUNING.lookoutGoldPerRank;}
 function postBattleHealFrac(){return (META.upgrades.field_dressing||0)*UPGRADE_TUNING.fieldDressingPerRank;}
 function restHealFrac(){return UPGRADE_TUNING.restBase+(META.upgrades.mending_rite||0)*UPGRADE_TUNING.mendingPerRank;}
 function xpGainMult(){return 1+(META.upgrades.tutor||0)*UPGRADE_TUNING.tutorPerRank+(META.upgrades.drill_rite||0)*UPGRADE_TUNING.drillPerRank;}

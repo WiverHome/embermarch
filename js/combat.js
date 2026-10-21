@@ -523,6 +523,11 @@ function onCombatWin(){
   let baseGold=14+node.layer*5+randInt(0,10);
   if(RUN.modifiers&&RUN.modifiers.brokenWard)baseGold=Math.round(baseGold*1.2);
   baseGold=Math.round(baseGold*battleGoldMult());
+  /* Master Smith capstone: shards for every elite won. */
+  if(node.type==='elite'&&META.upgrades.master_forge){
+    RUN.shards=(RUN.shards||0)+UPGRADE_TUNING.masterForgeShards;
+    logCombat(M('Your smith strips the elite’s gear for parts: +'+UPGRADE_TUNING.masterForgeShards+' shards.','Кузнец в отряде разбирает снаряжение элиты: +'+UPGRADE_TUNING.masterForgeShards+' осколков.'));
+  }
   RUN.gold+=baseGold;
   const cards=buildRewardCards(node.layer);
   RUN.pendingReward={gold:baseGold,cards:cards,node:node};

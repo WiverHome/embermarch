@@ -830,12 +830,12 @@ const EVENTS = [
           ru:'Треснувшее святилище наполовину скрыто пеплом, его подношения давно остыли. Но камень всё ещё гудит.'},
     choices:[
       {label:{en:'Pray at the shrine',ru:'Помолиться у святилища'},resolve(run){
-        if(Math.random()<0.5){const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;return h.name+M(' feels the old blessing settle in. (+2 '+statAbbr(dt)+' this march)',' чувствует, как его коснулось старое благословение. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');}
+        if(eventRoll(0.5)){const h=randAlive(run.party);const dt=dmgTypeOf(h);h[dt]=(h[dt]||0)+2;return h.name+M(' feels the old blessing settle in. (+2 '+statAbbr(dt)+' this march)',' чувствует, как его коснулось старое благословение. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');}
         return M('Nothing answers. The shrine stays silent.','Никто не отвечает. Святилище молчит.');
       }},
       {label:{en:'Take what remains',ru:'Забрать оставшееся'},resolve(run){
         const g=15+Math.floor(Math.random()*16);run.gold+=g;
-        if(Math.random()<0.3){const h=randAlive(run.party);const dmg=5;h.hp=Math.max(1,h.hp-dmg);
+        if(eventMishap(0.3)){const h=randAlive(run.party);const dmg=5;h.hp=Math.max(1,h.hp-dmg);
           run.pendingChainEvent='shrine_ward';
           return M('A ward snaps. '+h.name+' takes '+dmg+' damage, but you found '+g+' gold. The broken ward leaves a lingering unease.','Оберег срабатывает. '+h.name+' получает '+dmg+' урона, но вы нашли '+g+' золота. Разбитый оберег оставляет тревожное чувство.');}
         return M('You gather '+g+' gold from the offering bowl.','Вы собираете '+g+' золота из чаши для подношений.');
@@ -1026,7 +1026,7 @@ const EVENTS = [
           ru:'Окованный железом сундук застрял между камнями, его замок давно проржавел.'},
     choices:[
       {label:{en:'Force it open',ru:'Взломать силой'},resolve(run){
-        if(Math.random()<0.6){
+        if(eventRoll(0.6)){
           const item=Math.random()<0.25?randomRelic():randomItem();
           run.pendingItemPickup=item;
           run.pendingChainEvent='cache_rival';
@@ -1050,7 +1050,7 @@ const EVENTS = [
         return M('The scavenger takes their cut and leaves without trouble.','Мародёр забирает свою долю и уходит без проблем.');
       }},
       {label:{en:'Stand your ground',ru:'Не уступать'},resolve(run){
-        if(Math.random()<0.5){
+        if(eventRoll(0.5)){
           const g=15+Math.floor(Math.random()*16);run.gold+=g;
           return M('The scavenger backs down and drops a purse in the scuffle. +'+g+' gold.','Мародёр отступает, роняя в потасовке кошель. +'+g+' золота.');
         }
@@ -1312,7 +1312,7 @@ const EVENTS = [
                  'Колокол уходит под воду с последним глухим звоном. Холодная вода жжёт, но '+h.name+' выходит из неё твёрже перед тем, что в ней шепчет. (+2 к маг. защите в этом походе)');
       }},
       {label:{en:'Search the barrow while the dead are distracted',ru:'Обыскать курган, пока мертвецы отвлечены'},resolve(run){
-        if(Math.random()<0.6){const g=22+Math.floor(Math.random()*16);run.gold+=g;return M('Grave-goods, still bright under the silt. +'+g+' gold.','Погребальные дары, всё ещё блестящие под илом. +'+g+' золота.');}
+        if(eventRoll(0.6)){const g=22+Math.floor(Math.random()*16);run.gold+=g;return M('Grave-goods, still bright under the silt. +'+g+' gold.','Погребальные дары, всё ещё блестящие под илом. +'+g+' золота.');}
         const h=randAlive(run.party);h.hp=Math.max(1,h.hp-8);
         return M('A drowned hand closes on '+h.name+"'s ankle before they tear free. -8 HP.",'Мёртвая рука смыкается на лодыжке героя '+h.name+', но он вырывается. -8 HP.');
       }},
@@ -1356,7 +1356,7 @@ const EVENTS = [
           ru:'Ночное небо горит зелёным. Под сиянием по снегу уходит цепочка следов, которой мгновение назад здесь не было.'},
     choices:[
       {label:{en:'Follow the footprints',ru:'Пойти по следам'},special:'item',resolve(run){
-        if(Math.random()<0.5){run.pendingItemPickup=randomRelic();return null;}
+        if(eventRoll(0.5)){run.pendingItemPickup=randomRelic();return null;}
         const h=randAlive(run.party);h.hp=Math.max(1,h.hp-10);
         return M('The trail ends at a cliff edge. '+h.name+' slips on the way back. -10 HP.','Следы обрываются у края обрыва. '+h.name+' срывается на обратном пути. -10 HP.');
       }},
@@ -1403,7 +1403,7 @@ const EVENTS = [
           ru:'Курганный сундук медленно сползает в трясину, вокруг крышки поднимаются пузыри. Через минуту он скроется.'},
     choices:[
       {label:{en:'Dive in after it',ru:'Нырнуть за ним'},special:'item',resolve(run){
-        if(Math.random()<0.55){run.pendingItemPickup=randomItem();return null;}
+        if(eventRoll(0.55)){run.pendingItemPickup=randomItem();return null;}
         const h=randAlive(run.party);h.hp=Math.max(1,h.hp-9);
         return M('The mud swallows the chest and nearly '+h.name+' with it. -9 HP.','Трясина проглатывает сундук и едва не утягивает героя '+h.name+'. -9 HP.');
       }},
@@ -1454,7 +1454,7 @@ const EVENTS = [
         return M('The leaves shiver. '+h.name+' feels the forest\'s hunger in their hands. (+2 '+statAbbr(dt)+' this march)','Листья вздрагивают. '+h.name+' чувствует в руках голод леса. (+2 к '+(dt==='int'?'интеллекту':'силе')+' в этом походе)');
       }},
       {label:{en:'Take the offering bowl',ru:'Забрать чашу с подношениями'},special:'item',resolve(run){
-        if(Math.random()<0.6){run.pendingItemPickup=Math.random()<0.3?randomRelic():randomItem();return null;}
+        if(eventRoll(0.6)){run.pendingItemPickup=Math.random()<0.3?randomRelic():randomItem();return null;}
         const h=randAlive(run.party);h.hp=Math.max(1,h.hp-8);
         return M('The vines lash out as you reach in. '+h.name+' tears free, empty-handed. -8 HP.','Лоза хлещет, едва вы тянетесь к чаше. '+h.name+' вырывается с пустыми руками. -8 HP.');
       }},
