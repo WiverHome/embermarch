@@ -71,7 +71,9 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
         s.setSupportMultipleWindows(false);
         s.setTextZoom(100);
-        s.setUserAgentString(s.getUserAgentString() + " EmbermarchAndroid/" + BuildConfig.VERSION_NAME);
+        // EmbermarchOffline: клиент (js/lang-api.js, OFFLINE_BUILD) запускается гостем без сервера
+        s.setUserAgentString(s.getUserAgentString() + " EmbermarchAndroid/" + BuildConfig.VERSION_NAME
+                + (BuildConfig.OFFLINE ? " EmbermarchOffline" : ""));
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
