@@ -121,9 +121,15 @@ function buildShopStock(layer){
     {kind:'elixir',price:20},
     {kind:'vigor',price:32},
   ];
+  if(META.upgrades.guild_charter)stock.splice(4,0,{kind:'item',item:randomItem(tier),price:0});
   const relicChance=(tier>=3?0.6:(tier===2?0.4:0.25))+relicChanceBonus();
   if(Math.random()<relicChance)stock.push({kind:'item',item:randomRelic(tier),price:0});
-  return stock.map(function(s){if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];return s;});
+  const mult=shopPriceMult();
+  return stock.map(function(s){
+    if(s.kind==='item')s.price=({common:20,rare:38,epic:70})[s.item.rarity];
+    s.price=Math.max(1,Math.round(s.price*mult));
+    return s;
+  });
 }
 function goldSuffix(){return M(' gold',' золота');}
 function renderShop(){

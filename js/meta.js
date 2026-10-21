@@ -9,7 +9,7 @@ const RUN_KEY='embermarch_run_v1';
 
 function defaultMeta(){
   return {embers:0,bestLayer:0,wins:0,ascensionUnlocked:0,ascensionChoice:0,
-    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0,fortune:0,fortune_rite:0,fortune_capstone:0,field_dressing:0,mending_rite:0,second_wind:0,tutor:0,drill_rite:0,old_masters:0},
+    upgrades:{packs:0,bones:0,favor:0,whetstone:0,boots:0,aegis:0,wardsigils:0,caravan:0,vitality_rite:0,bulwark:0,warding_rite:0,vanguard:0,legacy_ember:0,keen_edge:0,deadly_precision:0,lethal_calling:0,fortune:0,fortune_rite:0,fortune_capstone:0,field_dressing:0,mending_rite:0,second_wind:0,tutor:0,drill_rite:0,old_masters:0,haggler:0,spoils_rite:0,guild_charter:0},
     heroesUnlocked:{bram:true,sael:true,yvana:true,kest:true,ashra:false,doran:false,morwen:false,torvin:false},
     customHeroes:[],achievements:{},history:[],theme:'dark',
     seenHeroes:['bram','sael','yvana','kest'],seenAchievements:[],
@@ -120,8 +120,19 @@ const UPGRADE_DEFS = [
     requires:{key:'tutor',rank:3}},
   {key:'old_masters',name:{en:'Old Masters',ru:'Старые мастера'},desc:{en:'Capstone: every hero starts the march at level 2 (with a random perk)',ru:'Вершина ветки: каждый герой начинает поход со 2 уровня (со случайным бонусом)'},max:1,cost:function(){return 50;},
     requires:{key:'drill_rite',rank:2}},
+  /* Eighth branch, Trade: also march-only (shop prices, battle gold), so the
+     arena and fight parity are untouched. Numbers live in UPGRADE_TUNING. */
+  {key:'haggler',name:{en:'Haggler',ru:'Торговая жилка'},desc:{en:'Shop prices -5% per rank',ru:'Цены в лавке ниже на 5% за уровень'},max:3,cost:function(r){return 6+r*5;}},
+  {key:'spoils_rite',name:{en:'Rite of Spoils',ru:'Обряд трофеев'},desc:{en:'+10% gold from battles per rank',ru:'+10% золота за бои за уровень'},max:2,cost:function(r){return 20+r*12;},
+    requires:{key:'haggler',rank:3}},
+  {key:'guild_charter',name:{en:'Guild Charter',ru:'Грамота гильдии'},desc:{en:'Capstone: every shop has one more item, and its prices drop another 10%',ru:'Вершина ветки: в каждой лавке на один предмет больше, а цены ниже ещё на 10%'},max:1,cost:function(){return 45;},
+    requires:{key:'spoils_rite',rank:2}},
 ];
-const UPGRADE_TUNING={fieldDressingPerRank:0.03,restBase:0.35,mendingPerRank:0.10,secondWindHp:0.30,tutorPerRank:0.08,drillPerRank:0.12};
+const UPGRADE_TUNING={fieldDressingPerRank:0.03,restBase:0.35,mendingPerRank:0.10,secondWindHp:0.30,tutorPerRank:0.08,drillPerRank:0.12,
+  hagglerPerRank:0.05,spoilsPerRank:0.10,charterDiscount:0.10};
+/* Trade branch: shop price multiplier and battle gold multiplier. */
+function shopPriceMult(){return 1-(META.upgrades.haggler||0)*UPGRADE_TUNING.hagglerPerRank-((META.upgrades.guild_charter||0)?UPGRADE_TUNING.charterDiscount:0);}
+function battleGoldMult(){return 1+(META.upgrades.spoils_rite||0)*UPGRADE_TUNING.spoilsPerRank;}
 function postBattleHealFrac(){return (META.upgrades.field_dressing||0)*UPGRADE_TUNING.fieldDressingPerRank;}
 function restHealFrac(){return UPGRADE_TUNING.restBase+(META.upgrades.mending_rite||0)*UPGRADE_TUNING.mendingPerRank;}
 function xpGainMult(){return 1+(META.upgrades.tutor||0)*UPGRADE_TUNING.tutorPerRank+(META.upgrades.drill_rite||0)*UPGRADE_TUNING.drillPerRank;}

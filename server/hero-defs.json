@@ -814,7 +814,10 @@
   "second_wind": 1,
   "tutor": 3,
   "drill_rite": 2,
-  "old_masters": 1
+  "old_masters": 1,
+  "haggler": 3,
+  "spoils_rite": 2,
+  "guild_charter": 1
  },
  "upgradeCost": {
   "packs": [
@@ -919,6 +922,18 @@
   ],
   "old_masters": [
    50
+  ],
+  "haggler": [
+   6,
+   11,
+   16
+  ],
+  "spoils_rite": [
+   20,
+   32
+  ],
+  "guild_charter": [
+   45
   ]
  },
  "achievementReward": {

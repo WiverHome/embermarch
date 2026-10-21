@@ -522,6 +522,7 @@ function onCombatWin(){
   if(afterBattleRecovery())snapshotCombatLog();
   let baseGold=14+node.layer*5+randInt(0,10);
   if(RUN.modifiers&&RUN.modifiers.brokenWard)baseGold=Math.round(baseGold*1.2);
+  baseGold=Math.round(baseGold*battleGoldMult());
   RUN.gold+=baseGold;
   const cards=buildRewardCards(node.layer);
   RUN.pendingReward={gold:baseGold,cards:cards,node:node};
