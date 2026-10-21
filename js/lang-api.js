@@ -22,6 +22,10 @@ function M(en,ru){return LANG==='ru'?ru:en;}
    The game server also serves the game itself, so the API is always same-origin.
    Opened as a file there is no server: only offline guest play works. */
 const API_BASE=/^https?:$/.test(location.protocol)?location.origin+'/api':'/api';
+/* Offline build (Android APK built with offline=true in android/game.properties,
+   which marks the WebView user agent): there is no game server to reach, so the
+   game starts straight in guest mode and hides accounts and the arena. */
+const OFFLINE_BUILD=/\bEmbermarchOffline\b/.test((typeof navigator!=='undefined'&&navigator.userAgent)||'');
 
 let AUTH_TOKEN=null;      // in-memory only — never written to localStorage
 let CURRENT_USER=null;    // in-memory username of the logged-in player
@@ -270,6 +274,7 @@ function guestToRegister(){
   if(n&&guestHasProgress(loadGuestProgress()))n.textContent=M('Your guest progress will be moved into the new account.','Прогресс гостя будет перенесён в новый аккаунт.');
 }
 function attemptSessionRestore(){
+  if(OFFLINE_BUILD){startGuest();return;}
   let stored=null;
   try{stored=localStorage.getItem(AUTH_STORAGE_KEY);}catch(e){}
   let guestFlag=null;
@@ -359,7 +364,7 @@ function onAuthSubmit(e){
   }).catch(function(err){
     submitBtn.disabled=false;
     if(!err||err.status===undefined){
-      authSetError(M('Could not reach the server. This game requires a network connection to '+API_BASE+' — that may be blocked in this environment (e.g. a sandboxed preview). Try again later, or play offline as a guest.','Не удалось связаться с сервером. Игре нужен доступ к '+API_BASE+' — возможно, он заблокирован в этом окружении (например, в песочнице предпросмотра). Попробуйте позже или играйте офлайн как гость.'));
+      authSetError(M('Could not reach the game server. Check your connection and try again later, or play offline as a guest.','Не удалось связаться с сервером игры. Проверьте подключение и попробуйте позже или играйте офлайн как гость.'));
     }else if(err&&err.status===401){
       authSetError(M('Incorrect username or password.','Неверное имя пользователя или пароль.'));
     }else if(err&&err.status===403){

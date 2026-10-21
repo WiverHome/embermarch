@@ -38,7 +38,12 @@ function renderTitle(){
     if(CURRENT_USER)profileBtn.textContent='👤 '+CURRENT_USER;
   }
   const guestBtn=$('btn-guest-register');
-  if(guestBtn)guestBtn.hidden=!IS_GUEST;
+  if(guestBtn)guestBtn.hidden=!IS_GUEST||OFFLINE_BUILD;
+  const arenaBtn=$('btn-open-arena');
+  if(arenaBtn&&OFFLINE_BUILD){
+    arenaBtn.innerHTML=M('Arena','Арена')+'<span class="btn-sub">'+M('server temporarily unavailable','сервер временно недоступен')+'</span>';
+    arenaBtn.disabled=true;
+  }
   renderLangSwitch();
   show('screen-title');
 }
@@ -137,9 +142,14 @@ function flashPurchase(key,cost){
 function renderLegacy(){
   $('leg-embers').textContent=META.embers;
   const acctEl=$('legacy-account-user');
-  if(acctEl)acctEl.textContent=CURRENT_USER?M('Logged in as ','Вы вошли как ')+CURRENT_USER:(IS_GUEST?M('Guest mode: progress is kept only in this browser.','Гостевой режим: прогресс хранится только в этом браузере.'):'');
+  if(acctEl)acctEl.textContent=OFFLINE_BUILD
+    ?M('Offline version: progress is kept on this device. Accounts and the arena are unavailable while the game server is down.','Офлайн-версия: прогресс хранится на этом устройстве. Аккаунты и Арена недоступны, пока не работает сервер игры.')
+    :CURRENT_USER?M('Logged in as ','Вы вошли как ')+CURRENT_USER:(IS_GUEST?M('Guest mode: progress is kept only in this browser.','Гостевой режим: прогресс хранится только в этом браузере.'):'');
   const logoutBtn=$('btn-logout');
-  if(logoutBtn)logoutBtn.textContent=IS_GUEST?M('Leave guest mode','Выйти из гостевого режима'):L(STATIC_I18N['btn-logout']);
+  if(logoutBtn){
+    logoutBtn.textContent=IS_GUEST?M('Leave guest mode','Выйти из гостевого режима'):L(STATIC_I18N['btn-logout']);
+    logoutBtn.hidden=OFFLINE_BUILD;
+  }
   const up=$('leg-upgrades');up.innerHTML='';
   function reqMet(def){
     if(def.requires)return (META.upgrades[def.requires.key]||0)>=def.requires.rank;

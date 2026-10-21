@@ -332,6 +332,7 @@ function openArenaLeaderboard(){
   openModal(wrap);
 }
 function openArena(){
+  if(OFFLINE_BUILD)return;
   if(IS_GUEST){
     const wrap=el('div','stack');
     wrap.appendChild(el('h3','',M('Arena','Арена')));
