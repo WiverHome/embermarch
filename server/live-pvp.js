@@ -614,7 +614,9 @@ function attachLivePvp(opts) {
     if (existing && existing.ws && existing.ws.readyState === existing.ws.OPEN) {
       // Only one live connection per account; the new one wins (covers a stale
       // tab left open elsewhere). The old socket is closed, not the match.
-      try { existing.ws.close(4000, 'replaced_by_new_connection'); } catch (e) {}
+      // terminate, not close: a peer that never answers the close frame would
+      // otherwise hold a MAX_CONNECTIONS slot for the whole close timeout.
+      try { existing.ws.terminate(); } catch (e) {}
     }
     if (existing && existing.matchId && matches.has(existing.matchId)) {
       clearTimeout(matches.get(existing.matchId).disconnectTimer);

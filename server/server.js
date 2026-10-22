@@ -157,7 +157,15 @@ app.disable('x-powered-by');
 // and all players share a single bucket. Caddy replaces a client-sent
 // X-Forwarded-For with the real address, so the last hop can't be spoofed.
 app.set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS, 10) >= 0 ? parseInt(process.env.TRUST_PROXY_HOPS, 10) : 1);
-app.use(express.json({ limit: '600kb' }));
+// Request bodies: small everywhere; the two progress uploads take up to 600 KB,
+// parsed only after the session check (and limiter) on those routes, so a
+// request with a bad token never costs a 600 KB parse.
+const LARGE_BODY_PATH = /^\/api\/(progress|admin\/users\/\d+\/progress)$/;
+const smallJson = express.json({ limit: '64kb' });
+const largeJson = express.json({ limit: '600kb' });
+app.use(function (req, res, next) {
+  return LARGE_BODY_PATH.test(req.path) ? next() : smallJson(req, res, next);
+});
 
 app.use(cors(function (req, cb) {
   const origin = req.headers.origin;
@@ -220,6 +228,8 @@ function asyncRoute(fn) {
   };
 }
 
+const DUMMY_HASH = bcrypt.hashSync('embermarch-no-such-user', 10);
+
 function signToken(user) {
   return jwt.sign({ sub: user.id, username: user.username, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: '30d' });
 }
@@ -280,11 +290,10 @@ app.post('/api/login', authLimiter, asyncRoute(async function (req, res) {
   const password = (req.body && req.body.password || '');
 
   const user = stmts.findUserByName.get(username);
-  // Generic error for both "no such user" and "wrong password" — never leak which one.
-  if (!user) return err(res, 401, 'Invalid username or password.');
-
-  const ok = await bcrypt.compare(String(password), user.password_hash);
-  if (!ok) return err(res, 401, 'Invalid username or password.');
+  // Generic error for both "no such user" and "wrong password" — never leak which
+  // one, by timing either: an unknown name still costs one bcrypt comparison.
+  const ok = await bcrypt.compare(String(password), user ? user.password_hash : DUMMY_HASH);
+  if (!user || !ok) return err(res, 401, 'Invalid username or password.');
   if (user.banned) return err(res, 403, 'This account is banned.');
 
   const token = signToken(user);
@@ -356,7 +365,7 @@ app.get('/api/progress', requireAuth, accountLimiter, function (req, res) {
   res.json(data);
 });
 
-app.put('/api/progress', requireAuth, accountLimiter, function (req, res) {
+app.put('/api/progress', requireAuth, accountLimiter, largeJson, function (req, res) {
   const body = req.body;
   if (body === undefined || body === null || typeof body !== 'object' || Array.isArray(body)) {
     return err(res, 400, 'Body must be a JSON object.');
@@ -518,7 +527,7 @@ const liveHooks = {};
 attachAdmin({
   app: app, db: db, requireAuth: requireAuth, err: err, adminUserId: adminUserId, jwtSecret: JWT_SECRET,
   usernameRe: USERNAME_RE, passwordMinLen: PASSWORD_MIN_LEN, passwordMaxLen: PASSWORD_MAX_LEN,
-  progressMaxBytes: PROGRESS_MAX_BYTES, live: liveHooks, progressGuard: progressGuard,
+  progressMaxBytes: PROGRESS_MAX_BYTES, live: liveHooks, progressGuard: progressGuard, largeJson: largeJson,
 });
 
 // The game client itself (index.html, js/, audio/ ...): see static.js.

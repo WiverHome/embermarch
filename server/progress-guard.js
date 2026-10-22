@@ -121,26 +121,30 @@ function startEntries(N, now) {
    and the Ascension its wins opened. Oldest first, each played win opens one
    more level (a weekly challenge runs at WEEKLY_ASCENSION for everyone). */
 function startEvidence(N, now) {
-  let unlocked = 0, embers = 0;
+  let unlocked = 0, embers = 0, prevWin = false;
+  // Endless March is only offered right after a won march and ends in the next entry.
+  const depthMax = intIn(N.bestEndlessDepth, 0, ENDLESS_DEPTH_MAX);
   startEntries(N, now).forEach(function (e) {
     const weekly = proofOf(e).weekly === true && num(e.ascension) === WEEKLY_ASCENSION;
     const asc = weekly ? WEEKLY_ASCENSION : intIn(e.ascension, 0, unlocked);
     const win = playedWin(e);
-    embers += entryEmbers(e, win, asc);
+    const depth = !win && prevWin ? Math.min(intIn(e.endlessDepth, 0, depthMax), intIn(obj(e.stats).battles, 0, ENDLESS_DEPTH_MAX)) : 0;
+    embers += entryEmbers(e, win, asc, depth);
     if (win) unlocked = Math.min(ASCENSION_MAX, Math.max(unlocked, asc + 1));
+    prevWin = win;
   });
   return { embers: embers, maxAsc: unlocked };
 }
 
-// Embers a march entry may account for; asc is the Ascension already judged plausible.
-function entryEmbers(e, win, asc) {
+// Embers a march entry may account for; asc is the Ascension already judged
+// plausible, depth the Endless depth. The history entry holds only the march
+// payout: a challenge bonus is paid on top of it (js/util.js), so it is added.
+function entryEmbers(e, win, asc, depth) {
   const p = proofOf(e);
   const kind = win ? 'win' : 'loss';
-  let cap = win ? 15 + 2 * TOTAL_STEPS + 3 * asc
-    : 6 + Math.floor(1.5 * asc) + 3 * intIn(e.endlessDepth, 0, ENDLESS_DEPTH_MAX);
-  if (p.weekly === true) cap += WEEKLY_BONUS[kind];
-  else if (p.daily === true) cap += DAILY_BONUS[kind];
-  return Math.min(intIn(e.embers, 0, EMBERS_MAX), cap);
+  const cap = win ? 15 + 2 * TOTAL_STEPS + 3 * asc : 6 + Math.floor(1.5 * asc) + 3 * depth;
+  const bonus = p.weekly === true ? WEEKLY_BONUS[kind] : p.daily === true ? DAILY_BONUS[kind] : 0;
+  return Math.min(intIn(e.embers, 0, EMBERS_MAX), cap) + bonus;
 }
 
 /* Rules: run(entries, wins, ctx) judged on the march entries new in this save
@@ -276,7 +280,8 @@ function attachProgressGuard(opts) {
       try { credited = JSON.parse(row.credited); } catch (e) { credited = []; }
       if (!Array.isArray(credited)) credited = [];
     } else {
-      budget = S ? EMBER_BUDGET_CAP : start.embers + NEW_ACCOUNT_EXTRA;
+      // Never more than the old flat allowance (every upgrade plus a full budget).
+      budget = S ? EMBER_BUDGET_CAP : Math.min(start.embers + NEW_ACCOUNT_EXTRA, upgradesCost(DEFS.upgradeMax) + EMBER_BUDGET_CAP);
       credited = S ? earnedAchievements(S) : [];
     }
 

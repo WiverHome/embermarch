@@ -54,7 +54,7 @@ function pageHeaders(html) {
 }
 
 function attachAdmin(opts) {
-  const { app, db, requireAuth, err, adminUserId, jwtSecret, usernameRe, passwordMinLen, passwordMaxLen, progressMaxBytes, live, progressGuard } = opts;
+  const { app, db, requireAuth, err, adminUserId, jwtSecret, usernameRe, passwordMinLen, passwordMaxLen, progressMaxBytes, live, progressGuard, largeJson } = opts;
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS admin_log (
@@ -309,7 +309,7 @@ function attachAdmin(opts) {
     res.json({ progress: saved, summary: summary(saved) });
   });
 
-  app.put('/api/admin/users/:id/progress', guard, function (req, res) {
+  app.put('/api/admin/users/:id/progress', guard, largeJson, function (req, res) {
     const u = targetUser(req, res); if (!u) return;
     const p = req.body && req.body.progress;
     if (!p || typeof p !== 'object' || Array.isArray(p)) return err(res, 400, 'progress must be a JSON object.');
