@@ -64,7 +64,7 @@ const HERO_DEFS = {
   yvana:{key:'yvana',name:{en:'Yvana',ru:'Ивана'},cls:{en:'Cleric',ru:'Жрица'},icon:'Y',color:'#8fb08a',baseHp:27,baseStr:0,baseInt:5,baseDef:4,baseSpd:6,defaultRow:'back',cost:0,
     abilities:[
       {id:'smite',name:{en:'Smite',ru:'Кара'},cd:0,reach:'ranged',targets:'single',type:'damage',mult:0.85,desc:{en:'Any foe',ru:'По любому врагу'}},
-      {id:'mend',name:{en:'Mend',ru:'Исцеление'},cd:0,reach:'any',targets:'single-ally',type:'heal',mult:0.8,flat:5,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
+      {id:'mend',name:{en:'Mend',ru:'Исцеление'},cd:0,reach:'any',targets:'single-ally',type:'heal',mult:1,flat:7,desc:{en:'Heal one ally',ru:'Лечит союзника'}},
       {id:'wave',name:{en:'Radiant Wave',ru:'Волна света'},cd:3,reach:'any',targets:'all-ally',type:'heal',mult:0.35,flat:4,desc:{en:'Heal company',ru:'Лечит весь отряд'}},
       {id:'sanctuary',name:{en:'Sanctuary',ru:'Святилище'},cd:5,minLevel:7,reach:'any',targets:'single-ally',type:'heal',mult:1.4,flat:14,desc:{en:'Ultimate: near-full heal on one ally (Lv7)',ru:'Ульта: почти полное исцеление союзника (Ур.7)'}},
     ]},

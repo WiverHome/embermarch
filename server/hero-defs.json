@@ -227,8 +227,8 @@
      "reach": "any",
      "targets": "single-ally",
      "type": "heal",
-     "mult": 0.8,
-     "flat": 5,
+     "mult": 1,
+     "flat": 7,
      "desc": {
       "en": "Heal one ally",
       "ru": "Лечит союзника"
