@@ -1,0 +1,8 @@
+# Embermarch behind Caddy (HTTPS certificates are obtained and renewed by Caddy itself).
+# Add this block to /etc/caddy/Caddyfile, then: caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+game.example.com {
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000"
+	# The game, /api and the live PvP WebSocket (/api/arena/live) are all served by the Node service
+	reverse_proxy 127.0.0.1:4000
+}

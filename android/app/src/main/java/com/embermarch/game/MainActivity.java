@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -31,6 +32,10 @@ import java.util.Map;
  * Клиент игры лежит в assets/www и отдаётся под происхождением сервера игры
  * (BuildConfig.GAME_ORIGIN). Поэтому location.origin и API_BASE в клиенте
  * совпадают с сервером: /api и WebSocket уходят в сеть, всё остальное читается из APK.
+ *
+ * Если адрес сервера сменился (BuildConfig.LEGACY_ORIGIN), localStorage остался под
+ * прежним происхождением: при первом запуске он один раз копируется под новое
+ * (пустые страницы MIGRATE_PATH отдаются из APK, сеть не нужна).
  */
 public class MainActivity extends Activity {
 
@@ -47,14 +52,27 @@ public class MainActivity extends Activity {
         MIME.put("mp3", "audio/mpeg");
     }
 
+    private static final String MIGRATE_PATH = "/__migrate.html";
+    private static final String PREF_MIGRATED = "legacyStorageMigrated";
+    /** Всё содержимое localStorage одной JSON-строкой; null, если пусто. */
+    private static final String DUMP_JS = "(function(){var o={},n=0;for(var i=0;i<localStorage.length;i++)"
+            + "{var k=localStorage.key(i);o[k]=localStorage.getItem(k);n++;}return n?JSON.stringify(o):null;})()";
+    /** Переносит ключи, которых ещё нет под новым адресом (новое не затирается). */
+    private static final String RESTORE_JS = "(function(d){var o=JSON.parse(d);for(var k in o)"
+            + "{if(localStorage.getItem(k)===null)localStorage.setItem(k,o[k]);}return true;})";
+
     private WebView webView;
     private Uri origin;
+    private Uri legacy;
+    private int migrateStep;
+    private String legacyDump;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         origin = Uri.parse(BuildConfig.GAME_ORIGIN);
+        legacy = BuildConfig.LEGACY_ORIGIN.isEmpty() ? null : Uri.parse(BuildConfig.LEGACY_ORIGIN);
 
         webView = new WebView(this);
         webView.setBackgroundColor(Color.parseColor("#0c0a0d"));
@@ -88,6 +106,11 @@ public class MainActivity extends Activity {
                 openExternal(u);
                 return true;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                onMigratePageFinished(Uri.parse(url));
+            }
         });
 
         // Старый service worker с этого происхождения не должен перехватывать запросы
@@ -100,20 +123,70 @@ public class MainActivity extends Activity {
             });
         }
 
-        if (savedInstanceState != null) webView.restoreState(savedInstanceState);
-        else webView.loadUrl(BuildConfig.GAME_ORIGIN + "/");
+        if (legacy != null && !prefs().getBoolean(PREF_MIGRATED, false)) {
+            // перенос не закончен (в том числе если его прервал поворот экрана) - начать заново
+            migrateStep = 1;
+            webView.loadUrl(BuildConfig.LEGACY_ORIGIN + MIGRATE_PATH);
+        } else if (savedInstanceState != null) {
+            webView.restoreState(savedInstanceState);
+        } else {
+            loadGame();
+        }
+    }
+
+    private void loadGame() {
+        webView.loadUrl(BuildConfig.GAME_ORIGIN + "/");
+    }
+
+    private SharedPreferences prefs() {
+        return getSharedPreferences("embermarch", MODE_PRIVATE);
+    }
+
+    /** Шаг 1: прочитать localStorage прежнего адреса; шаг 2: записать под новым. */
+    private void onMigratePageFinished(Uri u) {
+        if (!MIGRATE_PATH.equals(u.getPath())) return;
+        if (migrateStep == 1 && sameOrigin(u, legacy)) {
+            migrateStep = 2;
+            webView.evaluateJavascript(DUMP_JS, dump -> {
+                legacyDump = dump;
+                webView.loadUrl(BuildConfig.GAME_ORIGIN + MIGRATE_PATH);
+            });
+        } else if (migrateStep == 2 && isGameOrigin(u)) {
+            migrateStep = 0;
+            String dump = legacyDump;
+            legacyDump = null;
+            if (dump == null || "null".equals(dump)) {
+                finishMigration();
+                return;
+            }
+            // dump - строковый литерал JSON, его можно подставить в JS как есть
+            webView.evaluateJavascript(RESTORE_JS + "(" + dump + ")", r -> finishMigration());
+        }
+    }
+
+    private void finishMigration() {
+        prefs().edit().putBoolean(PREF_MIGRATED, true).apply();
+        loadGame();
     }
 
     private boolean isGameOrigin(Uri u) {
-        return u != null
+        return sameOrigin(u, origin);
+    }
+
+    private static boolean sameOrigin(Uri u, Uri o) {
+        return u != null && o != null
                 && "https".equals(u.getScheme())
-                && origin.getHost().equalsIgnoreCase(u.getHost())
-                && origin.getPort() == u.getPort();
+                && o.getHost().equalsIgnoreCase(u.getHost())
+                && o.getPort() == u.getPort();
     }
 
     /** Файл клиента из APK; null - запрос идёт в сеть (/api, /admin, внешние ресурсы). */
     private WebResourceResponse serveLocal(WebResourceRequest req) {
         Uri u = req.getUrl();
+        if (MIGRATE_PATH.equals(u.getPath()) && (isGameOrigin(u) || sameOrigin(u, legacy))) {
+            return new WebResourceResponse("text/html", "UTF-8",
+                    new java.io.ByteArrayInputStream("<!doctype html><meta charset=utf-8>".getBytes()));
+        }
         if (!isGameOrigin(u) || !"GET".equalsIgnoreCase(req.getMethod())) return null;
         String path = u.getPath();
         if (path == null || path.isEmpty() || "/".equals(path)) path = "/index.html";

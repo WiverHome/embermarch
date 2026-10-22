@@ -306,7 +306,8 @@ function fetchArenaOpponent(){
   }).catch(function(e){
     ARENA_BUSY=false;
     body.innerHTML='';
-    body.appendChild(el('div','',"<span style='color:var(--danger);'>"+((e&&e.body&&e.body.error)||M('No opponents available yet — try again later.','Пока нет соперников — попробуйте позже.'))+"</span>"));
+    /* 404 = nobody else has a champion yet (e.g. a fresh server): say it in the player's language */
+    body.appendChild(el('div','',"<span style='color:var(--danger);'>"+((e&&e.status!==404&&e.body&&e.body.error)||M('No opponents available yet — try again later.','Пока нет соперников — попробуйте позже.'))+"</span>"));
     const back=el('button','',M('Back','Назад'));
     back.addEventListener('click',function(){ARENA_VIEW='hub';renderArenaBody();});
     body.appendChild(back);

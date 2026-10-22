@@ -300,6 +300,9 @@ function attemptSessionRestore(){
     }
     AUTH_TOKEN=null;CURRENT_USER=null;
     persistAuthToken(null);
+    /* Old session from a server that is gone, but the player kept going as a guest
+       (offline APK 1.1.1): continue with that guest progress instead of a login wall. */
+    if(err&&err.status===401&&guestFlag&&guestHasProgress(loadGuestProgress())){startGuest();return;}
     renderAuthScreen();
     if(err&&err.status===401){
       authSetError(M('Your session expired — please log in again.','Сессия истекла — войдите снова.'));
