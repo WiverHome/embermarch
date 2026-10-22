@@ -69,7 +69,7 @@
 ## Как проверять
 - Синтаксис клиента (без браузера): `for f in js/*.js sw.js; do node --check "$f"; done`; полная загрузка всех скриптов в Node: `node -e "require('./tools/load-client').loadClient({quiet:true})"`
 - Синтаксис сервера: `for f in server/*.js; do node --check "$f"; done`
-- Запуск сервера локально: `cd server && cp .env.example .env && npm install && npm start` (порт 4000): он же раздаёт игру из корня репозитория, открывай http://localhost:4000. В превью - конфигурация `game-server` из `.claude/launch.json` (временная база в scratchpad).
+- Запуск сервера локально: `cd server && cp .env.example .env && npm install && npm start` (порт 4000; в `.env` задай случайный `JWT_SECRET` от 32 символов - с шаблонным сервер не стартует): он же раздаёт игру из корня репозитория, открывай http://localhost:4000. В превью - конфигурация `game-server` из `.claude/launch.json` (временная база в scratchpad).
 - Паритет клиента и сервера: `node tools/parity-check.js --duels 1000 --equip` (обязательно после правок боя, героев и `champion.js`; должно быть «all identical»). Движок общий, так что проверка ловит в основном расхождения обёрток и сборки чемпионов арены.
 - Баланс (бот играет целые походы на настоящем коде клиента): `node tools/balance-sim.js --runs 100 --asc 0,2,4 --meta fresh,mid,max`; кривая прогрессии нового аккаунта: `node tools/balance-sim.js --career 30`. `tools/load-client.js` грузит скрипты из `<script src>` index.html в один Node-контекст с заглушкой DOM.
 - Игру открывает локальный сервер (http://localhost:4000) или `index.html` в браузере (тогда API - прод). Автотестов нет: визуальную проверку делаю я, в конце перечисли, что именно посмотреть.

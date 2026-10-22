@@ -9,7 +9,7 @@
  * never trusted — the server recomputes everything.
  *
  * Transport: a `ws` WebSocket server mounted at /api/arena/live, upgraded
- * only for connections presenting a valid session JWT as ?token=... (same
+ * only for connections presenting a valid session JWT as a subprotocol (same
  * JWT_SECRET/signToken as the rest of the API). One socket per connected
  * player; a player can only be in one queue/match at a time.
  *
@@ -38,20 +38,21 @@ const MAX_MESSAGE_BYTES = 16 * 1024; // largest client frame accepted; real mess
 const MSG_BURST = 20;                // per-socket token bucket: burst size...
 const MSG_REFILL_PER_SEC = 5;        // ...and sustained rate; a socket that empties it is closed
 const HEARTBEAT_MS = 30 * 1000;      // ping interval; a socket that misses one pong is dropped
+const MAX_CONNECTIONS = 1000;        // open sockets in total; upgrades past it are refused
+/* Rating farming between two accounts of one player: only the first few
+   results of the same pair per day move rating, and a win by forfeit or
+   disconnect never pays the winner (the loser still loses). */
+const PAIR_RATED_PER_DAY = 3;
+const PAIR_WINDOW_MS = 24 * 60 * 60 * 1000;
 /* The session token travels as a WebSocket subprotocol next to this marker
    (Sec-WebSocket-Protocol: embermarch, <jwt>), not in the URL, so it never
    lands in proxy access logs. */
 const WS_PROTOCOL = 'embermarch';
 
-/* Token from the subprotocol header; the ?token= query is the old form, kept
-   only so clients still running a cached older build can connect. */
-function upgradeToken(req, url) {
+function upgradeToken(req) {
   const offered = String(req.headers['sec-websocket-protocol'] || '').split(',').map(function (p) { return p.trim(); });
-  if (offered.indexOf(WS_PROTOCOL) !== -1) {
-    const tok = offered.find(function (p) { return p && p !== WS_PROTOCOL; });
-    if (tok) return tok;
-  }
-  return url.searchParams.get('token');
+  if (offered.indexOf(WS_PROTOCOL) === -1) return '';
+  return offered.find(function (p) { return p && p !== WS_PROTOCOL; }) || '';
 }
 
 function eloExpected(a, b) { return 1 / (1 + Math.pow(10, (b - a) / 400)); }
@@ -85,6 +86,14 @@ function attachLivePvp(opts) {
       if (!ws.isAlive) { ws.terminate(); return; }
       ws.isAlive = false;
       try { ws.ping(); } catch (e) {}
+    });
+    // Expired invite codes nobody redeemed or cancelled.
+    const now = Date.now();
+    invites.forEach(function (inv, code) {
+      if (inv.expiresAt >= now) return;
+      invites.delete(code);
+      const c = conns.get(inv.userId);
+      if (c && c.inviteCode === code) c.inviteCode = null;
     });
   }, HEARTBEAT_MS);
   if (heartbeat.unref) heartbeat.unref();
@@ -229,17 +238,29 @@ function attachLivePvp(opts) {
     const heroChamp = stmts.getChampion.get(heroUserId);
     const enemyChamp = stmts.getChampion.get(enemyUserId);
     let heroDelta = 0, enemyDelta = 0, heroNewRating = heroChamp ? heroChamp.rating : 1000, enemyNewRating = enemyChamp ? enemyChamp.rating : 1000;
+    let unrated = false;
     if (heroChamp && enemyChamp) {
-      heroDelta = eloDelta(heroChamp.rating, enemyChamp.rating, heroWon);
-      enemyDelta = eloDelta(enemyChamp.rating, heroChamp.rating, !heroWon);
-      heroNewRating = Math.max(0, heroChamp.rating + heroDelta);
-      enemyNewRating = Math.max(0, enemyChamp.rating + enemyDelta);
-      stmts.setRatingStats.run(heroNewRating, heroChamp.wins + (heroWon ? 1 : 0), heroChamp.losses + (heroWon ? 0 : 1), heroUserId);
-      stmts.setRatingStats.run(enemyNewRating, enemyChamp.wins + (heroWon ? 0 : 1), enemyChamp.losses + (heroWon ? 1 : 0), enemyUserId);
+      const now = Date.now();
+      const lo = Math.min(heroUserId, enemyUserId), hi = Math.max(heroUserId, enemyUserId);
+      stmts.purgePairResults.run(now - PAIR_WINDOW_MS);
+      unrated = stmts.countPairResults.get(lo, hi, now - PAIR_WINDOW_MS).n >= PAIR_RATED_PER_DAY;
+      if (!unrated) {
+        stmts.logPairResult.run(lo, hi, now);
+        // Forfeit / disconnect: the winner gets nothing, so throwing a match feeds no one.
+        const paysWinner = reason !== 'forfeit' && reason !== 'disconnect';
+        heroDelta = eloDelta(heroChamp.rating, enemyChamp.rating, heroWon);
+        enemyDelta = eloDelta(enemyChamp.rating, heroChamp.rating, !heroWon);
+        if (!paysWinner) { if (heroWon) heroDelta = 0; else enemyDelta = 0; }
+        heroNewRating = Math.max(0, heroChamp.rating + heroDelta);
+        enemyNewRating = Math.max(0, enemyChamp.rating + enemyDelta);
+        const heroWin = heroWon && paysWinner ? 1 : 0, enemyWin = !heroWon && paysWinner ? 1 : 0;
+        stmts.setRatingStats.run(heroNewRating, heroChamp.wins + heroWin, heroChamp.losses + (heroWon ? 0 : 1), heroUserId);
+        stmts.setRatingStats.run(enemyNewRating, enemyChamp.wins + enemyWin, enemyChamp.losses + (heroWon ? 1 : 0), enemyUserId);
+      }
     }
 
-    sendSide(match, 'hero', { type: 'match_end', result: heroWon ? 'win' : 'loss', reason: reason, ratingDelta: heroDelta, newRating: heroNewRating });
-    sendSide(match, 'enemy', { type: 'match_end', result: heroWon ? 'loss' : 'win', reason: reason, ratingDelta: enemyDelta, newRating: enemyNewRating });
+    sendSide(match, 'hero', { type: 'match_end', result: heroWon ? 'win' : 'loss', reason: reason, ratingDelta: heroDelta, newRating: heroNewRating, unrated: unrated });
+    sendSide(match, 'enemy', { type: 'match_end', result: heroWon ? 'loss' : 'win', reason: reason, ratingDelta: enemyDelta, newRating: enemyNewRating, unrated: unrated });
     releasePlayers(match);
   }
 
@@ -469,6 +490,7 @@ function attachLivePvp(opts) {
     if (msg.type === 'invite_create') {
       if (c.matchId) return send(userId, { type: 'error', message: 'Already in a match.' });
       if (!stmts.getChampion.get(userId)) return send(userId, { type: 'error', message: 'Save a champion before dueling.' });
+      if (c.inviteCode) invites.delete(c.inviteCode); // one open code per player
       const code = makeInviteCode();
       invites.set(code, { userId: userId, expiresAt: Date.now() + INVITE_CODE_TTL_MS });
       c.inviteCode = code;
@@ -573,8 +595,9 @@ function attachLivePvp(opts) {
   server.on('upgrade', function (req, socket, head) {
     let url;
     try { url = new URL(req.url, 'http://localhost'); } catch (e) { socket.destroy(); return; }
-    if (url.pathname !== '/api/arena/live') return; // not ours; let other upgrade handlers (if any) see it
-    const token = upgradeToken(req, url);
+    // The only upgrade endpoint on this server: anything else is closed, not left hanging.
+    if (url.pathname !== '/api/arena/live' || wss.clients.size >= MAX_CONNECTIONS) { socket.destroy(); return; }
+    const token = upgradeToken(req);
     let payload;
     try { payload = jwt.verify(token, JWT_SECRET); } catch (e) { socket.destroy(); return; }
     if (!payload || payload.typ || payload.sub == null) { socket.destroy(); return; }

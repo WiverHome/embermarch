@@ -166,10 +166,12 @@ function attachAdmin(opts) {
     const password = String(req.body && req.body.password || '');
     const user = username && password.length <= passwordMaxLen ? q.authUser.get(username) : null;
     // Same bcrypt work whether or not the name exists: timing doesn't reveal accounts.
-    const ok = bcrypt.compareSync(password, user ? user.password_hash : DUMMY_HASH) && !!user;
-    if (!ok || user.id !== adminUserId || user.banned) return err(res, 401, 'Invalid username or password.');
-    const token = jwt.sign({ sub: user.id, typ: 'admin', tv: user.token_version || 0 }, jwtSecret, { expiresIn: ADMIN_TOKEN_TTL });
-    res.json({ token: token });
+    // Async so a burst of attempts doesn't stall every other request.
+    bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH).then(function (match) {
+      if (!match || !user || user.id !== adminUserId || user.banned) return err(res, 401, 'Invalid username or password.');
+      const token = jwt.sign({ sub: user.id, typ: 'admin', tv: user.token_version || 0 }, jwtSecret, { expiresIn: ADMIN_TOKEN_TTL });
+      res.json({ token: token });
+    }).catch(function () { err(res, 500, 'Server error.'); });
   });
 
   function audit(req, targetId, action, details) {

@@ -28,12 +28,12 @@ def appVersionName = (project.findProperty('versionName') ?: '1.0') as String
 
 android {
     namespace 'com.embermarch.game'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.embermarch.game'
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode appVersionCode
         versionName appVersionName
         buildConfigField 'String', 'GAME_ORIGIN', "\"${gameOrigin}\""

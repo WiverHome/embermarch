@@ -223,12 +223,14 @@ function attachProgressGuard(opts) {
    */
   function check(userId, stored, incoming, nowMs) {
     const now = nowMs || Date.now();
+    const row = q.get.get(userId);
     // Registration stores an empty progress row: nothing earned yet counts as new.
-    const S = stored && !isFresh(obj(stored)) ? obj(stored) : null;
+    // Only the very first checked save is a start upload (S null): once the guard
+    // has a row, an empty stored copy is judged like any other.
+    const S = row ? obj(stored) : (stored && !isFresh(obj(stored)) ? obj(stored) : null);
     const N = incoming;
     const details = [];
 
-    const row = q.get.get(userId);
     let budget, credited;
     if (row) {
       budget = Math.min(EMBER_BUDGET_CAP, row.budget + Math.max(0, now - row.budget_at) / 60000 * EMBER_RATE_PER_MIN);

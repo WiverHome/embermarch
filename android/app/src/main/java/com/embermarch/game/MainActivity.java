@@ -79,6 +79,7 @@ public class MainActivity extends Activity {
         setContentView(webView);
         enterImmersive();
         applyCutoutInsets();
+        registerBackCallback();
 
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -284,9 +285,21 @@ public class MainActivity extends Activity {
         webView.onResume();
     }
 
+    /** Android 13+: «назад» приходит сюда (enableOnBackInvokedCallback в манифесте; с targetSdk 36 onBackPressed не вызывается). */
+    private void registerBackCallback() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
+        }
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void onBackPressed() {
+        handleBack();
+    }
+
+    private void handleBack() {
         // Игра одностраничная: «назад» закрывает модальное окно (обязательное - не трогает),
         // а без окна сворачивает приложение
         webView.evaluateJavascript(

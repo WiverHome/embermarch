@@ -568,6 +568,7 @@ function liveOnMatchEnd(msg){
   snapshotCombatLog();
   const ratingText=(typeof msg.ratingDelta==='number'&&msg.ratingDelta!==0)
     ? (msg.ratingDelta>=0?'+':'')+msg.ratingDelta+M(' rating (now ',' рейтинга (теперь ')+msg.newRating+')'
+    : msg.unrated ? M('No rating change: you have already fought this opponent several times today.','Рейтинг не изменился: с этим соперником сегодня уже было несколько боёв.')
     : null;
   setTimeout(function(){
     RUN=null;
