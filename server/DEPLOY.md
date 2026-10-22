@@ -1,8 +1,8 @@
 # Развёртывание Embermarch backend на сервере
 
 Инструкция рассчитана на обычный Linux VPS (Ubuntu/Debian-стиль), где уже
-установлен Node.js (18+). Схема: systemd + nginx + Let's Encrypt, отдельный
-сервис со своей SQLite-базой.
+установлен Node.js (18+; на Debian — `apt install --no-install-recommends nodejs`). Схема: systemd + Caddy (или nginx + Let's Encrypt), отдельный
+сервис со своим пользователем и SQLite-базой.
 
 Домен в этой инструкции условный: **`game.example.com`**. Замените его
 везде ниже на свой. В коде игры адрес не записан: клиент обращается к API на том же домене.
@@ -53,19 +53,21 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 Вставьте результат в `.env`. Игра открывается с самого домена сервера, так что
 свои запросы разрешены всегда, и `ALLOWED_ORIGINS` обычно можно оставить пустым.
 
-## 3. Путь к SQLite-файлу и права
+## 3. Пользователь, база и права
 
-По умолчанию `DB_PATH=./data/embermarch.sqlite` — файл и папка `data/`
-создаются автоматически при первом запуске. Убедитесь, что пользователь,
-от которого будет работать сервис (см. ниже), имеет право на запись в
-`/opt/embermarch-server/data/`:
+Сервис работает от своего системного пользователя `embermarch` без входа в
+систему. Код остаётся владельцем `root` и только читается; писать сервис может
+лишь в `/var/lib/embermarch/` (её создаёт systemd, `StateDirectory`).
 
 ```bash
-sudo mkdir -p /opt/embermarch-server/data
-sudo chown -R www-data:www-data /opt/embermarch-server
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin embermarch
+sudo chown -R root:root /opt/embermarch-server
+sudo chown root:embermarch /opt/embermarch-server/.env
+sudo chmod 640 /opt/embermarch-server/.env
 ```
 
-(Замените `www-data` на пользователя, под которым должен работать сервис.)
+В `.env` укажите `DB_PATH=/var/lib/embermarch/embermarch.sqlite` и
+`HOST=127.0.0.1` (наружу порт открывает только обратный прокси).
 
 ## 4. systemd-юнит
 
@@ -79,26 +81,26 @@ sudo systemctl enable --now embermarch-server
 sudo systemctl status embermarch-server
 ```
 
-Проверьте, что в юните путь `WorkingDirectory` и пользователь (`User=`)
-соответствуют тому, куда вы скопировали папку на шаге 1 — при необходимости
-отредактируйте перед `daemon-reload`.
+Юнит ограничивает сервис: код только для чтения (`ProtectSystem=strict`), без
+повышения прав (`NoNewPrivileges`), память до 300 МБ.
 
-## 5. nginx reverse proxy + TLS
+## 5. Обратный прокси и HTTPS
 
-Пример конфигурации — в приложенном файле `embermarch-nginx.conf`.
-Скопируйте его в конфиг nginx и подключите:
+**Caddy** (сертификаты получает сам): добавьте блок из `embermarch.Caddyfile`
+в `/etc/caddy/Caddyfile`, затем
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+**nginx**: пример — в `embermarch-nginx.conf`.
 
 ```bash
 sudo cp embermarch-nginx.conf /etc/nginx/sites-available/game.example.com
 sudo ln -s /etc/nginx/sites-available/game.example.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
-```
-
-Затем выпустите TLS-сертификат через certbot (сам certbot здесь не
-запускается — выполните команду вручную на сервере):
-
-```bash
 sudo certbot --nginx -d game.example.com
 ```
 
@@ -106,7 +108,7 @@ sudo certbot --nginx -d game.example.com
 
 **Это можете сделать только вы** — у вашего DNS-провайдера добавьте A-запись (и AAAA, если у сервера есть
 IPv6) для `embermarch` (то есть `game.example.com`), указывающую
-на IP-адрес этого сервера. Без этого шага certbot из пункта 5 не сможет
+на IP-адрес этого сервера. Без этого шага Caddy или certbot из пункта 5 не смогут
 подтвердить домен.
 
 ## 7. Проверка, что всё работает
@@ -132,7 +134,7 @@ curl -X POST https://game.example.com/api/register \
 
 Всё сохранение всех игроков — это один файл SQLite по пути, указанному в
 `DB_PATH` (по умолчанию `/opt/embermarch-server/data/embermarch.sqlite`).
-Бэкапьте его как обычный файл (например, `cp` в архив по крону, или
+Путь на сервере по схеме выше — `/var/lib/embermarch/embermarch.sqlite`. Бэкапьте его как обычный файл (например, `cp` в архив по крону, или
 добавьте путь в существующую схему бэкапов сервера). Перед копированием «на горячую»
 рекомендуется `sqlite3 embermarch.sqlite ".backup backup.sqlite"`, чтобы не
 зацепить файл посреди записи (WAL-режим уже включён, что снижает риск, но

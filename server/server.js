@@ -25,6 +25,8 @@ const { attachSeasons } = require('./seasons');
 const { attachStatic, CLIENT_DIR } = require('./static');
 
 const PORT = parseInt(process.env.PORT, 10) || 4000;
+// Interface to listen on: the server sits behind a reverse proxy (Caddy/nginx), so localhost only by default.
+const HOST = process.env.HOST || '127.0.0.1';
 const JWT_SECRET = process.env.JWT_SECRET;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'embermarch.sqlite');
 // Extra origins allowed to call the API; the game's own origin is always allowed (see below).
@@ -506,8 +508,8 @@ const livePvp = attachLivePvp({
 });
 Object.assign(liveHooks, { kick: livePvp.kick, isOnline: livePvp.isOnline, stats: livePvp.stats });
 
-httpServer.listen(PORT, function () {
-  console.log('Embermarch server listening on port ' + PORT);
+httpServer.listen(PORT, HOST, function () {
+  console.log('Embermarch server listening on ' + HOST + ':' + PORT);
   console.log('Allowed CORS origins: ' + ALLOWED_ORIGINS.join(', '));
   console.log('SQLite DB: ' + DB_PATH);
   console.log('Game client: ' + CLIENT_DIR);

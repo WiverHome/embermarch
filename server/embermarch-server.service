@@ -1,22 +1,38 @@
 [Unit]
-Description=Embermarch accounts + save-progress server
+Description=Embermarch: game server (accounts, progress, arena)
 After=network.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
+# Own system user: sudo useradd --system --no-create-home --shell /usr/sbin/nologin embermarch
+User=embermarch
+Group=embermarch
 WorkingDirectory=/opt/embermarch-server
 ExecStart=/usr/bin/node /opt/embermarch-server/server.js
 Restart=on-failure
 RestartSec=3
+# .env: root:embermarch, mode 640. Set DB_PATH=/var/lib/embermarch/embermarch.sqlite
 EnvironmentFile=/opt/embermarch-server/.env
+Environment=NODE_ENV=production
+# /var/lib/embermarch is created and owned by the service user: the only writable place
+StateDirectory=embermarch
+StateDirectoryMode=0700
 
-# Basic hardening (safe defaults for a small self-contained Node service)
-NoNewPrivileges=true
-PrivateTmp=true
+# Hardening: code is read-only, no privileges, localhost/IPv4/IPv6 sockets only
+NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/opt/embermarch-server/data
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+MemoryMax=300M
 
 [Install]
 WantedBy=multi-user.target

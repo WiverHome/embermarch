@@ -12,6 +12,11 @@ if (!gameOrigin.startsWith('https://')) {
 }
 // offline=true: сервера игры нет, клиент сразу запускается гостем без аккаунтов и Арены
 def gameOffline = (gameProps.getProperty('offline') ?: 'false').trim().toBoolean()
+// legacyOrigin: прежний адрес сервера; сохранения из-под него один раз переносятся под gameOrigin
+def legacyOrigin = (gameProps.getProperty('legacyOrigin') ?: '').trim().replaceAll('/+$', '')
+if (legacyOrigin && !legacyOrigin.startsWith('https://')) {
+    throw new GradleException('android/game.properties: legacyOrigin должен начинаться с https://')
+}
 
 def keystoreProps = new Properties()
 def keystorePropsFile = rootProject.file('keystore.properties')
@@ -33,6 +38,7 @@ android {
         versionName appVersionName
         buildConfigField 'String', 'GAME_ORIGIN', "\"${gameOrigin}\""
         buildConfigField 'boolean', 'OFFLINE', "${gameOffline}"
+        buildConfigField 'String', 'LEGACY_ORIGIN', "\"${legacyOrigin}\""
     }
 
     buildFeatures {
