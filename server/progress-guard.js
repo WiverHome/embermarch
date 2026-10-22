@@ -36,9 +36,18 @@ const EMBER_RATE_PER_MIN = 6;
 // Lets several marches finished offline (or a long Endless run) sync at once.
 const EMBER_BUDGET_CAP = 300;
 // First upload into a fresh account (a guest's offline progress moving in on
-// registration, see onAuthSubmit): every upgrade plus a full budget; achievement
-// rewards are credited on top as usual.
-const NEW_ACCOUNT_EXTRA = EMBER_BUDGET_CAP;
+// registration, see onAuthSubmit): only what the marches in its history (the
+// client keeps the last 15) could have paid, plus this reserve; achievement
+// rewards are credited on top as usual, each needing its own march evidence.
+const NEW_ACCOUNT_EXTRA = 150;
+const START_HISTORY_MAX = 15;
+// Most one march can pay (js/render.js computeEmbers + js/util.js challenge
+// bonuses): a win pays 15 + 2 per cleared step + 3 per Ascension level, a
+// defeat at most 6 steps + 1.5 per level + 3 per Endless depth.
+const TOTAL_STEPS = 20;
+const ENDLESS_DEPTH_MAX = 200;
+const DAILY_BONUS = { win: 10, loss: 5 };
+const WEEKLY_BONUS = { win: 25, loss: 8 };
 const EMBERS_MAX = 10000000;
 const ASCENSION_MAX = 5;
 
@@ -97,28 +106,63 @@ function playedWin(e) {
 }
 function proofOf(e) { return obj(e.proof); }
 
-/* Rules: run(entries, wins, ctx) for an account with history on the server;
-   state(N, ctx) for the first upload of a fresh account, where only the
-   counters can be judged. An id missing here needs any fresh march entry. */
+// Start upload: the march history it carries is the only evidence (distinct
+// timestamps, none in the future, the latest START_HISTORY_MAX).
+function startEntries(N, now) {
+  const seen = {};
+  return historyOf(N).filter(function (e) {
+    const ts = num(e.ts);
+    if (ts <= 0 || ts > now + FUTURE_SLACK_MS || seen[ts]) return false;
+    seen[ts] = true;
+    return true;
+  }).sort(function (a, b) { return num(a.ts) - num(b.ts); }).slice(-START_HISTORY_MAX);
+}
+/* What a start upload's history can account for: embers (capped per march)
+   and the Ascension its wins opened. Oldest first, each played win opens one
+   more level (a weekly challenge runs at WEEKLY_ASCENSION for everyone). */
+function startEvidence(N, now) {
+  let unlocked = 0, embers = 0, prevWin = false;
+  // Endless March is only offered right after a won march and ends in the next entry.
+  const depthMax = intIn(N.bestEndlessDepth, 0, ENDLESS_DEPTH_MAX);
+  startEntries(N, now).forEach(function (e) {
+    const weekly = proofOf(e).weekly === true && num(e.ascension) === WEEKLY_ASCENSION;
+    const asc = weekly ? WEEKLY_ASCENSION : intIn(e.ascension, 0, unlocked);
+    const win = playedWin(e);
+    const depth = !win && prevWin ? Math.min(intIn(e.endlessDepth, 0, depthMax), intIn(obj(e.stats).battles, 0, ENDLESS_DEPTH_MAX)) : 0;
+    embers += entryEmbers(e, win, asc, depth);
+    if (win) unlocked = Math.min(ASCENSION_MAX, Math.max(unlocked, asc + 1));
+    prevWin = win;
+  });
+  return { embers: embers, maxAsc: unlocked };
+}
+
+// Embers a march entry may account for; asc is the Ascension already judged
+// plausible, depth the Endless depth. The history entry holds only the march
+// payout: a challenge bonus is paid on top of it (js/util.js), so it is added.
+function entryEmbers(e, win, asc, depth) {
+  const p = proofOf(e);
+  const kind = win ? 'win' : 'loss';
+  const cap = win ? 15 + 2 * TOTAL_STEPS + 3 * asc : 6 + Math.floor(1.5 * asc) + 3 * depth;
+  const bonus = p.weekly === true ? WEEKLY_BONUS[kind] : p.daily === true ? DAILY_BONUS[kind] : 0;
+  return Math.min(intIn(e.embers, 0, EMBERS_MAX), cap) + bonus;
+}
+
+/* Rules: run(entries, wins, ctx) judged on the march entries new in this save
+   (for the first upload of a fresh account: its whole recent history, see
+   startEntries). An id missing here needs any such march entry. */
 const ACH_RULES = {
-  first_win: { run: function (E, W) { return W.length > 0; }, state: function (N) { return num(N.wins) >= 1; } },
-  flawless: { run: function (E, W) { return W.some(function (e) { return proofOf(e).heroDied === false; }); }, state: function (N) { return num(N.wins) >= 1; } },
-  ascendant: { run: function (E, W, c) { return W.some(function (e) { return num(e.ascension) >= 2 && c.ascOk(e); }); }, state: function (N) { return num(N.ascensionUnlocked) >= 3; } },
-  high_ascension: { run: function (E, W, c) { return W.some(function (e) { return num(e.ascension) >= 4 && c.ascOk(e); }); }, state: function (N) { return num(N.ascensionUnlocked) >= 5; } },
+  first_win: { run: function (E, W) { return W.length > 0; } },
+  flawless: { run: function (E, W) { return W.some(function (e) { return proofOf(e).heroDied === false; }); } },
+  ascendant: { run: function (E, W, c) { return W.some(function (e) { return num(e.ascension) >= 2 && c.ascOk(e); }); } },
+  high_ascension: { run: function (E, W, c) { return W.some(function (e) { return num(e.ascension) >= 4 && c.ascOk(e); }); } },
   collector: { run: function (E) { return E.some(function (e) { return proofOf(e).relic === true; }); } },
   veteran: { run: function (E) { return E.some(function (e) { return num(obj(e.stats).maxLvl) >= 5; }); } },
   combo_master: { run: function (E) { return E.some(function (e) { return num(proofOf(e).combos) >= 3; }); } },
-  wanderer: {
-    run: function (E, W, c) { return c.dailyWins >= 3 && W.some(function (e) { return proofOf(e).daily === true; }); },
-    state: function (N, c) { return c.dailyWins >= 3; },
-  },
-  individualist: { run: function (E, W) { return W.some(function (e) { return e.hadCustom === true; }); }, state: function (N) { return num(N.wins) >= 1; } },
-  arcane_company: { run: function (E, W) { return W.some(function (e) { return partyAll(e, 'int'); }); }, state: function (N) { return num(N.wins) >= 1; } },
-  steel_company: { run: function (E, W) { return W.some(function (e) { return partyAll(e, 'str'); }); }, state: function (N) { return num(N.wins) >= 1; } },
-  into_eternity: {
-    run: function (E, W, c, N) { return num(N.bestEndlessDepth) >= 10 && E.some(function (e) { return num(e.endlessDepth) >= 10; }); },
-    state: function (N) { return num(N.bestEndlessDepth) >= 10; },
-  },
+  wanderer: { run: function (E, W, c) { return c.dailyWins >= 3 && W.some(function (e) { return proofOf(e).daily === true; }); } },
+  individualist: { run: function (E, W) { return W.some(function (e) { return e.hadCustom === true; }); } },
+  arcane_company: { run: function (E, W) { return W.some(function (e) { return partyAll(e, 'int'); }); } },
+  steel_company: { run: function (E, W) { return W.some(function (e) { return partyAll(e, 'str'); }); } },
+  into_eternity: { run: function (E, W, c, N) { return num(N.bestEndlessDepth) >= 10 && E.some(function (e) { return num(e.endlessDepth) >= 10; }); } },
   // Judged last (see verifyAchievements): an achievement-locked hero only counts
   // with its unlock achievement still standing, as the hero check below enforces.
   full_roster: { always: function (N, c) {
@@ -134,7 +178,6 @@ Object.keys(BOSS_ACHIEVEMENT).forEach(function (id) {
   const boss = BOSS_ACHIEVEMENT[id];
   ACH_RULES[id] = {
     run: function (E, W) { return W.some(function (e) { const b = proofOf(e).bosses; return Array.isArray(b) && b.indexOf(boss) !== -1; }); },
-    state: function (N) { return num(N.wins) >= 1; },
   };
 });
 // Party damage types: a known hero must match the server's own table; only a custom hero's type is taken as sent.
@@ -158,7 +201,7 @@ function verifyAchievements(S, N, now, prevAsc, lastSaveAt) {
     return ach[id] && !before[id] && Object.prototype.hasOwnProperty.call(DEFS.achievementReward, id);
   }).sort(function (a, b) { return (a === 'full_roster') - (b === 'full_roster'); });
   if (!claimed.length) return [];
-  const E = S ? newEntries(S, N, now, lastSaveAt) : [];
+  const E = S ? newEntries(S, N, now, lastSaveAt) : startEntries(N, now);
   const newWins = Math.max(0, Math.floor(num(N.wins)) - (S ? Math.floor(num(S.wins)) : 0));
   // Only as many fresh wins count as the wins counter grew by (latest first).
   const W = E.filter(playedWin).sort(function (a, b) { return num(b.ts) - num(a.ts); }).slice(0, newWins);
@@ -177,7 +220,6 @@ function verifyAchievements(S, N, now, prevAsc, lastSaveAt) {
     const rule = ACH_RULES[id] || {};
     let ok;
     if (rule.always) ok = rule.always(N, ctx);
-    else if (!S) ok = rule.state ? rule.state(N, ctx) : true;
     else ok = rule.run ? rule.run(E, W, ctx, N) : E.length > 0;
     if (ok) return;
     delete ach[id];
@@ -223,19 +265,23 @@ function attachProgressGuard(opts) {
    */
   function check(userId, stored, incoming, nowMs) {
     const now = nowMs || Date.now();
+    const row = q.get.get(userId);
     // Registration stores an empty progress row: nothing earned yet counts as new.
-    const S = stored && !isFresh(obj(stored)) ? obj(stored) : null;
+    // Only the very first checked save is a start upload (S null): once the guard
+    // has a row, an empty stored copy is judged like any other.
+    const S = row ? obj(stored) : (stored && !isFresh(obj(stored)) ? obj(stored) : null);
     const N = incoming;
     const details = [];
 
-    const row = q.get.get(userId);
     let budget, credited;
+    const start = S ? null : startEvidence(N, now);
     if (row) {
       budget = Math.min(EMBER_BUDGET_CAP, row.budget + Math.max(0, now - row.budget_at) / 60000 * EMBER_RATE_PER_MIN);
       try { credited = JSON.parse(row.credited); } catch (e) { credited = []; }
       if (!Array.isArray(credited)) credited = [];
     } else {
-      budget = S ? EMBER_BUDGET_CAP : upgradesCost(DEFS.upgradeMax) + NEW_ACCOUNT_EXTRA;
+      // Never more than the old flat allowance (every upgrade plus a full budget).
+      budget = S ? EMBER_BUDGET_CAP : Math.min(start.embers + NEW_ACCOUNT_EXTRA, upgradesCost(DEFS.upgradeMax) + EMBER_BUDGET_CAP);
       credited = S ? earnedAchievements(S) : [];
     }
 
@@ -284,6 +330,16 @@ function attachProgressGuard(opts) {
       budget = 0;
     }
 
+    // hoarder was judged on the wealth as sent: re-judged on what was kept.
+    const hoard = 'hoarder';
+    if (obj(N.achievements)[hoard] && !(S && obj(S.achievements)[hoard]) &&
+        !ACH_RULES[hoard].always(N)) {
+      delete N.achievements[hoard];
+      N.embers = Math.max(0, N.embers - num(DEFS.achievementReward[hoard]));
+      credited = credited.filter(function (id) { return id !== hoard; });
+      details.push('achievements ' + hoard);
+    }
+
     // Achievement-locked heroes need their achievement (same rule as the client's checkHeroUnlocks).
     const unlocked = obj(N.heroesUnlocked);
     const ach = obj(N.achievements);
@@ -294,7 +350,7 @@ function attachProgressGuard(opts) {
 
     // Ascension opens one step per win: never more than the new wins allow.
     const newWins = Math.max(0, Math.floor(num(N.wins)) - (S ? Math.floor(num(S.wins)) : 0));
-    const maxAsc = Math.min(ASCENSION_MAX, prevAsc + newWins);
+    const maxAsc = start ? start.maxAsc : Math.min(ASCENSION_MAX, prevAsc + newWins);
     const asc = intIn(N.ascensionUnlocked, 0, ASCENSION_MAX);
     if (asc > maxAsc) { details.push('ascension ' + asc + '>' + maxAsc); N.ascensionUnlocked = maxAsc; }
     else N.ascensionUnlocked = asc;

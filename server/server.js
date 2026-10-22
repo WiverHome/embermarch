@@ -36,8 +36,13 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
 // The one account allowed into the admin panel (admin.html / server/admin.js), by user id.
 const ADMIN_USER_ID = parseInt(process.env.ADMIN_USER_ID, 10) || null;
 
-if (!JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET is not set. Copy .env.example to .env and set a real secret.');
+// The secret signs every session and admin token: a short or template value would
+// let anyone forge them, so the server refuses to start with one.
+const JWT_SECRET_MIN_LEN = 32;
+if (!JWT_SECRET || JWT_SECRET.length < JWT_SECRET_MIN_LEN || /change-me/i.test(JWT_SECRET) ||
+    new Set(JWT_SECRET).size < 10) {
+  console.error('FATAL: JWT_SECRET is missing, shorter than ' + JWT_SECRET_MIN_LEN +
+    ' characters or a template value. Generate one: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
   process.exit(1);
 }
 
@@ -81,6 +86,14 @@ db.exec(`
     def_rating INTEGER NOT NULL,
     expires_at INTEGER NOT NULL
   );
+  -- Rated Arena results per pair of accounts (lo < hi user ids), for the daily
+  -- per-pair cap in live-pvp.js. Rows older than a day are purged as they go.
+  CREATE TABLE IF NOT EXISTS arena_pair_results (
+    lo INTEGER NOT NULL,
+    hi INTEGER NOT NULL,
+    at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS arena_pair_results_pair ON arena_pair_results (lo, hi, at);
 `);
 
 // Additive migrations for databases created before these columns existed.
@@ -127,6 +140,9 @@ const stmts = {
   purgeExpiredTokens: db.prepare('DELETE FROM arena_tokens WHERE expires_at <= ?'),
   openTokenFor: db.prepare('SELECT * FROM arena_tokens WHERE atk_user_id = ? AND expires_at > ? ORDER BY expires_at DESC LIMIT 1'),
   deleteToken: db.prepare('DELETE FROM arena_tokens WHERE jti = ?'),
+  countPairResults: db.prepare('SELECT COUNT(*) AS n FROM arena_pair_results WHERE lo = ? AND hi = ? AND at > ?'),
+  logPairResult: db.prepare('INSERT INTO arena_pair_results (lo, hi, at) VALUES (?, ?, ?)'),
+  purgePairResults: db.prepare('DELETE FROM arena_pair_results WHERE at <= ?'),
   getChampionWithUser: db.prepare(`
     SELECT c.user_id AS user_id, u.username AS username, c.name AS name, c.data_json AS data_json, c.rating AS rating
     FROM champions c JOIN users u ON u.id = c.user_id WHERE c.user_id = ?
@@ -136,11 +152,20 @@ const stmts = {
 // ---------- App ----------
 const app = express();
 app.disable('x-powered-by');
-// Behind nginx (see embermarch-nginx.conf): take the client IP from the one
-// X-Forwarded-For hop nginx adds, otherwise every rate limiter sees 127.0.0.1
-// and all players share a single bucket.
+// Behind a reverse proxy (Caddy or nginx): take the client IP from the one
+// X-Forwarded-For hop the proxy adds, otherwise every rate limiter sees 127.0.0.1
+// and all players share a single bucket. Caddy replaces a client-sent
+// X-Forwarded-For with the real address, so the last hop can't be spoofed.
 app.set('trust proxy', parseInt(process.env.TRUST_PROXY_HOPS, 10) >= 0 ? parseInt(process.env.TRUST_PROXY_HOPS, 10) : 1);
-app.use(express.json({ limit: '600kb' }));
+// Request bodies: small everywhere; the two progress uploads take up to 600 KB,
+// parsed only after the session check (and limiter) on those routes, so a
+// request with a bad token never costs a 600 KB parse.
+const LARGE_BODY_PATH = /^\/api\/(progress|admin\/users\/\d+\/progress)$/;
+const smallJson = express.json({ limit: '64kb' });
+const largeJson = express.json({ limit: '600kb' });
+app.use(function (req, res, next) {
+  return LARGE_BODY_PATH.test(req.path) ? next() : smallJson(req, res, next);
+});
 
 app.use(cors(function (req, cb) {
   const origin = req.headers.origin;
@@ -170,6 +195,8 @@ function err(res, status, message) {
 }
 
 // Auth endpoints get their own stricter limiter (brute force / spam registration, no email verification at all).
+// IPv6 addresses are grouped by their /56 network (express-rate-limit 8 default),
+// so one home connection can't rotate through its own addresses for fresh buckets.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -177,6 +204,31 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many attempts, please try again later.' },
 });
+
+// Per-account limiter for the routes a logged-in client calls on its own
+// (progress sync, leaderboard): the body may be up to 600 KB, so spamming them
+// is the cheapest way to load the server. Keyed by account, after requireAuth.
+const accountLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60, // the client debounces progress sync to one PUT per 1.5 s at most
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: function (req) { return 'u' + req.user.id; },
+  message: { error: 'Too many requests, slow down.' },
+});
+
+// bcrypt work in Express 4 handlers: async rejections aren't caught there, so
+// failures are answered here instead of hanging the request.
+function asyncRoute(fn) {
+  return function (req, res, next) {
+    Promise.resolve(fn(req, res, next)).catch(function (e) {
+      console.error(req.method + ' ' + req.path + ' failed: ' + e.message);
+      if (!res.headersSent) err(res, 500, 'Server error.');
+    });
+  };
+}
+
+const DUMMY_HASH = bcrypt.hashSync('embermarch-no-such-user', 10);
 
 function signToken(user) {
   return jwt.sign({ sub: user.id, username: user.username, tv: user.token_version || 0 }, JWT_SECRET, { expiresIn: '30d' });
@@ -206,7 +258,7 @@ app.get('/api/health', function (req, res) {
   res.json({ ok: true });
 });
 
-app.post('/api/register', authLimiter, function (req, res) {
+app.post('/api/register', authLimiter, asyncRoute(async function (req, res) {
   const username = (req.body && req.body.username || '').trim();
   const password = (req.body && req.body.password || '');
 
@@ -220,33 +272,33 @@ app.post('/api/register', authLimiter, function (req, res) {
     return err(res, 400, 'Password is too long.');
   }
 
-  const existing = stmts.findUserByName.get(username);
-  if (existing) return err(res, 409, 'That username is already taken.');
+  if (stmts.findUserByName.get(username)) return err(res, 409, 'That username is already taken.');
 
-  const hash = bcrypt.hashSync(password, 10);
+  const hash = await bcrypt.hash(password, 10);
+  // Re-checked after the await: a parallel request may have taken the name meanwhile.
+  if (stmts.findUserByName.get(username)) return err(res, 409, 'That username is already taken.');
   const info = stmts.insertUser.run(username, hash);
   const user = { id: info.lastInsertRowid, username: username };
   stmts.upsertProgress.run(user.id, JSON.stringify({}));
 
   const token = signToken(user);
   res.status(201).json({ token: token, username: user.username });
-});
+}));
 
-app.post('/api/login', authLimiter, function (req, res) {
+app.post('/api/login', authLimiter, asyncRoute(async function (req, res) {
   const username = (req.body && req.body.username || '').trim();
   const password = (req.body && req.body.password || '');
 
   const user = stmts.findUserByName.get(username);
-  // Generic error for both "no such user" and "wrong password" — never leak which one.
-  if (!user) return err(res, 401, 'Invalid username or password.');
-
-  const ok = bcrypt.compareSync(String(password), user.password_hash);
-  if (!ok) return err(res, 401, 'Invalid username or password.');
+  // Generic error for both "no such user" and "wrong password" — never leak which
+  // one, by timing either: an unknown name still costs one bcrypt comparison.
+  const ok = await bcrypt.compare(String(password), user ? user.password_hash : DUMMY_HASH);
+  if (!user || !ok) return err(res, 401, 'Invalid username or password.');
   if (user.banned) return err(res, 403, 'This account is banned.');
 
   const token = signToken(user);
   res.json({ token: token, username: user.username });
-});
+}));
 
 app.post('/api/logout', requireAuth, function (req, res) {
   // Tokens are stateless JWTs with a 30-day expiry; there is no server-side session to
@@ -261,14 +313,14 @@ app.post('/api/logout', requireAuth, function (req, res) {
 // the same way a stolen-but-logged-in session shouldn't be able to lock the real owner
 // out. Re-uses authLimiter since these are exactly as brute-forceable as login itself.
 
-app.put('/api/account/username', requireAuth, authLimiter, function (req, res) {
+app.put('/api/account/username', requireAuth, authLimiter, asyncRoute(async function (req, res) {
   const newUsername = (req.body && req.body.newUsername || '').trim();
   const password = (req.body && req.body.password || '');
 
   if (!USERNAME_RE.test(newUsername)) {
     return err(res, 400, 'Username must be 3-32 characters: letters, numbers, "_" or "-".');
   }
-  const ok = bcrypt.compareSync(String(password), req.user.password_hash);
+  const ok = await bcrypt.compare(String(password), req.user.password_hash);
   if (!ok) return err(res, 401, 'Incorrect password.');
 
   if (newUsername === req.user.username) {
@@ -283,13 +335,13 @@ app.put('/api/account/username', requireAuth, authLimiter, function (req, res) {
   const updatedUser = { id: req.user.id, username: newUsername, token_version: req.user.token_version };
   const token = signToken(updatedUser);
   res.json({ token: token, username: newUsername });
-});
+}));
 
-app.put('/api/account/password', requireAuth, authLimiter, function (req, res) {
+app.put('/api/account/password', requireAuth, authLimiter, asyncRoute(async function (req, res) {
   const currentPassword = (req.body && req.body.currentPassword || '');
   const newPassword = (req.body && req.body.newPassword || '');
 
-  const ok = bcrypt.compareSync(String(currentPassword), req.user.password_hash);
+  const ok = await bcrypt.compare(String(currentPassword), req.user.password_hash);
   if (!ok) return err(res, 401, 'Incorrect current password.');
 
   if (typeof newPassword !== 'string' || newPassword.length < PASSWORD_MIN_LEN) {
@@ -301,19 +353,19 @@ app.put('/api/account/password', requireAuth, authLimiter, function (req, res) {
 
   // Changing the password also ends every other session (token_version bump);
   // this device gets a fresh token back.
-  const hash = bcrypt.hashSync(newPassword, 10);
+  const hash = await bcrypt.hash(newPassword, 10);
   stmts.updatePasswordHash.run(hash, req.user.id);
   const fresh = stmts.findUserById.get(req.user.id);
   res.json({ ok: true, token: signToken(fresh), username: fresh.username });
-});
+}));
 
-app.get('/api/progress', requireAuth, function (req, res) {
+app.get('/api/progress', requireAuth, accountLimiter, function (req, res) {
   const row = stmts.getProgress.get(req.user.id);
   const data = row ? JSON.parse(row.data_json) : {};
   res.json(data);
 });
 
-app.put('/api/progress', requireAuth, function (req, res) {
+app.put('/api/progress', requireAuth, accountLimiter, largeJson, function (req, res) {
   const body = req.body;
   if (body === undefined || body === null || typeof body !== 'object' || Array.isArray(body)) {
     return err(res, 400, 'Body must be a JSON object.');
@@ -446,7 +498,7 @@ app.post('/api/arena/report', requireAuth, function (req, res) {
   return err(res, 410, 'Arena results are now decided by the server. Please reload the game.');
 });
 
-app.get('/api/arena/leaderboard', requireAuth, function (req, res) {
+app.get('/api/arena/leaderboard', requireAuth, accountLimiter, function (req, res) {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const rows = stmts.leaderboard.all(limit).map(function (r) {
     return Object.assign({}, r, { name: cleanText(r.name, CHAMPION_NAME_MAX_LEN) });
@@ -475,7 +527,7 @@ const liveHooks = {};
 attachAdmin({
   app: app, db: db, requireAuth: requireAuth, err: err, adminUserId: adminUserId, jwtSecret: JWT_SECRET,
   usernameRe: USERNAME_RE, passwordMinLen: PASSWORD_MIN_LEN, passwordMaxLen: PASSWORD_MAX_LEN,
-  progressMaxBytes: PROGRESS_MAX_BYTES, live: liveHooks, progressGuard: progressGuard,
+  progressMaxBytes: PROGRESS_MAX_BYTES, live: liveHooks, progressGuard: progressGuard, largeJson: largeJson,
 });
 
 // The game client itself (index.html, js/, audio/ ...): see static.js.
