@@ -413,16 +413,33 @@ function enemyAct(unit){
   setTimeout(advanceTurn,450);
 }
 
+/* Auto-battle healing: an ally near death gets the strongest single heal (Sanctuary),
+   two or more wounded allies get a group heal (Radiant Wave), otherwise the weakest
+   single heal (Mend) goes to the most hurt ally. */
+const AUTO_HEAL_TUNING={criticalPct:0.35,woundedPct:0.75,groupMin:2,hurtPct:0.6};
+function autoChooseHeal(heals){
+  const T=AUTO_HEAL_TUNING;
+  const allies=anyAlive(RUN.combat.party).sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);});
+  if(!allies.length)return null;
+  function strength(a){return (a.flat||0)+(a.mult||0)*10;}
+  const singles=heals.filter(function(a){return a.targets!=='all-ally';}).sort(function(a,b){return strength(a)-strength(b);});
+  const group=heals.find(function(a){return a.targets==='all-ally';});
+  const lowest=allies[0];
+  if(singles.length&&lowest.hp/lowest.maxHp<T.criticalPct)return {ability:singles[singles.length-1],target:lowest};
+  const wounded=allies.filter(function(a){return a.hp/a.maxHp<T.woundedPct;});
+  if(group&&wounded.length>=T.groupMin)return {ability:group,target:null};
+  if(lowest.hp/lowest.maxHp<T.hurtPct){
+    if(singles.length)return {ability:singles[0],target:lowest};
+    if(group)return {ability:group,target:null};
+  }
+  return null;
+}
 function autoChooseForHero(unit){
   const usableAbilities=unit.abilities.filter(function(a){return a.cdLeft<=0&&(!a.minLevel||(unit.level||1)>=a.minLevel)&&abilityHasTargets(a,unit);});
-  const healAbility=usableAbilities.find(function(a){return a.type==='heal';});
-  if(healAbility){
-    const allies=anyAlive(RUN.combat.party);
-    const hurt=allies.filter(function(a){return a.hp/a.maxHp<0.6;});
-    if(hurt.length){
-      const target=healAbility.targets==='all-ally'?null:hurt.sort(function(a,b){return (a.hp/a.maxHp)-(b.hp/b.maxHp);})[0];
-      return {ability:healAbility,target:target};
-    }
+  const heals=usableAbilities.filter(function(a){return a.type==='heal';});
+  if(heals.length){
+    const healChoice=autoChooseHeal(heals);
+    if(healChoice)return healChoice;
   }
   const dmgAbilities=usableAbilities.filter(function(a){return a.type==='damage';});
   if(!dmgAbilities.length)return null;
